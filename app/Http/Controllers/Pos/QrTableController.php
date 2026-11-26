@@ -35,6 +35,7 @@ class QrTableController extends Controller
             'token' => $token,
             'status' => $status,
             'property' => $session->property->name,
+            'logoUrl' => QrLogoController::urlFor($session),
             'outlet' => $outlet->name,
             'table' => $session->table->code,
             'currency' => CurrencyData::forProperty($session->property),

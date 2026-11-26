@@ -25,6 +25,7 @@ export default function ConciergeOverview({
     walkInEnabled,
     refundRequestsEnabled,
     locationCheckEnabled,
+    nameCheckInEnabled,
     testPaymentsEnabled,
     hasLocation,
     sections,
@@ -36,6 +37,7 @@ export default function ConciergeOverview({
     walkInEnabled: boolean;
     refundRequestsEnabled: boolean;
     locationCheckEnabled: boolean;
+    nameCheckInEnabled: boolean;
     testPaymentsEnabled: boolean;
     hasLocation: boolean;
     sections: Sections;
@@ -68,6 +70,7 @@ export default function ConciergeOverview({
                         walkInEnabled={walkInEnabled}
                         refundRequestsEnabled={refundRequestsEnabled}
                         locationCheckEnabled={locationCheckEnabled}
+                        nameCheckInEnabled={nameCheckInEnabled}
                         testPaymentsEnabled={testPaymentsEnabled}
                         hasLocation={hasLocation}
                     />

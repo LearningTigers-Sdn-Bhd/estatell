@@ -35,6 +35,7 @@ export default function ConciergeQuote({
     property,
     quote,
     nationalityRequired,
+    idPhotoRequired,
     identityKinds,
     genders,
     countries,
@@ -42,6 +43,7 @@ export default function ConciergeQuote({
     property: App.Data.Property.PropertySummaryData;
     quote: App.Data.Concierge.ConciergeQuoteData;
     nationalityRequired: boolean;
+    idPhotoRequired: boolean;
     identityKinds: EnumOption[];
     genders: EnumOption[];
     countries: EnumOption[];
@@ -127,6 +129,7 @@ export default function ConciergeQuote({
             </p>
             {showFull ? (
                 <IdentityStep
+                    photoRequired={idPhotoRequired}
                     action={book.url(route)}
                     nationalityRequired={nationalityRequired}
                     contact={contact}

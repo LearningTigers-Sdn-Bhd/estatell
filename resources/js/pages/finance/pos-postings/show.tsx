@@ -1,7 +1,9 @@
 import { Head, router, useForm } from '@inertiajs/react';
+import { BedDouble, Clock, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { MoneyText } from '@/components/pms/money-text';
 import { PageHeader } from '@/components/pms/page-header';
+import { StatCard } from '@/components/pms/stat-card';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -119,7 +121,7 @@ export default function PosPostingShow({
         <>
             <Head title={`POS receipt #${row.receiptNumber}`} />
 
-            <div className="flex flex-1 flex-col gap-6 p-4">
+            <div className="flex flex-1 flex-col gap-4 p-4">
                 <PageHeader
                     title={`Receipt #${row.receiptNumber}`}
                     description={`${row.outletName} · ${row.type}`}
@@ -133,42 +135,42 @@ export default function PosPostingShow({
                     </Alert>
                 )}
 
-                <div className="grid gap-4 lg:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-3">
+                    <StatCard
+                        icon={Wallet}
+                        label="Amount"
+                        value={
+                            <MoneyText
+                                amount={row.amount}
+                                currency={currency}
+                            />
+                        }
+                        hint={row.type}
+                    />
+                    <StatCard
+                        icon={BedDouble}
+                        label="Reservation"
+                        value={row.reference ?? '–'}
+                        hint={
+                            posting.folioLine === null
+                                ? 'Not on a folio'
+                                : `Folio line ${posting.folioLine}`
+                        }
+                    />
+                    <StatCard
+                        icon={Clock}
+                        label="Received"
+                        value={formatTimestamp(row.createdAt)}
+                        hint={row.outletName}
+                    />
+                </div>
+
+                <div className="grid items-start gap-4 lg:grid-cols-2">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Receipt</CardTitle>
+                            <CardTitle>Items</CardTitle>
                         </CardHeader>
                         <CardContent className="flex flex-col gap-4">
-                            <dl className="grid grid-cols-2 gap-2 text-sm">
-                                <dt className="text-muted-foreground">
-                                    Amount
-                                </dt>
-                                <dd>
-                                    <MoneyText
-                                        amount={row.amount}
-                                        currency={currency}
-                                    />
-                                </dd>
-                                <dt className="text-muted-foreground">
-                                    Reservation
-                                </dt>
-                                <dd>{row.reference ?? '—'}</dd>
-                                <dt className="text-muted-foreground">
-                                    Folio line
-                                </dt>
-                                <dd>{posting.folioLine ?? '—'}</dd>
-                                <dt className="text-muted-foreground">
-                                    Received
-                                </dt>
-                                <dd>
-                                    <time
-                                        dateTime={row.createdAt ?? undefined}
-                                        className="tabular-nums"
-                                    >
-                                        {formatTimestamp(row.createdAt)}
-                                    </time>
-                                </dd>
-                            </dl>
                             <Items payload={posting.rawPayload} />
                         </CardContent>
                     </Card>

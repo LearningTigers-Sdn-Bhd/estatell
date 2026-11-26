@@ -63,24 +63,24 @@ The admin suspension action stores the current status in `suspended_from_status`
 The property's identity, edited on the Details page, **Profile** tab (`/p/{code}/settings/profile`, `settings.manage`). It is the first tab, and the Details sidebar item opens it.
 
 ```
-┌ Profile ─────────────────────────────────────────────┐
-│ Logo        [img] [Replace] [Remove]   PNG/JPEG ≤1 MB│
-│ Name        [ Sandbay Resort                      ]  │
-│ Address     [ Lot 12, Jalan Pantai… ] [ line 2 ]     │
-│             [ Postcode ] [ City ] [ State ▾ ]        │
-│ Phone       [ +60 88 123 456 ]  Email [ stay@… ]     │
-│ About       [ A quiet beach resort in Pangkor…    ]  │
-│                                          [ Save ]    │
-└──────────────────────────────────────────────────────┘
+┌ Profile ────────────────────────────┬ Logo ─────────────┐
+│ Name   [ Sandbay Resort           ] │ ╭─────╮           │
+│ About  [ A quiet beach resort…    ] │ │ img │ hover:    │
+│ Type [ Resort ] Country [ Malaysia ]│ ╰─────╯ View Edit │
+│ Address [ Lot 12, Jalan Pantai… ]   │         Delete    │
+│         [ Postcode ] [ City ] [ ▾ ] │                   │
+│ Phone [ +60 88 123 456 ] Email […]  │ PNG/JPEG, square  │
+└─────────────────────────────────────┴───────────────────┘
+                 [ Discard ] [ Save ]   (floats while changed)
 ```
 
 - Fields: name, address, contact phone and email, and the About text (up to 3000 characters, empty clears it). The registered name, numbers and licences are on the [Business licence](#business-licence) tab. The name and address use the Basics rules (`SavePropertyBasicsRequest::identityRules()`).
-- The logo sits above the form. Fields are grouped into Property, Address and Contact, with About last. On desktop, postcode, city and state share one row; phone and email share another. Fields stack on mobile. One **Save profile** button saves everything.
-- Type and country are shown and locked. They seeded the currency, taxes and presets. Before Basics is complete, the tab links to Basics like the other tabs.
+- The logo sits in the right rail. Fields are grouped into Property (name, About, then type and country in one row), Address and Contact. On desktop, postcode, city and state share one row; phone and email share another. Fields stack on mobile, and the logo comes after the form. One **Save** in the floating bar saves everything.
+- Type and country are shown as disabled fields and are not sent on save. They seeded the currency, taxes and presets. Before Basics is complete, the tab links to Basics like the other tabs.
 - `UpdatePropertyProfile` (`app/Actions/Property/`) saves the fields and logs `property.updated` with the changed fields. A save that changes nothing is not logged. It does not change `document_prefix`.
 - Printed documents read these values through [Printing settings](05-printing-settings.md). Empty values show "Not set" there with a link back to this tab.
 
-The seven Details form tabs disable Save until a field changes. They reuse the shared unsaved-changes guard and dialog when leaving or switching tabs: Cancel, Discard or Save. Save leaves only after a successful response; validation errors keep the form open. Reloading or closing the browser tab shows the browser warning. A successful save clears the dirty state. Logo uploads remain separate and immediate.
+The Details page is a fixed-height `Workspace` like Settings › Concierge: each panel scrolls on its own, and only Profile has a right rail (28rem). The seven Details form tabs show **Discard** and **Save** in a floating bar only while a field has changed. They reuse the shared unsaved-changes guard and dialog when leaving or switching tabs: Cancel, Discard or Save. Save leaves only after a successful response; validation errors keep the form open. Reloading or closing the browser tab shows the browser warning. A successful save clears the dirty state. Logo uploads remain separate and immediate.
 
 ### Business licence
 
@@ -106,7 +106,10 @@ The legal details, on the Details page, **Business licence** tab (`/p/{code}/set
 ### Logo
 
 - A single-file `logo` media collection on Property, on the platform media disk (private). PNG or JPEG, up to 1 MB. SVG is refused because dompdf draws it poorly.
-- The logo uploads as soon as a file is picked. It is not part of Save.
+- On Settings › Property › Profile the tile sits in a profile card: a soft gradient in the app's primary colour, with the property name and "type · city, country" under it. The settings tile is a rounded square. Empty, it is an **Upload logo** button. With a logo, hover or focus shows **View**, **Edit** and **Delete** (always shown on touch screens). Delete asks first.
+- A picked image (PNG or JPEG, up to 10 MB in the browser) opens a crop dialog (`react-easy-crop`). The crop is square. The image always fills it: it cannot zoom out below 1 or move past its edges, so a saved logo has no empty space. **Edit** opens the current logo, with **Choose another image**.
+- Save crops in the browser to a square of at most 512 × 512 (`lib/crop-image.ts`) and uploads that file. A PNG keeps its transparency. The server's 1 MB limit applies to the cropped file. It is not part of the profile Save.
+- Logos uploaded before cropping existed can be wide. Every place that shows the logo fits it without cutting it.
 - `UploadPropertyLogo` replaces the file. `RemovePropertyLogo` deletes it. Each logs `property.updated` with `logo`.
 - `settings.logo` streams the file to staff with `settings.manage`, for the browser previews. PDFs embed the file as a data URI, read from its disk.
 - The staff navbar shows the uploaded logo in the square beside the property name. It falls back to the property's name initials when no logo exists or the image fails to load. `property.logo` streams the private logo to verified staff of that live property without requiring `settings.manage`. Upload and removal permissions stay unchanged. The guest registration screen can show it later. See [App shell](../design-system/09-app-shell.md).
@@ -142,8 +145,10 @@ The property's own photo album, on the Details page, **Photos** tab (`/p/{code}/
 | 20      | The photos and "20 of 20 photos", with no upload card                             |
 
 - A `photos` media collection on Property, on the public media disk (`MEDIA_PUBLIC_DISK`), because guests see the photos. Up to 20 photos, each with a `thumb` (400 px) and a `web` (1600 px) conversion. Each is JPEG, PNG or WebP, up to 5 MB.
+- Conversions: `thumb` (400 px) is made during the upload, so the grid shows it at once. `web` (1600 px) is queued on Horizon. Until it exists, every `url` (Data classes, booking API, `Property::heroUrl`) gives the original file through `getAvailableUrl(['web'])`. The same applies to room type photos and website image slots. Restart Horizon after a deploy, or `web` copies are not made.
+- Upload: `PhotoGrid` sends one photo per request through `uploadWithToast` (`lib/upload-with-toast.ts`). One progress toast shows "Uploading 3 of 8 · 45%" and a bar. It stops at the first refused photo and says how many were saved. Each photo logs its own `property.updated`.
 - The tab shares `PhotoGrid` (`components/pms/photo-grid.tsx`) with the room type Photos tab.
-- Each action saves at once, so the tab has no Save button. `UploadPropertyPhotos`, `ReorderPropertyPhotos` and `RemovePropertyPhoto` (`app/Actions/Property/`) each log `property.updated`, with `photos` or `photo_order` as the change.
+- Each action saves at once, so the tab has no Save button. `UploadPropertyPhotos`, `ReorderPropertyPhotos` and `RemovePropertyPhoto` (`app/Actions/Property/`) each log `property.updated`, with `photos` or `photo_order` as the change. An upload of several photos logs once per photo, because each is its own request.
 - The album does not depend on the booking website. It has no feature flag and the tab shows in both booking modes.
 - Onboarding does not ask for photos, and they are not on the [Recommended checklist](../17-onboarding/03-go-live.md#recommended-checklist). The [Booking website checklist](../29-booking-engine/07-settings-and-permissions.md#general) asks for them before publishing.
 - The booking engine API returns these photos on `properties/{code}`.

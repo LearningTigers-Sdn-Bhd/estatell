@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Pos\QrLogoController;
 use App\Http\Controllers\Pos\QrRoomController;
 use App\Http\Controllers\Pos\QrTableController;
 use Illuminate\Support\Facades\Route;
@@ -10,6 +11,8 @@ use Illuminate\Support\Facades\Route;
  * See docs/34-native-pos/06-kitchen-kds-and-qr.md.
  */
 Route::prefix('q')->name('qr.')->group(function () {
+    Route::get('logo/{token}', QrLogoController::class)->where('token', '[A-Za-z0-9]{32}')->middleware('throttle:60,1')->name('logo');
+
     Route::prefix('table/{token}')->where(['token' => '[A-Za-z0-9]{32}'])->name('table.')->group(function () {
         Route::get('/', [QrTableController::class, 'show'])->middleware('throttle:30,1')->name('show');
         Route::post('orders', [QrTableController::class, 'orders'])->middleware('throttle:10,15')->name('orders');

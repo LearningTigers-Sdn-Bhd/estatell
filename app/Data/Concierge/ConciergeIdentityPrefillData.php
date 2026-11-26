@@ -24,5 +24,6 @@ class ConciergeIdentityPrefillData extends Data
         public bool $hasName = false,
         public bool $hasPhone = false,
         public bool $hasEmail = false,
+        public bool $hasDocumentPhoto = false,
     ) {}
 }

@@ -23,6 +23,8 @@ class SavePosItemRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:140'],
+            // Only a new item sends its photo with the form. A saved item uploads it on its own.
+            'image' => ['nullable', ...UploadPosItemImageRequest::IMAGE_RULES],
             'pos_category_id' => ['required', 'integer'],
             'transaction_code_id' => ['nullable', 'integer'],
             'meal_period_id' => ['nullable', 'integer'],

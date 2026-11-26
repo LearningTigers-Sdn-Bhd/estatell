@@ -45,7 +45,7 @@ class BookingPropertyResource extends JsonResource
             'contact_phone' => $property->contact_phone,
             'contact_email' => $property->contact_email,
             'photos' => $property->getMedia(Property::PHOTOS)->map(fn (Media $photo): array => [
-                'url' => $photo->getUrl('web'),
+                'url' => $photo->getAvailableUrl(['web']),
                 'thumb_url' => $photo->getUrl('thumb'),
             ])->values()->all(),
             'about_text' => $property->about,

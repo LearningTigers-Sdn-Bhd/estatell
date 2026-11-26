@@ -365,7 +365,7 @@ export function PosCheckoutSheet({
             }
             errors={errors}
             processing={processing}
-            submitLabel="Complete payment"
+            submitLabel={total === 0 ? 'Settle check' : 'Complete payment'}
             submitDisabled={
                 (otherBills.length > 0 && !billsChecked) ||
                 Math.abs(remaining) > 0.005 ||
@@ -375,12 +375,55 @@ export function PosCheckoutSheet({
             onSubmit={submit}
         >
             <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-3 gap-2 rounded-xl border bg-muted/40 p-3 text-sm">
+                    <div className="flex flex-col gap-0.5">
+                        <span className="text-xs text-muted-foreground">
+                            Bill total
+                        </span>
+                        <span className="font-heading text-base font-semibold text-foreground tabular-nums">
+                            <MoneyText
+                                amount={order.grandTotal}
+                                currency={currency}
+                            />
+                        </span>
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                        <span className="text-xs text-muted-foreground">
+                            Allocated
+                        </span>
+                        <span className="font-heading text-base font-semibold text-foreground tabular-nums">
+                            <MoneyText
+                                amount={paid.toFixed(2)}
+                                currency={currency}
+                            />
+                        </span>
+                    </div>
+                    <div className="flex flex-col gap-0.5 text-right">
+                        <span className="text-xs text-muted-foreground">
+                            {remaining < -0.005 ? 'Overpaid' : 'Remaining'}
+                        </span>
+                        <span
+                            className={`font-heading text-base font-semibold tabular-nums ${
+                                Math.abs(remaining) <= 0.005
+                                    ? 'text-success'
+                                    : remaining < -0.005
+                                      ? 'text-destructive'
+                                      : 'text-foreground'
+                            }`}
+                        >
+                            <MoneyText
+                                amount={Math.abs(remaining).toFixed(2)}
+                                currency={currency}
+                            />
+                        </span>
+                    </div>
+                </div>
                 {otherBills.length > 0 && (
                     <div
                         role="alert"
-                        className="flex flex-col gap-2 rounded-lg border border-warning p-3"
+                        className="flex flex-col gap-2 rounded-lg border border-warning bg-warning/10 p-3"
                     >
-                        <p className="font-medium">
+                        <p className="font-medium text-warning-text">
                             This table has {otherBills.length + 1} open bills.
                         </p>
                         <ul className="flex flex-col gap-1 text-sm">
@@ -549,6 +592,7 @@ export function PosCheckoutSheet({
                                         type="button"
                                         variant="ghost"
                                         size="icon"
+                                        className="size-11"
                                         aria-label="Remove this payment"
                                         onClick={() =>
                                             setTenders((current) =>
@@ -558,7 +602,7 @@ export function PosCheckoutSheet({
                                             )
                                         }
                                     >
-                                        <Trash2 />
+                                        <Trash2 aria-hidden="true" />
                                     </Button>
                                 )}
                             </div>
@@ -640,13 +684,17 @@ export function PosCheckoutSheet({
                                         ))}
                                     </div>
                                     {change > 0 && (
-                                        <p className="text-lg font-semibold">
-                                            Change{' '}
-                                            <MoneyText
-                                                amount={change.toFixed(2)}
-                                                currency={currency}
-                                            />
-                                        </p>
+                                        <div className="mt-1 flex items-baseline justify-between gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2.5">
+                                            <span className="text-sm font-medium text-foreground">
+                                                Change due
+                                            </span>
+                                            <span className="font-heading text-xl font-semibold text-primary tabular-nums">
+                                                <MoneyText
+                                                    amount={change.toFixed(2)}
+                                                    currency={currency}
+                                                />
+                                            </span>
+                                        </div>
                                     )}
                                 </Field>
                             )}

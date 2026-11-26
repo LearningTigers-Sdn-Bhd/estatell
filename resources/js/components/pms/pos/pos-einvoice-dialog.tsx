@@ -10,6 +10,7 @@ import { FormOverlay } from '@/components/pms/form-overlay';
 import { Field, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { einvoice } from '@/routes/finance/pos-orders';
+import { unlessRefused } from './pos-unless-refused';
 
 /**
  * Issue an e-invoice for one walk-in sale to a named buyer (a bill over RM 10,000, or a diner who asks at the counter).
@@ -75,10 +76,10 @@ export function PosEInvoiceDialog({
             onSubmit={() =>
                 form.post(einvoice.url({ order: orderId }), {
                     preserveScroll: true,
-                    onSuccess: () => {
+                    onSuccess: unlessRefused(() => {
                         setKey((value) => value + 1);
                         onClose();
-                    },
+                    }),
                 })
             }
         >

@@ -13,18 +13,23 @@ import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { find, lobby } from '@/routes/concierge';
 
-/** The booking code box: a guest with a booking opens their stay here, to check in or to use the stay pages. */
+/** The booking code or name box: a guest with a booking opens their stay here, to check in or to use the stay pages. */
 export default function ConciergeFind({
     property,
     heroUrl,
     checkOut,
     checkInHref,
+    nameCheckIn,
 }: {
     property: App.Data.Property.PropertySummaryData;
     heroUrl: string | null;
     checkOut: boolean;
     checkInHref: string | null;
+    nameCheckIn: boolean;
 }) {
+    // Check out needs the booking code: a name never opens a stay that is already checked in.
+    const byName = nameCheckIn && !checkOut;
+
     return (
         <GuestFrame
             centerContent
@@ -36,7 +41,9 @@ export default function ConciergeFind({
             description={
                 checkOut
                     ? 'Enter the booking code from your confirmation to see your bill and check out.'
-                    : 'Enter the booking code from your confirmation. If you are already checked in, it opens your stay.'
+                    : byName
+                      ? 'Arriving today? Enter your booking code, or your full name as on the booking. Already checked in? Enter your booking code to open your stay.'
+                      : 'Enter the booking code from your confirmation. If you are already checked in, it opens your stay.'
             }
         >
             <div className="grid gap-8 lg:grid-cols-2 lg:gap-14">
@@ -81,15 +88,23 @@ export default function ConciergeFind({
                             <FieldGroup>
                                 <Field data-invalid={!!errors.reference}>
                                     <FieldLabel htmlFor="reference">
-                                        Booking code
+                                        {byName
+                                            ? 'Booking code or full name'
+                                            : 'Booking code'}
                                     </FieldLabel>
                                     <Input
                                         id="reference"
                                         name="reference"
-                                        placeholder="Enter booking number here"
+                                        placeholder={
+                                            byName
+                                                ? 'Enter booking code or full name'
+                                                : 'Enter booking code here'
+                                        }
                                         className="h-14 px-4 text-base md:text-lg"
                                         autoComplete="off"
-                                        autoCapitalize="characters"
+                                        autoCapitalize={
+                                            byName ? 'words' : 'characters'
+                                        }
                                         autoFocus
                                         required
                                         aria-invalid={!!errors.reference}

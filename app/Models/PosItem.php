@@ -10,6 +10,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Image\Enums\Fit;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * A menu item. Every item has at least one variant, which holds the price. Order lines copy names, prices and taxes at order time.
@@ -39,8 +43,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property CarbonImmutable|null $updated_at
  */
 #[Fillable(['pos_category_id', 'transaction_code_id', 'meal_period_id', 'name', 'internal_name', 'description', 'sku_prefix', 'price_includes_tax', 'service_charge_exempt', 'shared_stock_count', 'daily_shared_stock_reset', 'cooking_guide', 'sold_by_weight', 'weight_unit', 'weight_unit_divisor', 'is_combo', 'sort_order', 'active'])]
-class PosItem extends Model
+class PosItem extends Model implements HasMedia
 {
+    use InteractsWithMedia;
+
+    public const string IMAGE = 'pos_item_image';
+
     /** @use HasFactory<PosItemFactory> */
     use HasFactory;
 
@@ -112,5 +120,24 @@ class PosItem extends Model
     public function modifierGroups(): BelongsToMany
     {
         return $this->belongsToMany(PosModifierGroup::class, 'pos_item_modifier_group', 'pos_item_id', 'pos_modifier_group_id')->withPivot('sort_order');
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection(self::IMAGE)
+            ->singleFile()
+            ->acceptsMimeTypes(['image/png', 'image/jpeg', 'image/webp'])
+            ->useDisk(config('filesystems.public_media'));
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        $this->addMediaConversion('thumb')->performOnCollections(self::IMAGE)->nonQueued()->fit(Fit::Crop, 400, 400)->format('webp');
+    }
+
+    /** The square thumbnail of the item's photo, or null. Eager load `media` for a list. */
+    public function imageUrl(): ?string
+    {
+        return $this->getFirstMediaUrl(self::IMAGE, 'thumb') ?: null;
     }
 }

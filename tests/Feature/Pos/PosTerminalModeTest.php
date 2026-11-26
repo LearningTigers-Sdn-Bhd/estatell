@@ -1,10 +1,12 @@
 <?php
 
+use App\Features\Pos;
 use App\Models\PosStaffPin;
 use App\Models\PosTerminalDevice;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
+use Laravel\Pennant\Feature;
 
 require_once __DIR__.'/../Support/PosTerminalSetup.php';
 
@@ -29,6 +31,78 @@ it('locks the browser session to /pos and blocks the back office until the passw
 
     $this->actingAs($setup['manager'])->withSession(posTerminalSession())->get(route('account.profile.edit'))->assertForbidden();
     $this->actingAs($setup['manager'])->withSession(posTerminalSession())->post(route('settings.pos.devices.store', $code), ['name' => 'Till', 'pos_outlet_id' => $setup['outlet']->id])->assertForbidden();
+});
+
+it('links the locked error page to the POS, with or without a property in the URL', function () {
+    $setup = nativePosSetup();
+    $code = $setup['property']->code;
+
+    foreach ([route('dashboard', $code), route('home.redirect'), route('account.profile.edit')] as $url) {
+        $this->actingAs($setup['manager'])->withSession(posTerminalSession())->get($url)
+            ->assertForbidden()
+            ->assertInertia(fn ($page) => $page->component('errors')->where('leaveTerminalUrl', "/p/{$code}/pos"));
+    }
+});
+
+it('offers the way out when a locked browser without a registered till submits a PIN', function () {
+    $setup = nativePosSetup();
+    $code = $setup['property']->code;
+
+    $this->actingAs($setup['manager'])->withSession(posTerminalSession())
+        ->post(route('pos.pin.switch', $code), ['user_id' => $setup['cashier']->id, 'pin' => '1234'])
+        ->assertForbidden()
+        ->assertInertia(fn ($page) => $page->component('errors')->where('leaveTerminalUrl', "/p/{$code}/pos"));
+});
+
+it('keeps the launcher open for a PIN actor without pos.sell, so the terminal can still be left', function () {
+    $setup = nativePosSetup();
+    $kitchen = User::factory()->for($setup['property'])->withPermissions(['pos.kds'])->create();
+    PosStaffPin::factory()->withPin('123456')->create(['property_id' => $setup['property']->id, 'user_id' => $kitchen->id]);
+
+    $this->actingAs($setup['manager'])->withSession(posTerminalSession(['pos_active_actor_id' => $kitchen->id]))
+        ->get(route('pos.index', $setup['property']->code))
+        ->assertOk();
+});
+
+it('lets a signed-out registered till reach the sign-in page, and keeps the back office locked after signing in', function () {
+    $setup = nativePosSetup();
+    $till = fn () => $this->withCookie(PosTerminalDevice::COOKIE, $setup['token']);
+
+    $till()->get(route('login'))->assertOk();
+    $till()->get('/')->assertSuccessful();
+
+    $till()->actingAs($setup['manager'])->get(route('dashboard', $setup['property']->code))
+        ->assertForbidden()
+        ->assertInertia(fn ($page) => $page->component('errors')->where('leaveTerminalUrl', "/p/{$setup['property']->code}/pos"));
+});
+
+it('does not lock a registered till while the POS of its property is off', function () {
+    $setup = nativePosSetup();
+    Feature::for($setup['property'])->deactivate(Pos::class);
+
+    $this->actingAs($setup['manager'])->withCookie(PosTerminalDevice::COOKIE, $setup['token'])->get(route('dashboard', $setup['property']->code))->assertOk();
+});
+
+it('releases a Terminal Mode session when POS is turned off, and locks it again when POS is back on', function () {
+    $setup = nativePosSetup();
+    $code = $setup['property']->code;
+
+    $this->actingAs($setup['manager'])->post(route('pos.terminal-mode.enter', $code));
+    Feature::for($setup['property'])->deactivate(Pos::class);
+    $this->get(route('dashboard', $code))->assertOk();
+    $this->get(route('account.profile.edit'))->assertOk();
+
+    Feature::for($setup['property'])->activate(Pos::class);
+    $this->get(route('dashboard', $code))->assertForbidden();
+});
+
+it('follows the property where Terminal Mode started, not the signed-in user', function () {
+    $setup = nativePosSetup();
+    $other = nativePosSetup();
+    Feature::for($other['property'])->deactivate(Pos::class);
+
+    $this->actingAs($setup['manager'])->withSession(posTerminalSession(['pos_terminal_property_id' => $other['property']->id]))
+        ->get(route('account.profile.edit'))->assertOk();
 });
 
 it('lets a user without pos.sell not enter Terminal Mode', function () {

@@ -28,7 +28,8 @@ class BlockBackOfficeInTerminalMode
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->routeIs('pos.*', ...self::ALLOWED) && $this->terminal->isLocked($request)) {
+        // A guest has no back office to protect, and blocking them would leave a signed-out till unable to sign in.
+        if ($request->user() !== null && ! $request->routeIs('pos.*', ...self::ALLOWED) && $this->terminal->isLocked($request)) {
             abort(403, 'terminal_mode_locked');
         }
 

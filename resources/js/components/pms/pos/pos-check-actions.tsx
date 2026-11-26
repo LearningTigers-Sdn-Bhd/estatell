@@ -22,6 +22,7 @@ import {
 } from '@/routes/pos/orders';
 import { place, split as splitLine } from '@/routes/pos/orders/lines';
 import { qr as tableQr } from '@/routes/pos/tables';
+import { unlessRefused } from './pos-unless-refused';
 
 type Order = App.Data.Pos.PosOrderData;
 type Line = App.Data.Pos.PosOrderLineData;
@@ -96,12 +97,12 @@ export function PosCheckActionsDialog({
             preserveScroll: true,
             onStart: () => setBusy(true),
             onFinish: () => setBusy(false),
-            onSuccess: () => {
+            onSuccess: unlessRefused(() => {
                 setPicked([]);
                 if (closeAfter) {
                     onClose();
                 }
-            },
+            }),
         });
     };
 
@@ -203,7 +204,8 @@ export function PosCheckActionsDialog({
                                             }
                                         />
                                         <span className="truncate">
-                                            {line.quantity} × {line.itemName}
+                                            {Number(line.quantity)} ×{' '}
+                                            {line.itemName}
                                             {line.kitchenStatus === 'held' &&
                                                 ' · held'}
                                         </span>
@@ -328,7 +330,7 @@ export function PosCheckActionsDialog({
                                     name="split_line_id"
                                     options={splittable.map((line) => ({
                                         value: String(line.id),
-                                        label: `${line.quantity} × ${line.itemName}`,
+                                        label: `${Number(line.quantity)} × ${line.itemName}`,
                                     }))}
                                     value={splitLineId}
                                     onValueChange={setSplitLineId}

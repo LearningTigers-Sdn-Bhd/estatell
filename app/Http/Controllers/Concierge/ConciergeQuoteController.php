@@ -50,6 +50,7 @@ class ConciergeQuoteController extends Controller
             'property' => PropertySummaryData::fromModel($property, forGuest: true),
             'quote' => ConciergeQuoteData::fromQuote($conciergeQuote, $offer, $property->settings->currency),
             'nationalityRequired' => $fieldRules->nationalityIsNeededForTax($property),
+            'idPhotoRequired' => (bool) $property->settings?->concierge_name_check_in_enabled,
             'identityKinds' => [['value' => 'my_kad', 'label' => __('MyKad')], ['value' => 'passport', 'label' => __('Passport')]],
             'genders' => Gender::options(),
             'countries' => $countries->optionsWithMalaysiaFirst($locale?->value),

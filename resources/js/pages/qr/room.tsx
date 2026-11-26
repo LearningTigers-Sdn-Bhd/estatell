@@ -18,6 +18,7 @@ type Props = {
     status: 'active' | 'revoked' | 'expired' | 'locked';
     unlocked: boolean;
     property: string;
+    logoUrl: string | null;
     currency: App.Data.Property.CurrencyData | null;
     outlets: { id: number; name: string }[];
     outlet: { id: number; name: string } | null;
@@ -30,6 +31,7 @@ export default function QrRoom({
     status,
     unlocked,
     property,
+    logoUrl,
     currency,
     outlets,
     outlet,
@@ -39,10 +41,19 @@ export default function QrRoom({
     const unlockForm = useForm({ pin: '', last_name: '' });
     const [sending, setSending] = useState(false);
 
+    const logo = logoUrl !== null && (
+        <img
+            src={logoUrl}
+            alt={property}
+            className="mx-auto mt-4 h-12 max-w-full object-contain"
+        />
+    );
+
     if (status !== 'active') {
         return (
             <>
                 <Head title={property} />
+                {logo}
                 <Card className="m-4">
                     <CardHeader>
                         <CardTitle>Room ordering is closed</CardTitle>
@@ -61,6 +72,7 @@ export default function QrRoom({
         return (
             <>
                 <Head title={`${property} · Room dining`} />
+                {logo}
                 <Card className="m-4">
                     <CardHeader>
                         <CardTitle>Room dining</CardTitle>
@@ -142,6 +154,7 @@ export default function QrRoom({
     return (
         <>
             <Head title={`${property} · Room dining`} />
+            {logo}
             <nav className="flex gap-2 overflow-x-auto p-4">
                 {outlets.map((row) => (
                     <Link

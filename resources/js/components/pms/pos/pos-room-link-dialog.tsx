@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { inHouseGuests } from '@/routes/pos';
 import { room as attachRoomRoute } from '@/routes/pos/orders';
+import { unlessRefused } from './pos-unless-refused';
 
 export type InHouseGuest = {
     reservation_unit_id: number;
@@ -110,7 +111,7 @@ export function PosRoomLinkDialog({
                 preserveScroll: true,
                 onStart: () => setSaving(true),
                 onFinish: () => setSaving(false),
-                onSuccess: () => onClose(),
+                onSuccess: unlessRefused(onClose),
             },
         );
     }

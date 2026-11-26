@@ -25,6 +25,7 @@ use App\Models\PosOrderFolioLink;
 use App\Models\PosOrderLine;
 use App\Models\PosOrderPayment;
 use App\Models\PosOutletItem;
+use App\Models\PosShift;
 use App\Services\Folio\FolioBalance;
 use App\Services\Pos\PosShiftCashTotals;
 use Illuminate\Support\Str;
@@ -421,4 +422,15 @@ it('lets two refunds of the last item race and only one succeed', function () {
 
     expect($first->isRefused())->toBeFalse()->and($second->refusal)->toBe('exceeds_refundable_balance')
         ->and(PosOrderLine::query()->whereNotNull('refund_of_order_line_id')->count())->toBe(1);
+});
+
+it('books a refund on the shift that made the sale while it is open, not on the oldest open one', function () {
+    $s = posOrderSetup();
+    $later = PosShift::factory()->create(['property_id' => $s['property']->id, 'pos_outlet_id' => $s['outlet']->id, 'opened_by_user_id' => $s['manager']->id]);
+    $order = posSettledCash([...$s, 'shift' => $later], [$s['steak']]);
+
+    $result = posRefund($s, $order, [new PosRefundLineInputData($order->lines()->sole()->id, 1, false, false)]);
+
+    expect($result->refusal)->toBeNull()
+        ->and($result->model->pos_shift_id)->toBe($later->id);
 });

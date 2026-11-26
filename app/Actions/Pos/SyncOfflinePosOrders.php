@@ -4,6 +4,7 @@ namespace App\Actions\Pos;
 
 use App\Data\Pos\PosOrderLineInputData;
 use App\Data\Pos\PosTenderInputData;
+use App\Enums\PosKitchenStatus;
 use App\Enums\PosPricingType;
 use App\Enums\PosReconciliationStatus;
 use App\Enums\PosShiftStatus;
@@ -12,6 +13,7 @@ use App\Models\PosDiningOption;
 use App\Models\PosItemVariant;
 use App\Models\PosMenuSnapshot;
 use App\Models\PosOrder;
+use App\Models\PosOrderLine;
 use App\Models\PosOrderPayment;
 use App\Models\PosOutlet;
 use App\Models\PosOutletItem;
@@ -33,7 +35,8 @@ use Illuminate\Support\Facades\DB;
  */
 class SyncOfflinePosOrders
 {
-    public function __construct(private CreatePosOrder $createPosOrder, private AddOrderLine $addOrderLine, private SettlePosOrder $settlePosOrder) {}
+    public function __construct(
+        private BumpKitchenVersion $bumpKitchenVersion, private CreatePosOrder $createPosOrder, private AddOrderLine $addOrderLine, private SettlePosOrder $settlePosOrder) {}
 
     /**
      * @param  list<array{client_uuid: string, snapshot_version: string, shift_id: ?int, lines: list<array{variant_id: int, quantity: int}>, tenders: list<array{tender_type: string, amount: ?string, tendered_amount: ?string}>}>  $orders
@@ -155,6 +158,12 @@ class SyncOfflinePosOrders
         if ($settled->isRefused()) {
             throw new PosRefusedException((string) $settled->refusal);
         }
+
+        // The food was handed over while the till was offline, so a late sync must not ask the kitchen to cook it.
+        $posOrder->lines()->where('kitchen_status', PosKitchenStatus::Fired->value)->get()->each(function (PosOrderLine $line): void {
+            $line->forceFill(['kitchen_status' => PosKitchenStatus::Served])->save();
+            ($this->bumpKitchenVersion)($line->kitchenStation);
+        });
 
         PosOrderPayment::query()
             ->where('pos_order_id', $posOrder->id)

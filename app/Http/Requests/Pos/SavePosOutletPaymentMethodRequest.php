@@ -26,4 +26,14 @@ class SavePosOutletPaymentMethodRequest extends FormRequest
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:999'],
         ];
     }
+
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'payment_method_id' => __('payment method'),
+        ];
+    }
 }

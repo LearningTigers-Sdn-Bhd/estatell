@@ -13,6 +13,7 @@ use App\Http\Requests\Pos\ResolvePosPostingRequest;
 use App\Models\PosPosting;
 use App\Models\Property;
 use App\Services\Pos\InHouseGuestLookup;
+use App\Services\Pos\PosFinanceSummary;
 use App\Services\Pos\PosRefusalMessages;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -38,7 +39,7 @@ class PosPostingController extends Controller
             'status' => $status?->value,
             'statuses' => PosPostingStatus::options(),
             'currency' => CurrencyData::forProperty($property),
-            'pendingCount' => PosPosting::query()->where('property_id', $property->id)->where('status', PosPostingStatus::PendingReview)->count(),
+            'summary' => app(PosFinanceSummary::class)->postings($property),
         ]);
     }
 

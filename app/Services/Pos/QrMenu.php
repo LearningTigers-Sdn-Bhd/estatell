@@ -27,6 +27,7 @@ class QrMenu
                 $items[] = [
                     'id' => $item['id'],
                     'name' => $item['name'],
+                    'imageUrl' => $item['imageUrl'] ?? null,
                     'variants' => array_map(fn (array $variant): array => [
                         'id' => $variant['id'],
                         'name' => $variant['name'],

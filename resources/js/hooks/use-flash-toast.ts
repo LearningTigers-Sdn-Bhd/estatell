@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/react';
 import { useEffect } from 'react';
 import { toast } from '@/components/ui/toast';
+import { flashToastsHeld } from '@/lib/toast-progress';
 import type { FlashToast } from '@/types/ui';
 
 export function useFlashToast(): void {
@@ -9,7 +10,7 @@ export function useFlashToast(): void {
             const flash = (event as CustomEvent).detail?.flash;
             const data = flash?.toast as FlashToast | undefined;
 
-            if (!data) {
+            if (!data || flashToastsHeld()) {
                 return;
             }
 

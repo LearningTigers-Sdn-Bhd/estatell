@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Pos;
 
 use App\Actions\Pos\BumpKitchenOrder;
 use App\Actions\Pos\UpdateKitchenLineStatus;
+use App\Enums\PermissionEnum;
 use App\Enums\PosKitchenStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Pos\Concerns\RespondsToPos;
@@ -13,9 +14,12 @@ use App\Models\PosOrder;
 use App\Models\PosOrderLine;
 use App\Models\PosOutlet;
 use App\Models\Property;
+use App\Models\User;
 use App\Services\Pos\KitchenDisplay;
+use App\Services\Pos\PosTerminal;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -27,14 +31,14 @@ class PosKitchenController extends Controller
 {
     use RespondsToPos;
 
-    public function index(Property $property, KitchenDisplay $kitchenDisplay): Response
+    public function index(Request $request, Property $property, KitchenDisplay $kitchenDisplay, PosTerminal $terminal): Response
     {
-        return $this->display($property, null, $kitchenDisplay);
+        return $this->display($request, $property, null, $kitchenDisplay, $terminal);
     }
 
-    public function show(Property $property, int $station, KitchenDisplay $kitchenDisplay): Response
+    public function show(Request $request, Property $property, int $station, KitchenDisplay $kitchenDisplay, PosTerminal $terminal): Response
     {
-        return $this->display($property, $this->station($property, $station), $kitchenDisplay);
+        return $this->display($request, $property, $this->station($property, $station), $kitchenDisplay, $terminal);
     }
 
     public function version(Property $property, int $station, KitchenDisplay $kitchenDisplay): JsonResponse
@@ -76,8 +80,11 @@ class PosKitchenController extends Controller
         return response()->json(['version' => $kitchenDisplay->outletVersion($this->outlet($property, $outlet)->id)]);
     }
 
-    private function display(Property $property, ?PosKitchenStation $station, KitchenDisplay $kitchenDisplay): Response
+    private function display(Request $request, Property $property, ?PosKitchenStation $station, KitchenDisplay $kitchenDisplay, PosTerminal $terminal): Response
     {
+        $actor = $request->attributes->get('pos_actor');
+        $locked = $terminal->isLocked($request, $property);
+
         $stations = PosKitchenStation::query()
             ->where('property_id', $property->id)
             ->where('active', true)
@@ -89,8 +96,12 @@ class PosKitchenController extends Controller
             ->get();
 
         $station ??= $stations->first();
+        $station?->loadMissing('outlet');
 
         return Inertia::render('pos/kds', [
+            'locked' => $locked,
+            'canSell' => $actor instanceof User && $actor->checkPermissionTo(PermissionEnum::PosSell->value),
+            'canManageMenu' => ! $locked && $actor instanceof User && $actor->checkPermissionTo(PermissionEnum::PosMenu->value),
             'stations' => $stations->map(fn (PosKitchenStation $row): array => [
                 'id' => $row->id,
                 'name' => $row->name,
@@ -98,7 +109,14 @@ class PosKitchenController extends Controller
                 'warnAfterMinutes' => $row->warn_after_minutes,
                 'alertAfterMinutes' => $row->alert_after_minutes,
             ])->values()->all(),
-            'station' => $station === null ? null : ['id' => $station->id, 'outletId' => $station->pos_outlet_id, 'name' => $station->name, 'warnAfterMinutes' => $station->warn_after_minutes, 'alertAfterMinutes' => $station->alert_after_minutes],
+            'station' => $station === null ? null : [
+                'id' => $station->id,
+                'outletId' => $station->pos_outlet_id,
+                'outlet' => $station->outlet->name,
+                'name' => $station->name,
+                'warnAfterMinutes' => $station->warn_after_minutes,
+                'alertAfterMinutes' => $station->alert_after_minutes,
+            ],
             'version' => $station === null ? '0' : $kitchenDisplay->version($station->id),
             'tickets' => $station === null ? [] : $kitchenDisplay->tickets($station),
             'recallable' => $station === null ? [] : $kitchenDisplay->recallable($station),

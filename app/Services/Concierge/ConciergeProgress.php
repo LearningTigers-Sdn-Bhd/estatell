@@ -61,7 +61,7 @@ class ConciergeProgress
 
         $property = $stay->property;
 
-        if (! $guest->documents()->exists() || (blank($guest->nationality_code) && $this->fieldRules->nationalityIsNeededForTax($property))) {
+        if (! $guest->documents()->exists() || $this->concierge->idPhotoMissing($stay) || (blank($guest->nationality_code) && $this->fieldRules->nationalityIsNeededForTax($property))) {
             return ConciergeStep::Identity;
         }
 

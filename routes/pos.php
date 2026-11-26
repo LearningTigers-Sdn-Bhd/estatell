@@ -161,6 +161,8 @@ Route::middleware('pos')->group(function () {
         Route::post('staff-pins/{user}/revoke', [PosStaffPinController::class, 'revoke'])->whereNumber('user')->name('staff-pins.revoke');
         Route::post('staff-pins/{user}/invite', [PosStaffPinController::class, 'invite'])->whereNumber('user')->middleware('throttle:10,1')->name('staff-pins.invite');
         Route::get('staff-pins', [PosStaffSettingsController::class, 'index'])->name('staff-pins.index');
+        Route::get('staff-pins/terminals', [PosStaffSettingsController::class, 'terminals'])->name('staff-pins.terminals');
+        Route::get('staff-pins/void-reasons', [PosStaffSettingsController::class, 'voidReasons'])->name('staff-pins.void-reasons');
         Route::post('void-reasons', [PosStaffSettingsController::class, 'storeVoidReason'])->name('void-reasons.store');
         Route::put('void-reasons/{reason}', [PosStaffSettingsController::class, 'updateVoidReason'])->whereNumber('reason')->name('void-reasons.update');
         Route::get('outlets', [PosOutletSettingsController::class, 'index'])->name('outlets.index');
@@ -202,6 +204,8 @@ Route::middleware('pos')->group(function () {
         Route::put('categories/{category}', [PosMenuController::class, 'updateCategory'])->whereNumber('category')->name('categories.update');
         Route::post('items', [PosMenuController::class, 'storeItem'])->name('items.store');
         Route::put('items/{item}', [PosMenuController::class, 'updateItem'])->whereNumber('item')->name('items.update');
+        Route::post('items/{item}/image', [PosMenuController::class, 'storeItemImage'])->whereNumber('item')->name('items.image.store');
+        Route::delete('items/{item}/image', [PosMenuController::class, 'destroyItemImage'])->whereNumber('item')->name('items.image.destroy');
         Route::put('outlets/{outlet}/variants/{variant}', [PosMenuController::class, 'updateOutletItem'])->whereNumber(['outlet', 'variant'])->name('outlet-items.update');
         Route::get('schedules', [PosScheduleController::class, 'index'])->name('schedules.index');
         Route::post('outlets/{outlet}/schedules', [PosScheduleController::class, 'storeSchedule'])->whereNumber('outlet')->name('schedules.store');

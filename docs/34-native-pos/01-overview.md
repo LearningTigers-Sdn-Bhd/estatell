@@ -110,6 +110,10 @@ pos_time_clocks (Phase 2)
     - Entering `/pos` from a registered terminal device (or clicking **Launch Terminal Mode**) locks the browser session (`session('pos_terminal_locked') = true`) to an **explicit allowlist of `/pos/*` routes only** (`BlockBackOfficeInTerminalMode` rejects `/finance/*`, `/settings/*`, `/front-desk/*`, `/reports/*`, `/admin/*`, and `/account/*`). Requests to `/pos/pin/*` without a valid registered device cookie are refused (`403 terminal_device_not_registered`).
     - Non-terminal Front Desk staff who open `/pos` briefly from their own desktop browser without activating Terminal Mode keep their normal desktop access (and remain their own authenticated user; PIN switching is available ONLY in locked Terminal Mode!).
     - Leaving Terminal Mode requires **fresh full password/Fortify re-authentication**. Every cashier/waiter operation — including **Manager-PIN-approved refunds and open-shift tender swaps** — has its own `/pos/orders/{order}/refund` and `/pos/orders/{order}/change-payment` routes inside `/pos/*`!
+    - The lock applies to a signed-in user only. A signed-out till can reach the sign-in page; after sign-in the back office stays locked until a password-confirmed exit.
+    - Neither lock (Terminal Mode session or registered till) applies while the POS feature of its property is off, because every `/pos` route, the exit included, answers 404 then. A session lock follows the property where Terminal Mode started; a till follows the property it is registered to. Turning POS back on locks the browser again.
+    - Every 403 page on a locked browser (back office, unregistered or revoked till, PIN actor without the permission) replaces **Go home** and **Go back** with **Close terminal**, which opens `/pos`. It uses the property in the URL, or the signed-in user's property on `/`, `/dashboard` and `/account/*`.
+    - An unregistered browser shows no PIN pad. In Terminal Mode, `/pos` stays open to any PIN actor, with or without `pos.sell`, so the terminal can always be left.
 2. **Self-service PIN setup & runtime elevated-length enforcement**:
     - Staff set and change **their own** PIN under their authenticated account settings (managers with `pos.manage` can only **revoke/reset** another user's PIN, never set it).
     - **Length rule**: 4–6 digits for standard staff; **minimum 6 digits** for any user holding `pos.void`, `pos.refund`, `pos.discount`, or `pos.manage`. Enforced **both** when saving a PIN **and at runtime on every PIN verification** (`VerifyPosPin` / `VerifyPosApproval` checks: if the target user currently holds any elevated POS permission and `pin_length < 6`, immediately refuse with `pin_upgrade_required` — catching every permission grant path including `AssignOwnerRole`, `SyncPermissions`, `AssignStaffRole`, and `UpdateRolePermissions`!).
@@ -155,5 +159,9 @@ Defined in `app/Navigation/` (never hardcoded in React):
     - **POS Orders & Receipts** (`/p/{code}/finance/pos-orders`) (`pos.view`)
     - **POS Shifts** (`/p/{code}/finance/pos-shifts`) (`pos.reports`)
     - **POS Postings** (`/p/{code}/finance/pos-postings`) (`pos.view`, when `PosIntegration` is active)
-- **Settings area** → **POS** group (linked via `TabLinks`):
-    - Outlets (`pos.manage`, via `pos-any`), Menu & Modifiers (`pos.menu`), Dining Options (`pos.menu`), Registers & Void Reasons (`pos.manage`), Staff PINs (`pos.manage`), Floors & Tables (Phase 2), Kitchen & Hardware (Phase 3/4), Inventory & Recipes (Phase 3).
+- **POS area** (its own sidebar area, shown while the feature is on; see [App shell](../design-system/09-app-shell.md)):
+    - Live: POS register (`pos.sell`), Kitchen display (`pos.kds`).
+    - Menu: Menu, Modifiers, Schedules & combos, Dining options (`pos.menu`).
+    - Service: Meal check-in (`meals.redeem`), Floor plan, Kitchen stations (`pos.menu`).
+    - Inventory: Inventory & recipes (`pos.inventory`).
+    - Setup: Outlets, Registers & accounts, Staff & terminals, API access (`pos.manage`).

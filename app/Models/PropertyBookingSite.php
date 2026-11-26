@@ -94,6 +94,6 @@ class PropertyBookingSite extends Model implements HasMedia
     public function registerMediaConversions(?Media $media = null): void
     {
         $this->addMediaConversion('thumb')->performOnCollections(self::IMAGES)->nonQueued()->width(400);
-        $this->addMediaConversion('web')->performOnCollections(self::IMAGES)->nonQueued()->width(1600);
+        $this->addMediaConversion('web')->performOnCollections(self::IMAGES)->width(1600);
     }
 }

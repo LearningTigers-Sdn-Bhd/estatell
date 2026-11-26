@@ -16,8 +16,10 @@ import {
 } from '@dnd-kit/sortable';
 import { Form, router } from '@inertiajs/react';
 import { GripVertical, ImageIcon, Trash2, Upload } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
+import { PanelHeading } from '@/components/pms/panel-heading';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -31,6 +33,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FieldDescription, FieldError } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
+import { uploadWithToast } from '@/lib/upload-with-toast';
 
 type Photo = { id: number; name: string; thumbUrl: string };
 
@@ -119,6 +122,7 @@ export function PhotoGrid({
     uploadUrl,
     reorderUrl,
     removeForm,
+    icon,
 }: {
     title: string;
     description: string;
@@ -129,6 +133,8 @@ export function PhotoGrid({
     uploadUrl: string;
     reorderUrl: string;
     removeForm: (photoId: number) => { action: string; method: 'post' };
+    /** An icon box before the title, for a section inside a Workspace panel. */
+    icon?: LucideIcon;
 }) {
     const fileInput = useRef<HTMLInputElement>(null);
     const [uploading, setUploading] = useState(false);
@@ -152,27 +158,26 @@ export function PhotoGrid({
         }),
     );
 
-    const upload = (files: File[]) => {
+    const upload = async (files: File[]) => {
         setError(undefined);
-        router.post(
-            uploadUrl,
-            { photos: files },
-            {
-                forceFormData: true,
-                preserveScroll: true,
-                onStart: () => setUploading(true),
-                onSuccess: () => setOrder(null),
-                onError: (errors) =>
-                    setError(Object.values(errors)[0] ?? 'Upload failed.'),
-                onFinish: () => {
-                    setUploading(false);
+        setUploading(true);
 
-                    if (fileInput.current) {
-                        fileInput.current.value = '';
-                    }
-                },
-            },
-        );
+        const result = await uploadWithToast({
+            url: uploadUrl,
+            files,
+            field: 'photos',
+            asArray: true,
+            oneByOne: true,
+            noun: ['photo', 'photos'],
+        });
+
+        setOrder(null);
+        setError(result.error);
+        setUploading(false);
+
+        if (fileInput.current) {
+            fileInput.current.value = '';
+        }
     };
 
     const handleDragEnd = ({ active, over }: DragEndEvent) => {
@@ -224,16 +229,30 @@ export function PhotoGrid({
               .filter(Boolean)
               .join(' ');
 
+    const headerDescription = (
+        <>
+            {description}
+            {!readOnly &&
+                ` JPEG, PNG or WebP, up to ${photoMaxKb / 1024} MB each. Up to ${photoLimit} photos.`}
+        </>
+    );
+
     return (
         <section className="flex flex-col gap-5">
-            <header className="flex flex-col gap-1">
-                <h3 className="text-base font-medium">{title}</h3>
-                <p className="text-sm text-muted-foreground">
-                    {description}
-                    {!readOnly &&
-                        ` JPEG, PNG or WebP, up to ${photoMaxKb / 1024} MB each. Up to ${photoLimit} photos.`}
-                </p>
-            </header>
+            {icon ? (
+                <PanelHeading
+                    icon={icon}
+                    title={title}
+                    description={headerDescription}
+                />
+            ) : (
+                <header className="flex flex-col gap-1">
+                    <h3 className="text-base font-medium">{title}</h3>
+                    <p className="text-sm text-muted-foreground">
+                        {headerDescription}
+                    </p>
+                </header>
+            )}
             {!readOnly && (
                 <input
                     ref={fileInput}
@@ -246,7 +265,7 @@ export function PhotoGrid({
                         const files = Array.from(event.target.files ?? []);
 
                         if (files.length > 0) {
-                            upload(files);
+                            void upload(files);
                         }
                     }}
                 />

@@ -49,12 +49,14 @@ export default function ConciergeLobby({
     walkInEnabled,
     bookingUrl,
     aiChat,
+    nameCheckIn,
 }: {
     property: App.Data.Property.PropertySummaryData;
     walkInEnabled: boolean;
     bookingUrl: string | null;
     heroUrl: string | null;
     aiChat: boolean;
+    nameCheckIn: boolean;
 }) {
     const code = { property: property.code };
     const [savedStays, setSavedStays] = useState<SavedStay[]>([]);
@@ -181,9 +183,11 @@ export default function ConciergeLobby({
                                     Make yourself at home.
                                 </p>
                                 <p className="concierge-editorial-serif hidden max-w-md text-base leading-7 sm:text-lg lg:block">
-                                    Check in with your booking code, find useful
-                                    property information, and discover places
-                                    nearby. Your stay starts here.
+                                    Check in with your booking{' '}
+                                    {nameCheckIn ? 'code or name' : 'code'},
+                                    find useful property information, and
+                                    discover places nearby. Your stay starts
+                                    here.
                                 </p>
                             </div>
                             <div className="concierge-editorial-image concierge-editorial-image-right relative min-h-16! flex-1 overflow-hidden bg-muted lg:col-start-1 lg:row-start-2 lg:min-h-0!">

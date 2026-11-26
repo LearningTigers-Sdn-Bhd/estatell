@@ -279,6 +279,31 @@
     html {
         @apply font-sans;
     }
+
+    a[href],
+    button:not(:disabled):not([aria-disabled='true']),
+    summary,
+    select:not(:disabled),
+    label[for],
+    label:has(> input:is([type='checkbox'], [type='radio']):not(:disabled)),
+    input:is([type='checkbox'], [type='radio']):not(:disabled),
+    [role='button']:not([aria-disabled='true']),
+    [role='tab']:not([aria-disabled='true']),
+    [role='switch']:not([aria-disabled='true']) {
+        cursor: pointer;
+    }
+
+    :is(
+        button,
+        select,
+        input,
+        textarea,
+        [role='button'],
+        [role='tab'],
+        [role='switch']
+    ):is(:disabled, [aria-disabled='true']) {
+        cursor: not-allowed;
+    }
 }
 
 @layer components {
@@ -663,5 +688,17 @@ html:has(.concierge-editorial-shell) {
         padding: 8mm;
         background: #fff;
         color: #000;
+    }
+}
+
+/* The register keeps Send and Pay at the bottom right, so its toasts sit bottom left, and above the bar on a phone. */
+body:has([data-pos-register]) [data-slot='toast-viewport'] {
+    right: auto;
+    left: 1rem;
+}
+
+@media (max-width: 1023px) {
+    body:has([data-pos-register]) [data-slot='toast-viewport'] {
+        bottom: 6rem;
     }
 }

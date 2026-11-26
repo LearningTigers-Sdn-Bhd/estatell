@@ -1,6 +1,9 @@
 import { useForm } from '@inertiajs/react';
-import { Plus, Trash2 } from 'lucide-react';
+import { BadgeCheck, Plus, Save, ScrollText, Trash2 } from 'lucide-react';
+import { PanelHeading } from '@/components/pms/panel-heading';
 import { DatePicker } from '@/components/pms/date-picker';
+import { OptionalBadge } from '@/components/pms/optional-badge';
+import { SaveBar } from '@/components/pms/save-bar';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -109,17 +112,15 @@ export function BusinessLicenceForm({
     return (
         <form onSubmit={submit} className="flex flex-col gap-6">
             <section className="flex flex-col gap-5">
-                <header className="space-y-1">
-                    <h3 className="text-base font-medium">Business details</h3>
-                    <p className="text-sm text-muted-foreground">
-                        The registered business name and numbers. They can print
-                        on receipts, invoices and reports.
-                    </p>
-                </header>
+                <PanelHeading
+                    icon={BadgeCheck}
+                    title="Business details"
+                    description="The registered business name and numbers. They can print on receipts, invoices and reports."
+                />
                 <div className="grid gap-5 md:grid-cols-2">
                     <Field className="md:col-span-2">
                         <FieldLabel htmlFor="legal_name">
-                            Registered business name (optional)
+                            Registered business name <OptionalBadge />
                         </FieldLabel>
                         <Input
                             id="legal_name"
@@ -135,7 +136,7 @@ export function BusinessLicenceForm({
                     </Field>
                     <Field>
                         <FieldLabel htmlFor="registration_number">
-                            {`${business.registrationNumberLabel} (optional)`}
+                            {business.registrationNumberLabel} <OptionalBadge />
                         </FieldLabel>
                         <Input
                             id="registration_number"
@@ -154,7 +155,7 @@ export function BusinessLicenceForm({
                     </Field>
                     <Field>
                         <FieldLabel htmlFor="tin">
-                            {`${business.tinLabel} (optional)`}
+                            {business.tinLabel} <OptionalBadge />
                         </FieldLabel>
                         <Input
                             id="tin"
@@ -172,17 +173,14 @@ export function BusinessLicenceForm({
             </section>
 
             <section className="flex flex-col gap-5">
-                <header className="space-y-1">
-                    <h3 className="text-base font-medium">Licences</h3>
-                    <p className="text-sm text-muted-foreground">
-                        Business licences and registrations, for example a local
-                        council licence or a MOTAC registration. Tick Print to
-                        show a licence on documents.
-                    </p>
-                </header>
+                <PanelHeading
+                    icon={ScrollText}
+                    title="Licences"
+                    description="Business licences and registrations, for example a local council licence or a MOTAC registration. Tick Print to show a licence on documents."
+                />
 
                 {
-                    <div className="overflow-auto rounded-lg border">
+                    <div className="overflow-auto rounded-xl border">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -345,16 +343,30 @@ export function BusinessLicenceForm({
                 <FieldError>{errors.licences}</FieldError>
             </section>
 
-            <footer className="flex justify-end">
-                <Button
-                    type="submit"
-                    disabled={form.processing || !form.isDirty}
-                    focusableWhenDisabled
-                >
-                    {form.processing && <Spinner data-icon="inline-start" />}
-                    Save business details
-                </Button>
-            </footer>
+            {form.isDirty && (
+                <SaveBar
+                    name="Business details"
+                    processing={form.processing}
+                    onDiscard={() => {
+                        form.reset();
+                        form.clearErrors();
+                    }}
+                    saveButton={
+                        <Button
+                            type="submit"
+                            disabled={form.processing}
+                            focusableWhenDisabled
+                        >
+                            {form.processing ? (
+                                <Spinner data-icon="inline-start" />
+                            ) : (
+                                <Save data-icon="inline-start" />
+                            )}
+                            Save
+                        </Button>
+                    }
+                />
+            )}
             <UnsavedChangesDialog
                 guard={guard}
                 name="Business details"

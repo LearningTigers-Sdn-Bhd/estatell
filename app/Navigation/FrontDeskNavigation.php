@@ -9,7 +9,6 @@ use App\Enums\PropertyStatus;
 use App\Features\AiAssistant;
 use App\Features\Boats;
 use App\Features\Facilities;
-use App\Features\Pos;
 use App\Models\Property;
 use App\Models\User;
 use Laravel\Pennant\Feature;
@@ -112,24 +111,6 @@ class FrontDeskNavigation
                     href: route('rates.calendar', ['property' => $property->code], absolute: false),
                     icon: 'calendar-range',
                     active: request()->routeIs('rates.*'),
-                ) : null,
-                $user->can(PermissionEnum::PosSell->value) && Feature::for($property)->active(Pos::class) ? new NavItemData(
-                    title: __('POS register'),
-                    href: route('pos.index', ['property' => $property->code], absolute: false),
-                    icon: 'receipt',
-                    active: request()->routeIs('pos.*') && ! request()->routeIs('pos.kds.*', 'pos.ods.*'),
-                ) : null,
-                $user->can(PermissionEnum::PosKds->value) && Feature::for($property)->active(Pos::class) ? new NavItemData(
-                    title: __('Kitchen display'),
-                    href: route('pos.kds.index', ['property' => $property->code], absolute: false),
-                    icon: 'chef-hat',
-                    active: request()->routeIs('pos.kds.*', 'pos.ods.*'),
-                ) : null,
-                $user->can(PermissionEnum::MealsRedeem->value) && Feature::for($property)->active(Pos::class) ? new NavItemData(
-                    title: __('Meal check-in'),
-                    href: route('restaurant.meal-check-in.index', ['property' => $property->code], absolute: false),
-                    icon: 'utensils',
-                    active: request()->routeIs('restaurant.meal-check-in.*'),
                 ) : null,
                 $property->status === PropertyStatus::Live && $user->can(PermissionEnum::NightAuditRun->value) ? new NavItemData(
                     title: __('Run Night Audit'),

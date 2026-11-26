@@ -1,6 +1,14 @@
 import { router, useForm } from '@inertiajs/react';
-import { Monitor, Plus, ShieldAlert } from 'lucide-react';
-import { useState } from 'react';
+import {
+    KeyRound,
+    Mail,
+    Monitor,
+    Plus,
+    Search,
+    ShieldAlert,
+    X,
+} from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
@@ -11,6 +19,9 @@ import {
 } from '@/components/pms/pos/pos-settings-tabs';
 import { PosVoidReasonForm } from '@/components/pms/pos/pos-void-reason-form';
 import type { VoidReasonRow } from '@/components/pms/pos/pos-void-reason-form';
+import { StatusBadge } from '@/components/pms/status-badge';
+import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
+import type { TabLink } from '@/components/pms/tab-links';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -23,33 +34,32 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput,
+} from '@/components/ui/input-group';
+import { Kbd } from '@/components/ui/kbd';
+import { cn } from '@/lib/utils';
 import {
     revoke as revokeDevice,
     store as storeDevice,
 } from '@/routes/settings/pos/devices';
 import {
+    index as pinsTab,
     invite as invitePin,
     revoke as revokePin,
+    terminals as terminalsTab,
+    voidReasons as voidReasonsTab,
 } from '@/routes/settings/pos/staff-pins';
+import { unlessRefused } from '@/components/pms/pos/pos-unless-refused';
 
 type Props = {
+    tab: StaffTab;
+    counts: Counts;
     staff: { id: number; name: string; hasPin: boolean }[];
     devices: {
         id: number;
@@ -62,12 +72,112 @@ type Props = {
     voidReasons: VoidReasonRow[];
 };
 
+type StaffTab = 'pins' | 'terminals' | 'reasons';
+
+type Counts = {
+    staff: number;
+    pinsSet: number;
+    activeDevices: number;
+    voidReasons: number;
+};
+
+function countBadge(count: string, attention = false) {
+    return (
+        <Badge
+            variant="secondary"
+            className={cn(
+                'tabular-nums',
+                attention && 'bg-warning/15 text-warning-text',
+            )}
+        >
+            {count}
+        </Badge>
+    );
+}
+
+/** Each tab has its own URL, so it survives a refresh. Without counts (breadcrumbs) the badges are left out. */
+function staffTabs(counts?: Counts): TabLink[] {
+    const label = (text: string, count?: string, attention?: boolean) =>
+        count === undefined ? (
+            text
+        ) : (
+            <>
+                {text}
+                {countBadge(count, attention)}
+            </>
+        );
+
+    return [
+        {
+            value: 'pins',
+            title: 'Staff PINs',
+            label: label(
+                'Staff PINs',
+                counts && `${counts.pinsSet}/${counts.staff}`,
+                counts && counts.staff > 0 && counts.pinsSet === 0,
+            ),
+            icon: KeyRound,
+            href: pinsTab(),
+        },
+        {
+            value: 'terminals',
+            title: 'Terminals',
+            label: label(
+                'Terminals',
+                counts && String(counts.activeDevices),
+                counts && counts.activeDevices === 0,
+            ),
+            icon: Monitor,
+            href: terminalsTab(),
+        },
+        {
+            value: 'reasons',
+            title: 'Void reasons',
+            label: label('Void reasons', counts && String(counts.voidReasons)),
+            icon: ShieldAlert,
+            href: voidReasonsTab(),
+        },
+    ];
+}
+
+function initials(name: string): string {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+
+    if (parts.length === 0) {
+        return '?';
+    }
+
+    if (parts.length === 1) {
+        return parts[0].slice(0, 2).toUpperCase();
+    }
+
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+}
+
+function formatLastSeen(iso: string | null): string {
+    if (iso === null) {
+        return 'Never used';
+    }
+
+    return new Date(iso).toLocaleString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
 export default function PosStaffSettings({
+    tab,
+    counts,
     staff,
     devices,
     outlets,
     voidReasons,
 }: Props) {
+    const section = tab;
+    const [staffSearch, setStaffSearch] = useState('');
+    const [pinFilter, setPinFilter] = useState<'all' | 'set' | 'unset'>('all');
     const [device, setDevice] = useState(false);
     const [reason, setReason] = useState<{ row: VoidReasonRow | null } | null>(
         null,
@@ -77,55 +187,268 @@ export default function PosStaffSettings({
         description: string;
         url: string;
     } | null>(null);
+    const searchInputRef = useRef<HTMLInputElement>(null);
     const deviceForm = useForm({ name: '', pos_outlet_id: '' });
 
+    useEffect(() => {
+        const handleSlash = (event: KeyboardEvent) => {
+            if (
+                event.key !== '/' ||
+                event.metaKey ||
+                event.ctrlKey ||
+                event.altKey
+            ) {
+                return;
+            }
+
+            const target = event.target as HTMLElement | null;
+
+            if (
+                target &&
+                (target.tagName === 'INPUT' ||
+                    target.tagName === 'TEXTAREA' ||
+                    target.tagName === 'SELECT' ||
+                    target.isContentEditable)
+            ) {
+                return;
+            }
+
+            if (searchInputRef.current) {
+                event.preventDefault();
+                searchInputRef.current.focus();
+            }
+        };
+
+        window.addEventListener('keydown', handleSlash);
+
+        return () => window.removeEventListener('keydown', handleSlash);
+    }, []);
+
+    const pinsSetCount = counts.pinsSet;
+
+    const filteredStaff = useMemo(() => {
+        const needle = staffSearch.trim().toLocaleLowerCase();
+
+        return staff.filter((person) => {
+            if (pinFilter === 'set' && !person.hasPin) {
+                return false;
+            }
+
+            if (pinFilter === 'unset' && person.hasPin) {
+                return false;
+            }
+
+            if (needle === '') {
+                return true;
+            }
+
+            return person.name.toLocaleLowerCase().includes(needle);
+        });
+    }, [staff, pinFilter, staffSearch]);
+
+    const headerActions =
+        section === 'reasons' ? (
+            <Button
+                type="button"
+                className="max-sm:min-h-11"
+                onClick={() => setReason({ row: null })}
+            >
+                <Plus data-icon="inline-start" />
+                Add void reason
+            </Button>
+        ) : (
+            <Button
+                type="button"
+                variant={section === 'terminals' ? 'default' : 'outline'}
+                className="max-sm:min-h-11"
+                onClick={() => setDevice(true)}
+            >
+                {section === 'terminals' ? (
+                    <Plus data-icon="inline-start" />
+                ) : (
+                    <Monitor data-icon="inline-start" />
+                )}
+                Register this browser
+            </Button>
+        );
+
     return (
-        <PosSettingsShell activeTab="staff">
-            <div className="flex flex-col gap-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Staff PINs</CardTitle>
-                        <CardDescription>
-                            Staff set their own PIN under Account. Invite
-                            someone who has none to set it by email, or revoke a
-                            PIN that is known to others.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>PIN</TableHead>
-                                    <TableHead className="w-24">
-                                        <span className="sr-only">Actions</span>
-                                    </TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {staff.map((person) => (
-                                    <TableRow key={person.id}>
-                                        <TableCell className="font-medium">
-                                            {person.name}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge
-                                                variant={
+        <PosSettingsShell activeTab="staff" actions={headerActions}>
+            <TabLinks
+                tabs={staffTabs(counts)}
+                activeTab={tab}
+                panelWidth="full"
+                panelClassName="flex flex-col gap-4 pt-4"
+            >
+                {section === 'pins' && (
+                    <div className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-3 rounded-xl border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                            <InputGroup className="w-full sm:max-w-xs">
+                                <InputGroupAddon>
+                                    <Search aria-hidden />
+                                </InputGroupAddon>
+                                <InputGroupInput
+                                    ref={searchInputRef}
+                                    type="search"
+                                    aria-label="Search staff"
+                                    placeholder="Search staff name"
+                                    value={staffSearch}
+                                    onChange={(event) =>
+                                        setStaffSearch(event.target.value)
+                                    }
+                                />
+                                {staffSearch !== '' ? (
+                                    <InputGroupAddon align="inline-end">
+                                        <InputGroupButton
+                                            size="icon-xs"
+                                            aria-label="Clear staff search"
+                                            onClick={() => setStaffSearch('')}
+                                        >
+                                            <X />
+                                        </InputGroupButton>
+                                    </InputGroupAddon>
+                                ) : (
+                                    <InputGroupAddon
+                                        align="inline-end"
+                                        className="hidden sm:flex"
+                                    >
+                                        <Kbd>/</Kbd>
+                                    </InputGroupAddon>
+                                )}
+                            </InputGroup>
+
+                            <div
+                                role="group"
+                                aria-label="Filter staff by PIN status"
+                                className="flex flex-wrap items-center gap-1"
+                            >
+                                {(
+                                    [
+                                        {
+                                            value: 'all',
+                                            label: 'All',
+                                            count: staff.length,
+                                        },
+                                        {
+                                            value: 'set',
+                                            label: 'PIN set',
+                                            count: pinsSetCount,
+                                        },
+                                        {
+                                            value: 'unset',
+                                            label: 'Not set',
+                                            count: staff.length - pinsSetCount,
+                                        },
+                                    ] as const
+                                ).map((item) => (
+                                    <Button
+                                        key={item.value}
+                                        type="button"
+                                        size="xs"
+                                        variant={
+                                            pinFilter === item.value
+                                                ? 'secondary'
+                                                : 'ghost'
+                                        }
+                                        aria-pressed={pinFilter === item.value}
+                                        className="gap-1.5 tabular-nums"
+                                        onClick={() => setPinFilter(item.value)}
+                                    >
+                                        <span>{item.label}</span>
+                                        <span className="text-muted-foreground">
+                                            {item.count}
+                                        </span>
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <p className="flex items-center gap-2 px-1 text-xs text-muted-foreground">
+                            <KeyRound
+                                aria-hidden="true"
+                                className="size-3.5 shrink-0"
+                            />
+                            <span>
+                                Staff create their own PIN under Account, POS
+                                PIN. Send an email invite to prompt anyone
+                                without one, or revoke a PIN immediately if
+                                compromised.
+                            </span>
+                        </p>
+
+                        {filteredStaff.length === 0 ? (
+                            <div className="rounded-xl border bg-card p-8">
+                                <EmptyState
+                                    icon={Search}
+                                    title="No matching staff"
+                                    description="No staff member matches your current search or filter."
+                                    action={
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => {
+                                                setStaffSearch('');
+                                                setPinFilter('all');
+                                            }}
+                                        >
+                                            Clear filters
+                                        </Button>
+                                    }
+                                />
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                {filteredStaff.map((person) => (
+                                    <div
+                                        key={person.id}
+                                        className="flex flex-col justify-between gap-4 rounded-xl border bg-card p-4 transition-colors hover:bg-muted/20 motion-reduce:transition-none sm:flex-row sm:items-center"
+                                    >
+                                        <div className="flex min-w-0 items-center gap-3.5">
+                                            <span
+                                                className={cn(
+                                                    'flex size-11 shrink-0 items-center justify-center rounded-xl border font-heading text-xs font-bold',
                                                     person.hasPin
-                                                        ? 'secondary'
-                                                        : 'outline'
-                                                }
+                                                        ? 'border-success/30 bg-success/10 text-success'
+                                                        : 'border-border bg-muted/60 text-foreground',
+                                                )}
                                             >
-                                                {person.hasPin
-                                                    ? 'Set'
-                                                    : 'Not set'}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            {!person.hasPin && (
+                                                {initials(person.name)}
+                                            </span>
+                                            <div className="flex min-w-0 flex-col gap-1">
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <span className="truncate font-medium text-foreground">
+                                                        {person.name}
+                                                    </span>
+                                                    <StatusBadge
+                                                        status={{
+                                                            value: person.hasPin
+                                                                ? 'set'
+                                                                : 'unset',
+                                                            label: person.hasPin
+                                                                ? 'PIN set'
+                                                                : 'Not set',
+                                                            tone: person.hasPin
+                                                                ? 'success'
+                                                                : 'neutral',
+                                                        }}
+                                                    />
+                                                </div>
+                                                <span className="text-xs text-muted-foreground">
+                                                    {person.hasPin
+                                                        ? 'Ready for Terminal Mode sign-in.'
+                                                        : 'Invite by email to set a PIN.'}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex shrink-0 justify-end">
+                                            {!person.hasPin ? (
                                                 <Button
-                                                    variant="ghost"
+                                                    type="button"
+                                                    variant="outline"
                                                     size="sm"
+                                                    className="max-sm:min-h-11"
+                                                    aria-label={`Invite ${person.name} to set PIN`}
                                                     onClick={() =>
                                                         router.post(
                                                             invitePin.url({
@@ -138,13 +461,16 @@ export default function PosStaffSettings({
                                                         )
                                                     }
                                                 >
-                                                    Invite
+                                                    <Mail data-icon="inline-start" />
+                                                    Send invite
                                                 </Button>
-                                            )}
-                                            {person.hasPin && (
+                                            ) : (
                                                 <Button
-                                                    variant="ghost"
+                                                    type="button"
+                                                    variant="outline"
                                                     size="sm"
+                                                    className="max-sm:min-h-11"
+                                                    aria-label={`Revoke ${person.name}'s PIN`}
                                                     onClick={() =>
                                                         setConfirmRevoke({
                                                             title: `Revoke ${person.name}'s PIN?`,
@@ -156,202 +482,241 @@ export default function PosStaffSettings({
                                                         })
                                                     }
                                                 >
+                                                    Revoke PIN
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {section === 'terminals' && (
+                    <div className="flex flex-col gap-4">
+                        <p className="text-xs text-muted-foreground">
+                            Register each shared counter browser once so staff
+                            can lock the till and switch cashiers with their
+                            personal PIN.
+                        </p>
+
+                        {devices.length === 0 ? (
+                            <div className="rounded-xl border bg-card p-8">
+                                <EmptyState
+                                    icon={Monitor}
+                                    title="No registered terminals"
+                                    description="Use Register this browser above on a counter device before entering Terminal Mode."
+                                />
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                {devices.map((row) => (
+                                    <div
+                                        key={row.id}
+                                        className="flex flex-col justify-between gap-4 rounded-xl border bg-card p-4"
+                                    >
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="flex min-w-0 items-center gap-3">
+                                                <span
+                                                    className={cn(
+                                                        'flex size-10 shrink-0 items-center justify-center rounded-xl border',
+                                                        row.revoked
+                                                            ? 'border-border bg-muted/40 text-muted-foreground'
+                                                            : 'border-success/30 bg-success/10 text-success',
+                                                    )}
+                                                >
+                                                    <Monitor
+                                                        aria-hidden="true"
+                                                        className="size-4"
+                                                    />
+                                                </span>
+                                                <div className="flex min-w-0 flex-col gap-0.5">
+                                                    <span className="truncate font-heading text-sm font-semibold text-foreground">
+                                                        {row.name}
+                                                    </span>
+                                                    <span className="truncate text-xs text-muted-foreground">
+                                                        {row.outlet}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <StatusBadge
+                                                status={{
+                                                    value: row.revoked
+                                                        ? 'revoked'
+                                                        : 'active',
+                                                    label: row.revoked
+                                                        ? 'Revoked'
+                                                        : 'Active',
+                                                    tone: row.revoked
+                                                        ? 'neutral'
+                                                        : 'success',
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div className="flex items-center justify-between gap-2 border-t pt-3">
+                                            <span className="text-xs text-muted-foreground tabular-nums">
+                                                Last seen:{' '}
+                                                {formatLastSeen(row.lastSeenAt)}
+                                            </span>
+                                            {!row.revoked && (
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="xs"
+                                                    className="max-sm:min-h-11"
+                                                    aria-label={`Revoke terminal ${row.name}`}
+                                                    onClick={() =>
+                                                        setConfirmRevoke({
+                                                            title: `Revoke terminal ${row.name}?`,
+                                                            description:
+                                                                'Staff will no longer be able to sign in with a PIN on this browser.',
+                                                            url: revokeDevice.url(
+                                                                {
+                                                                    device: row.id,
+                                                                },
+                                                            ),
+                                                        })
+                                                    }
+                                                >
                                                     Revoke
                                                 </Button>
                                             )}
-                                        </TableCell>
-                                    </TableRow>
+                                        </div>
+                                    </div>
                                 ))}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
+                            </div>
+                        )}
+                    </div>
+                )}
 
-                <Card>
-                    <CardHeader className="flex flex-row items-start justify-between gap-4">
-                        <div className="flex flex-col gap-1">
-                            <CardTitle>Terminals</CardTitle>
-                            <CardDescription>
-                                Register this browser as a till to let staff
-                                sign in with a PIN.
-                            </CardDescription>
-                        </div>
-                        <Button onClick={() => setDevice(true)}>
-                            <Plus data-icon="inline-start" />
-                            Register this browser
-                        </Button>
-                    </CardHeader>
-                    <CardContent>
-                        {devices.length === 0 ? (
-                            <EmptyState
-                                icon={Monitor}
-                                title="No registered terminals"
-                                description="Register a till browser here before entering Terminal Mode."
-                            />
+                {section === 'reasons' && (
+                    <div className="flex flex-col gap-4">
+                        <p className="text-xs text-muted-foreground">
+                            Cashiers select one of these reasons whenever they
+                            void a fired dish or cancel an open check.
+                        </p>
+
+                        {voidReasons.length === 0 ? (
+                            <div className="rounded-xl border bg-card p-8">
+                                <EmptyState
+                                    icon={ShieldAlert}
+                                    title="No void reasons yet"
+                                    description="Use Add void reason above to add options such as Kitchen error, Guest changed mind, or Out of stock."
+                                />
+                            </div>
                         ) : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Outlet</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="w-24">
-                                            <span className="sr-only">
-                                                Actions
+                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                {voidReasons.map((row) => (
+                                    <div
+                                        key={row.id}
+                                        className="flex flex-col justify-between gap-4 rounded-xl border bg-card p-4 sm:flex-row sm:items-center"
+                                    >
+                                        <div className="flex min-w-0 items-center gap-3.5">
+                                            <span
+                                                className={cn(
+                                                    'flex size-10 shrink-0 items-center justify-center rounded-xl border',
+                                                    !row.active
+                                                        ? 'border-border bg-muted/40 text-muted-foreground'
+                                                        : row.requires_manager_pin
+                                                          ? 'border-warning/40 bg-warning/10 text-warning-text'
+                                                          : 'border-border bg-muted/60 text-foreground',
+                                                )}
+                                            >
+                                                <ShieldAlert
+                                                    aria-hidden="true"
+                                                    className="size-4"
+                                                />
                                             </span>
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {devices.map((row) => (
-                                        <TableRow key={row.id}>
-                                            <TableCell className="font-medium">
-                                                {row.name}
-                                            </TableCell>
-                                            <TableCell>{row.outlet}</TableCell>
-                                            <TableCell>
-                                                <Badge
-                                                    variant={
-                                                        row.revoked
-                                                            ? 'outline'
-                                                            : 'secondary'
-                                                    }
-                                                >
-                                                    {row.revoked
-                                                        ? 'Revoked'
-                                                        : 'Active'}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                {!row.revoked && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            setConfirmRevoke({
-                                                                title: `Revoke terminal ${row.name}?`,
-                                                                description:
-                                                                    'Staff will no longer be able to sign in with a PIN on this browser.',
-                                                                url: revokeDevice.url(
-                                                                    {
-                                                                        device: row.id,
-                                                                    },
-                                                                ),
-                                                            })
+                                            <div className="flex min-w-0 flex-col gap-1">
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <span className="truncate font-medium text-foreground">
+                                                        {row.label}
+                                                    </span>
+                                                    <StatusBadge
+                                                        status={{
+                                                            value: row.active
+                                                                ? 'active'
+                                                                : 'inactive',
+                                                            label: row.active
+                                                                ? 'Active'
+                                                                : 'Inactive',
+                                                            tone: row.active
+                                                                ? 'success'
+                                                                : 'neutral',
+                                                        }}
+                                                    />
+                                                </div>
+                                                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                                    <Badge
+                                                        variant="secondary"
+                                                        className={
+                                                            row.requires_manager_pin
+                                                                ? 'bg-warning/10 text-warning-text'
+                                                                : 'bg-muted text-muted-foreground'
                                                         }
                                                     >
-                                                        Revoke
-                                                    </Button>
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        )}
-                    </CardContent>
-                </Card>
+                                                        {row.requires_manager_pin
+                                                            ? 'Manager PIN required'
+                                                            : 'Cashier allowed'}
+                                                    </Badge>
+                                                    <span>
+                                                        {row.default_return_stock
+                                                            ? 'Returns stock'
+                                                            : 'Writes off stock'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
 
-                <Card>
-                    <CardHeader className="flex flex-row items-start justify-between gap-4">
-                        <div className="flex flex-col gap-1">
-                            <CardTitle>Void reasons</CardTitle>
-                            <CardDescription>
-                                What a cashier picks when a sent line or an
-                                order is voided.
-                            </CardDescription>
-                        </div>
-                        <Button onClick={() => setReason({ row: null })}>
-                            <Plus data-icon="inline-start" />
-                            Add reason
-                        </Button>
-                    </CardHeader>
-                    <CardContent>
-                        {voidReasons.length === 0 ? (
-                            <EmptyState
-                                icon={ShieldAlert}
-                                title="No void reasons yet"
-                                description="Add reasons such as Kitchen error, Guest changed mind, or Out of stock."
-                            />
-                        ) : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Reason</TableHead>
-                                        <TableHead>Manager PIN</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="w-20">
-                                            <span className="sr-only">
-                                                Actions
-                                            </span>
-                                        </TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {voidReasons.map((row) => (
-                                        <TableRow key={row.id}>
-                                            <TableCell className="font-medium">
-                                                {row.label}
-                                            </TableCell>
-                                            <TableCell className="text-muted-foreground">
-                                                {row.requires_manager_pin
-                                                    ? 'Required'
-                                                    : 'Optional'}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge
-                                                    variant={
-                                                        row.active
-                                                            ? 'secondary'
-                                                            : 'outline'
-                                                    }
-                                                >
-                                                    {row.active
-                                                        ? 'Active'
-                                                        : 'Inactive'}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() =>
-                                                        setReason({ row })
-                                                    }
-                                                >
-                                                    Edit
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                                        <div className="flex shrink-0 justify-end">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="max-sm:min-h-11"
+                                                aria-label={`Edit ${row.label}`}
+                                                onClick={() =>
+                                                    setReason({ row })
+                                                }
+                                            >
+                                                Edit
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         )}
-                    </CardContent>
-                </Card>
-            </div>
+                    </div>
+                )}
+            </TabLinks>
 
             <FormOverlay
                 variant="dialog"
                 open={device}
                 onOpenChange={setDevice}
                 title="Register this browser"
-                description="Give the till a name and pick its outlet."
+                description="Pair this browser with an outlet so staff can sign in and switch cashiers with a PIN in Terminal Mode."
                 errors={deviceForm.errors}
                 processing={deviceForm.processing}
-                submitLabel="Register"
+                submitLabel="Register terminal"
                 onSubmit={() =>
                     deviceForm.post(storeDevice.url(), {
                         preserveScroll: true,
-                        onSuccess: () => setDevice(false),
+                        onSuccess: unlessRefused(() => {
+                            setDevice(false);
+                            deviceForm.reset();
+                        }),
                     })
                 }
             >
                 <Field data-invalid={!!deviceForm.errors.name}>
-                    <FieldLabel htmlFor="device-name">Name</FieldLabel>
+                    <FieldLabel htmlFor="device-name">Terminal name</FieldLabel>
                     <Input
                         id="device-name"
                         maxLength={80}
+                        placeholder="e.g. Front Counter iPad"
                         value={deviceForm.data.name}
                         onChange={(event) =>
                             deviceForm.setData('name', event.target.value)
@@ -424,6 +789,10 @@ export default function PosStaffSettings({
     );
 }
 
-PosStaffSettings.layout = {
-    breadcrumbs: posSettingsBreadcrumbs('staff'),
-};
+PosStaffSettings.layout = (props: { tab: StaffTab }) => ({
+    breadcrumbs: withTabCrumb(
+        posSettingsBreadcrumbs('staff'),
+        staffTabs(),
+        props.tab,
+    ),
+});

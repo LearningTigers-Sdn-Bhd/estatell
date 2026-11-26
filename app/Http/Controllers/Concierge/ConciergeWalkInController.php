@@ -79,6 +79,7 @@ class ConciergeWalkInController extends Controller
             'offer' => ConciergeOfferData::fromOffer($offer),
             'booking' => $this->booking($request),
             'nationalityRequired' => $fieldRules->nationalityIsNeededForTax($property),
+            'idPhotoRequired' => (bool) $property->settings->concierge_name_check_in_enabled,
             'identityKinds' => [['value' => 'my_kad', 'label' => __('MyKad')], ['value' => 'passport', 'label' => __('Passport')]],
             'genders' => Gender::options(),
             'countries' => $countries->optionsWithMalaysiaFirst($locale?->value),

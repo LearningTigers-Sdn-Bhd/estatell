@@ -48,32 +48,33 @@ Loaded from `routes/native-pos.php` under `/p/{property:code}` with `EnsurePrope
 
 ### 2. Finance & Back-Office POS (non-terminal back-office session only — blocked in Terminal Mode)
 
-| Method & URL                                      | Route name                          | Permission        | Purpose                                                                                   |
-| ------------------------------------------------- | ----------------------------------- | ----------------- | ----------------------------------------------------------------------------------------- |
-| `GET /finance/pos-orders`                         | `finance.pos-orders.index`          | `pos.view`        | Paginated settled/voided/refunded receipt index                                           |
-| `GET /finance/pos-orders/{order}`                 | `finance.pos-orders.show`           | `pos.view`        | Receipt detail, tax breakdown, folio/e-invoice links, reprint                             |
-| `POST /finance/pos-orders/{order}/refund`         | `finance.pos-orders.refund`         | `pos.refund`      | Back-office refund (`RefundPosOrder`)                                                     |
-| `POST /finance/pos-orders/{order}/change-payment` | `finance.pos-orders.change-payment` | `pos.refund`      | Back-office open-shift & open-date tender swap (Phase 2)                                  |
-| `POST /finance/pos-orders/{order}/einvoice`       | `finance.pos-orders.einvoice`       | `einvoice.manage` | Phase-1 staff individual LHDN e-Invoice issuance (for >RM 10k or corporate requests)      |
-| `GET /finance/pos-shifts`                         | `finance.pos-shifts.index`          | `pos.reports`     | Shift log with cash variance flags                                                        |
-| `GET /finance/pos-shifts/{shift}`                 | `finance.pos-shifts.show`           | `pos.reports`     | Frozen Z-report, cash movements & audit exceptions                                        |
-| `GET /reports/pos-sales`                          | `reports.pos-sales`                 | `pos.reports`     | Sales by outlet, category, item margin, zero-extra meal audit, void/discount/drawer audit |
+| Method & URL                                      | Route name                          | Permission        | Purpose                                                                                                       |
+| ------------------------------------------------- | ----------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------- |
+| `GET /finance/pos-orders`                         | `finance.pos-orders.index`          | `pos.view`        | Receipt index with summary cards; filters by outlet, status, date range and number                            |
+| `GET /finance/pos-orders/{order}`                 | `finance.pos-orders.show`           | `pos.view`        | Receipt detail, tax breakdown, folio/e-invoice links, reprint                                                 |
+| `POST /finance/pos-orders/{order}/refund`         | `finance.pos-orders.refund`         | `pos.refund`      | Back-office refund (`RefundPosOrder`)                                                                         |
+| `POST /finance/pos-orders/{order}/change-payment` | `finance.pos-orders.change-payment` | `pos.refund`      | Back-office open-shift & open-date tender swap (Phase 2)                                                      |
+| `POST /finance/pos-orders/{order}/einvoice`       | `finance.pos-orders.einvoice`       | `einvoice.manage` | Phase-1 staff individual LHDN e-Invoice issuance (for >RM 10k or corporate requests)                          |
+| `GET /finance/pos-shifts`                         | `finance.pos-shifts.index`          | `pos.reports`     | Shift log with summary cards and cash variance; filters by outlet and opening business date                   |
+| `GET /finance/pos-shifts/{shift}`                 | `finance.pos-shifts.show`           | `pos.reports`     | Cash summary cards, cash movements and the frozen Z-report                                                    |
+| `GET /reports/pos-sales`                          | `reports.pos-sales`                 | `pos.reports`     | Summary cards, daily sales, sales by category and outlet, voids and refunds, included meals, staff time clock |
 
-### 3. Settings (`settings.pos.*` — rendered with `TabLinks` per `DESIGN.md`)
+### 3. Settings pages (`settings.pos.*`, listed in the POS sidebar area, each with its own page header)
 
-| URL                                                  | Permission      | Covers                                                                                                   |
-| ---------------------------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------- |
-| `GET /settings/pos-outlets` _(shared via `pos-any`)_ | `pos.manage`    | Outlets (`native_pos_enabled`, GL codes, tax/rounding/room-limit settings)                               |
-| `GET /settings/pos/menu`                             | `pos.menu`      | Categories, items, meal-period links, variants, `internal_name`, stock countdown                         |
-| `GET /settings/pos/modifiers`                        | `pos.menu`      | Modifier groups (`min`/`max`/`free_included`) & addon 86 toggles                                         |
-| `GET /settings/pos/dining-options`                   | `pos.menu`      | Dine-In / Takeaway / Room Service SC & packaging rules                                                   |
-| `GET /settings/pos/staff-pins`                       | `pos.manage`    | Staff PIN status/revoke, registered `pos_terminal_devices` (`POST /settings/pos/devices`) & void reasons |
-| `POST /settings/pos/staff-pins/{user}/invite`        | `pos.manage`    | Email a staff member without a PIN the link to set one (30-minute limit per person)                      |
-| `GET /settings/pos/floors` _(Phase 2)_               | `pos.menu`      | Visual floor plan editor & batch table creation                                                          |
-| `GET /settings/pos/schedules` _(Phase 2)_            | `pos.menu`      | Menu schedules & combos                                                                                  |
-| `GET /settings/pos/kitchen` _(Phase 3)_              | `pos.menu`      | Kitchen stations (`use_internal_name`, SLA thresholds)                                                   |
-| `GET /settings/pos/inventory` _(Phase 3)_            | `pos.inventory` | Ingredients, BOM recipes, purchases, waste & stocktake closing                                           |
-| `GET /settings/pos/hardware` _(Phase 4)_             | `pos.hardware`  | Posport pairing, private-LAN printers, failover & ECR terminals                                          |
+| URL                                                           | Permission      | Covers                                                                                                   |
+| ------------------------------------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------- |
+| `GET /settings/pos/staff-pins`, `/terminals`, `/void-reasons` | `pos.manage`    | Staff & terminals, one URL per tab (`TabLinks`)                                                          |
+| `GET /settings/pos-outlets` _(shared via `pos-any`)_          | `pos.manage`    | Outlets (`native_pos_enabled`, GL codes, tax/rounding/room-limit settings)                               |
+| `GET /settings/pos/menu`                                      | `pos.menu`      | Categories, items, meal-period links, variants, `internal_name`, stock countdown                         |
+| `GET /settings/pos/modifiers`                                 | `pos.menu`      | Modifier groups (`min`/`max`/`free_included`) & addon 86 toggles                                         |
+| `GET /settings/pos/dining-options`                            | `pos.menu`      | Dine-In / Takeaway / Room Service SC & packaging rules                                                   |
+| `GET /settings/pos/staff-pins`                                | `pos.manage`    | Staff PIN status/revoke, registered `pos_terminal_devices` (`POST /settings/pos/devices`) & void reasons |
+| `POST /settings/pos/staff-pins/{user}/invite`                 | `pos.manage`    | Email a staff member without a PIN the link to set one (30-minute limit per person)                      |
+| `GET /settings/pos/floors` _(Phase 2)_                        | `pos.menu`      | Visual floor plan editor & batch table creation                                                          |
+| `GET /settings/pos/schedules` _(Phase 2)_                     | `pos.menu`      | Menu schedules & combos                                                                                  |
+| `GET /settings/pos/kitchen` _(Phase 3)_                       | `pos.menu`      | Kitchen stations (`use_internal_name`, SLA thresholds)                                                   |
+| `GET /settings/pos/inventory` _(Phase 3)_                     | `pos.inventory` | Ingredients, BOM recipes, purchases, waste & stocktake closing                                           |
+| `GET /settings/pos/hardware` _(Phase 4)_                      | `pos.hardware`  | Posport pairing, private-LAN printers, failover & ECR terminals                                          |
 
 ### 4. Public Guest Routes (no staff auth, rate-limited)
 

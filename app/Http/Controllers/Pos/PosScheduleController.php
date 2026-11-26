@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Pos;
 use App\Actions\Pos\SavePosComboSlots;
 use App\Actions\Pos\SavePosMenuSchedule;
 use App\Data\Pos\PosMenuScheduleInputData;
+use App\Data\Property\CurrencyData;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Pos\Concerns\RespondsToPos;
 use App\Http\Requests\Pos\SavePosComboSlotsRequest;
@@ -32,11 +33,13 @@ class PosScheduleController extends Controller
 
     public function index(Request $request, Property $property): Response
     {
+        $property->loadMissing('settings');
         $outlets = PosOutlet::query()->where('property_id', $property->id)->where('pos_enabled', true)->orderBy('name')->get();
         $outlet = $outlets->firstWhere('id', (int) $request->query('outlet')) ?? $outlets->first();
         $items = PosItem::query()->where('property_id', $property->id)->with(['variants' => fn ($query) => $query->where('active', true)->orderBy('sort_order')->orderBy('id'), 'comboSlots.options'])->orderBy('name')->get();
 
         return Inertia::render('settings/pos/schedules', [
+            'currency' => CurrencyData::forProperty($property),
             'outlets' => $outlets->map(fn (PosOutlet $row): array => ['value' => (string) $row->id, 'label' => $row->name])->all(),
             'outlet' => $outlet === null ? null : ['id' => $outlet->id, 'name' => $outlet->name],
             'schedules' => $outlet === null ? [] : PosMenuSchedule::query()->where('pos_outlet_id', $outlet->id)->with('targets')->orderBy('name')->get()->map(fn (PosMenuSchedule $schedule): array => [

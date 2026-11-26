@@ -49,6 +49,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property bool $kiosk_walk_in_enabled
  * @property bool $concierge_walk_in_enabled
  * @property string|null $house_rules
+ * @property bool $concierge_name_check_in_enabled A guest may open an arriving stay by the name on the booking; every guest must then upload an ID photo.
  * @property bool $concierge_refund_requests_enabled
  * @property int $kiosk_idle_timeout_seconds
  * @property string|null $arrival_instructions
@@ -88,7 +89,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'arrival_instructions', 'departure_instructions', 'front_desk_open_24h', 'front_desk_opens_at', 'front_desk_closes_at',
     'front_desk_whatsapp', 'after_hours_message', 'duty_manager_phone', 'emergency_phone', 'emergency_services_number', 'emergency_instructions',
     'room_policy', 'payment_policy', 'other_policies', 'front_desk_phone', 'front_desk_email', 'front_desk_extension',
-    'concierge_location_check_enabled', 'concierge_test_payments_enabled', 'ai_handover_message', 'ai_monthly_cap_micros',
+    'concierge_location_check_enabled', 'concierge_name_check_in_enabled', 'concierge_test_payments_enabled', 'ai_handover_message', 'ai_monthly_cap_micros',
     'ai_openai_key', 'ai_key_status', 'ai_key_checked_at', 'ai_cap_warned_at',
 ])]
 class PropertySetting extends Model
@@ -123,6 +124,7 @@ class PropertySetting extends Model
             'kiosk_walk_in_enabled' => 'boolean',
             'concierge_walk_in_enabled' => 'boolean',
             'concierge_refund_requests_enabled' => 'boolean',
+            'concierge_name_check_in_enabled' => 'boolean',
             'concierge_location_check_enabled' => 'boolean',
             'concierge_test_payments_enabled' => 'boolean',
             'front_desk_open_24h' => 'boolean',
