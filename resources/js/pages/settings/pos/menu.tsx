@@ -1,4 +1,5 @@
 import {
+    ImageOff,
     Pencil,
     Plus,
     Search,
@@ -711,49 +712,68 @@ export default function PosMenuSettings({
                                                                                 }
                                                                             >
                                                                                 <TableCell className="max-w-xs whitespace-normal">
-                                                                                    <div className="flex flex-col gap-0.5">
-                                                                                        <span className="font-medium text-foreground">
-                                                                                            {
-                                                                                                entry.name
-                                                                                            }
-                                                                                        </span>
-                                                                                        {entry.internalName && (
-                                                                                            <span className="text-xs text-muted-foreground">
-                                                                                                Kitchen:{' '}
-                                                                                                {
-                                                                                                    entry.internalName
+                                                                                    <div className="flex items-start gap-3">
+                                                                                        {entry.imageUrl ? (
+                                                                                            <img
+                                                                                                src={
+                                                                                                    entry.imageUrl
                                                                                                 }
+                                                                                                alt=""
+                                                                                                loading="lazy"
+                                                                                                className="size-12 shrink-0 rounded-lg object-cover"
+                                                                                            />
+                                                                                        ) : (
+                                                                                            <span
+                                                                                                aria-hidden
+                                                                                                className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
+                                                                                            >
+                                                                                                <ImageOff className="size-4" />
                                                                                             </span>
                                                                                         )}
-                                                                                        {entry.description && (
-                                                                                            <span className="line-clamp-1 text-xs text-muted-foreground">
+                                                                                        <div className="flex min-w-0 flex-col gap-0.5">
+                                                                                            <span className="font-medium text-foreground">
                                                                                                 {
-                                                                                                    entry.description
+                                                                                                    entry.name
                                                                                                 }
                                                                                             </span>
-                                                                                        )}
-                                                                                        {tags.length >
-                                                                                            0 && (
-                                                                                            <div className="mt-1 flex flex-wrap gap-1">
-                                                                                                {tags.map(
-                                                                                                    (
-                                                                                                        tag,
-                                                                                                    ) => (
-                                                                                                        <Badge
-                                                                                                            key={
-                                                                                                                tag
-                                                                                                            }
-                                                                                                            variant="outline"
-                                                                                                            className="font-normal text-muted-foreground"
-                                                                                                        >
-                                                                                                            {
-                                                                                                                tag
-                                                                                                            }
-                                                                                                        </Badge>
-                                                                                                    ),
-                                                                                                )}
-                                                                                            </div>
-                                                                                        )}
+                                                                                            {entry.internalName && (
+                                                                                                <span className="text-xs text-muted-foreground">
+                                                                                                    Kitchen:{' '}
+                                                                                                    {
+                                                                                                        entry.internalName
+                                                                                                    }
+                                                                                                </span>
+                                                                                            )}
+                                                                                            {entry.description && (
+                                                                                                <span className="line-clamp-1 text-xs text-muted-foreground">
+                                                                                                    {
+                                                                                                        entry.description
+                                                                                                    }
+                                                                                                </span>
+                                                                                            )}
+                                                                                            {tags.length >
+                                                                                                0 && (
+                                                                                                <div className="mt-1 flex flex-wrap gap-1">
+                                                                                                    {tags.map(
+                                                                                                        (
+                                                                                                            tag,
+                                                                                                        ) => (
+                                                                                                            <Badge
+                                                                                                                key={
+                                                                                                                    tag
+                                                                                                                }
+                                                                                                                variant="outline"
+                                                                                                                className="font-normal text-muted-foreground"
+                                                                                                            >
+                                                                                                                {
+                                                                                                                    tag
+                                                                                                                }
+                                                                                                            </Badge>
+                                                                                                        ),
+                                                                                                    )}
+                                                                                                </div>
+                                                                                            )}
+                                                                                        </div>
                                                                                     </div>
                                                                                 </TableCell>
                                                                                 <TableCell className="whitespace-normal tabular-nums">
@@ -1074,6 +1094,12 @@ export default function PosMenuSettings({
                 <PosItemForm
                     key={item.row?.id ?? `new-${item.categoryId}`}
                     row={item.row}
+                    imageUrl={
+                        categories
+                            .flatMap((entry) => entry.items)
+                            .find((entry) => entry.id === item.row?.id)
+                            ?.imageUrl ?? null
+                    }
                     categoryId={item.categoryId}
                     categories={categoryOptions}
                     codes={transactionCodes}

@@ -1,3 +1,4 @@
+import { usePage } from '@inertiajs/react';
 import { MoneyText } from '@/components/pms/money-text';
 type PosCurrency = App.Data.Property.CurrencyData | null;
 
@@ -15,6 +16,8 @@ export function PosReceipt({
     currency: PosCurrency;
     prebill?: boolean;
 }) {
+    // The hotel's logo, from the signed-in page. Restaurants have no logo of their own.
+    const logoUrl = usePage().props.property?.logoUrl;
     const lines = order.lines.filter((line) => !line.isVoided);
     const refund = order.orderType === 'refund';
     const rounding = Number(order.roundingAdjustment);
@@ -34,6 +37,14 @@ export function PosReceipt({
     return (
         <div className="pos-print-area mx-auto flex w-full max-w-[80mm] flex-col gap-2 font-mono text-xs">
             <div className="text-center">
+                {logoUrl && (
+                    // Grey, so it reads the same on a thermal printer.
+                    <img
+                        src={logoUrl}
+                        alt=""
+                        className="mx-auto mb-1 h-12 max-w-full object-contain grayscale"
+                    />
+                )}
                 <p className="text-sm font-semibold">{order.outletName}</p>
                 <p>
                     {prebill

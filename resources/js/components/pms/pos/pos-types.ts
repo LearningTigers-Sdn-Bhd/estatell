@@ -40,6 +40,7 @@ export type PosItem = {
     id: number;
     name: string;
     description: string | null;
+    imageUrl?: string | null;
     mealPeriodId: number | null;
     soldByWeight: boolean;
     weightUnit: string | null;

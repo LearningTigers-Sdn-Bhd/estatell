@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { POS_CATEGORY_COLORS } from './pos-types';
 import { unlessRefused } from './pos-unless-refused';
+import { PosItemImageField } from './pos-item-image-field';
 
 export type MenuOutletItem = {
     outletId: number;
@@ -43,6 +44,7 @@ export type MenuVariant = {
 };
 
 export type MenuItem = {
+    imageUrl?: string | null;
     id: number;
     name: string;
     transactionCodeId: number | null;
@@ -190,6 +192,7 @@ export function PosCategoryForm({
 
 export function PosItemForm({
     row,
+    imageUrl = null,
     categoryId,
     categories,
     codes,
@@ -198,6 +201,8 @@ export function PosItemForm({
     onClose,
 }: {
     row: MenuItem | null;
+    /** The item's photo as the page has it now; `row` is a copy taken when the form opened. */
+    imageUrl?: string | null;
     categoryId: number;
     categories?: EnumOption[];
     codes: EnumOption[];
@@ -206,6 +211,7 @@ export function PosItemForm({
     onClose: () => void;
 }) {
     const form = useForm({
+        image: null as File | null,
         name: row?.name ?? '',
         pos_category_id: String(categoryId),
         transaction_code_id: String(row?.transactionCodeId ?? ''),
@@ -299,6 +305,12 @@ export function PosItemForm({
                 }
             }}
         >
+            <PosItemImageField
+                itemId={row?.id ?? null}
+                imageUrl={imageUrl}
+                onPick={(file) => form.setData('image', file)}
+                formError={form.errors.image}
+            />
             <Field data-invalid={!!form.errors.name}>
                 <FieldLabel htmlFor="item-name">Name</FieldLabel>
                 <Input

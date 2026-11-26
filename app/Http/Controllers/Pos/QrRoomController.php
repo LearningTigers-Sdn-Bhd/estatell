@@ -43,6 +43,7 @@ class QrRoomController extends Controller
             'status' => $status,
             'unlocked' => $unlocked,
             'property' => $session->property->name,
+            'logoUrl' => QrLogoController::urlFor($session),
             'currency' => CurrencyData::forProperty($session->property),
             'outlets' => $outlets->map(fn (PosOutlet $row): array => ['id' => $row->id, 'name' => $row->name])->values()->all(),
             'outlet' => $live ? ['id' => $outlet->id, 'name' => $outlet->name] : null,

@@ -230,9 +230,10 @@ test('the list searches, filters, sorts and paginates the property\'s guests onl
     $vipTag = Tag::factory()->for($property)->create(['name' => 'Corporate']);
     $ali = Guest::factory()->for($property)->vip()->create(['full_name' => 'Ali Hassan', 'email' => 'ali@example.com', 'phone' => '+60123456789']);
     $ali->tags()->attach($vipTag);
-    Guest::factory()->for($property)->blacklisted()->create(['full_name' => 'Budi Santoso']);
-    $survivor = Guest::factory()->for($property)->create(['full_name' => 'Chong Wei']);
-    Guest::factory()->for($property)->create(['full_name' => 'Merged Guest', 'merged_into_id' => $survivor->id]);
+    // Fixed emails: a random one such as natali@example.com would also match the "ali@exa" search below.
+    Guest::factory()->for($property)->blacklisted()->create(['full_name' => 'Budi Santoso', 'email' => 'budi@example.com']);
+    $survivor = Guest::factory()->for($property)->create(['full_name' => 'Chong Wei', 'email' => 'chong@example.com']);
+    Guest::factory()->for($property)->create(['full_name' => 'Merged Guest', 'email' => 'merged@example.com', 'merged_into_id' => $survivor->id]);
     Guest::factory()->create(['full_name' => 'Ali Other Property']);
     $url = route('guests.index', $property->code);
 

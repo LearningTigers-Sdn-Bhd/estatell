@@ -208,6 +208,14 @@ export function PosMenuPanel({
                                 soldOut && 'border-warning/60 bg-warning/5',
                             )}
                         >
+                            {item.imageUrl && (
+                                <img
+                                    src={item.imageUrl}
+                                    alt=""
+                                    loading="lazy"
+                                    className="aspect-video w-full rounded-lg object-cover"
+                                />
+                            )}
                             <div className="flex w-full items-start justify-between gap-2">
                                 <span className="line-clamp-2 text-sm leading-snug font-semibold text-foreground">
                                     {item.name}

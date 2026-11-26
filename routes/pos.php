@@ -204,6 +204,8 @@ Route::middleware('pos')->group(function () {
         Route::put('categories/{category}', [PosMenuController::class, 'updateCategory'])->whereNumber('category')->name('categories.update');
         Route::post('items', [PosMenuController::class, 'storeItem'])->name('items.store');
         Route::put('items/{item}', [PosMenuController::class, 'updateItem'])->whereNumber('item')->name('items.update');
+        Route::post('items/{item}/image', [PosMenuController::class, 'storeItemImage'])->whereNumber('item')->name('items.image.store');
+        Route::delete('items/{item}/image', [PosMenuController::class, 'destroyItemImage'])->whereNumber('item')->name('items.image.destroy');
         Route::put('outlets/{outlet}/variants/{variant}', [PosMenuController::class, 'updateOutletItem'])->whereNumber(['outlet', 'variant'])->name('outlet-items.update');
         Route::get('schedules', [PosScheduleController::class, 'index'])->name('schedules.index');
         Route::post('outlets/{outlet}/schedules', [PosScheduleController::class, 'storeSchedule'])->whereNumber('outlet')->name('schedules.store');

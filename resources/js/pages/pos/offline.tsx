@@ -511,6 +511,8 @@ export default function PosOffline({
                         </Card>
                     ) : pending === null ? (
                         <QrMenu
+                            // The server quotes exact totals up to this quantity (PosOfflineEstimate).
+                            maxQuantity={20}
                             categories={menu}
                             currency={currency}
                             allowRemark={false}
