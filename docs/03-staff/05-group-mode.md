@@ -50,13 +50,13 @@ Changes still happen inside a property: group mode reads and exports, and every 
 
 `GET /g/{group}/dashboard` (`group.dashboard`). Redesigned 2026-11-24 for an owner reading several lodges at a glance: headline figures first, then the trend, then the lodges side by side. Everything loads after the page (two deferred props: `dashboard` for today, `forecast` for the months).
 
-| Part                | What it shows                                                                                                                                                                                                                        |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Needs attention     | A destructive Alert, only when a property's night audit alert is on (failed, waiting on a fix, or the business date behind), from the property dashboard's own `DashboardAlert`. Shown where the role shows reservations or reports. |
-| Four headline cards | This month for the group, actual and on the books: Occupancy, ADR, RevPAR and Revenue (rooms and extras), each with its change against the same month last year (points for occupancy, percent for money)                            |
-| Occupancy outlook   | A line per property for the next six months, and the group's last year as a dashed line. **Forecast** opens the full page                                                                                                            |
-| Revenue this month  | A bar per property, rooms and extras stacked. Hidden when the properties use different currencies                                                                                                                                    |
-| Today by property   | One row per property: business date, arrivals and departures left of the day's total, tonight's occupancy with a bar, the next seven nights as small bars, new bookings today, revenue posted this month, and a link into it         |
+| Part                | What it shows                                                                                                                                                                                                                                                                                                           |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Needs attention     | A destructive Alert, only when a property's night audit alert is on (failed, waiting on a fix, or the business date behind), from the property dashboard's own `DashboardAlert`. Shown where the role shows reservations or reports.                                                                                    |
+| Four headline cards | This month for the group, actual and on the books: Occupancy, ADR, RevPAR and Revenue (rooms and extras), each with its change against the same month last year (points for occupancy, percent for money)                                                                                                               |
+| Occupancy outlook   | A line per property for the next six months, and the group's last year as a dashed line. **Forecast** opens the full page                                                                                                                                                                                               |
+| Revenue this month  | A bar per property, rooms and extras stacked. Hidden when the properties use different currencies                                                                                                                                                                                                                       |
+| Today by property   | One row per property: business date, arrivals and departures left of the day's total, tonight's occupancy with a bar, the next seven nights as small bars with no figures (hover or focus a bar for the night, occupancy and rooms sold; 2026-11-26), new bookings today, revenue posted this month, and a link into it |
 
 - The headline cards and both charts read `GroupForecast` for six months from this month (`lastYearAvailable` on each row gives last year's RevPAR). The browser only works out the change against last year.
 - Today by property reads each property's `DashboardTiles`, as the property dashboard does; a property whose role shows neither reservations nor reports says so in its row.
@@ -98,6 +98,11 @@ Each property counts on its own business date, as its own dashboard does. Querie
 - Only properties whose role shows reports (`reports.view`) count; the others are named ("Not included: …").
 - **Export CSV** (`group.forecast.export`): every row, each property month by month, then All properties.
 - Queries grow with the number of properties, never with bookings or months (tested).
+- **Speed** (2026-11-26). Each future night is priced exactly as the night audit will post it (`ChargeForecast`), which took about 2.5 s per property-year, so 24 months took 10 s. Now:
+    - `ForecastMonthCache` keeps each property's rows month by month for 30 minutes under a data version (business date, stays, add-ons, night prices, folio lines, taxes; one short query). Only months not in the cache are worked out, in one call. Any change makes a new version.
+    - Last year asks only for closed dates (it used to price a year of future nights and drop them).
+    - The page prefetches the 24-month view in the background once it is up, so the next pick comes from the cache.
+    - Measured on the demo group: 6 months cold 3.9 s (the dashboard's next six months warm the same months), then 12 months 1.9 s, 24 months 0.6 s, any range already seen 0.1–0.3 s.
 
 A single property gets the same look-ahead in Reports › History & forecast: the quick dates now include **Next 3 months**, **Next 6 months** and **Next 12 months** (today to the end of the last whole month).
 

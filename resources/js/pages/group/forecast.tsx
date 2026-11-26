@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import { ChevronLeft, ChevronRight, TrendingUp } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
@@ -154,6 +154,19 @@ export default function GroupForecast({
         }),
         { available: 0, sold: 0 },
     );
+    // Ask for the longest horizon quietly once the page is up. The server prices each month once and keeps it, so
+    // any shorter or longer pick afterwards comes from its cache, and the longest one from the browser's.
+    useEffect(() => {
+        if (months >= maxMonths) {
+            return;
+        }
+
+        router.prefetch(
+            forecast.url({ propertyGroup: group.id }),
+            { method: 'get', data: { from, months: maxMonths } },
+            { cacheFor: '1m' },
+        );
+    }, [group.id, from, months, maxMonths]);
     const visit = (next: { from?: string; months?: number }) =>
         router.get(
             forecast.url({ propertyGroup: group.id }),

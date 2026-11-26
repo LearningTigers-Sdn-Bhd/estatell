@@ -11,6 +11,7 @@ use App\Data\Reports\ReportFilters;
 use App\Enums\PermissionEnum;
 use App\Models\Property;
 use App\Models\User;
+use App\Services\NightAudit\CurrentBusinessDate;
 use App\Services\Reports\HistoryForecastReport;
 use App\Services\Reports\ReportFigures;
 use App\Services\Staff\GroupProperties;
@@ -32,6 +33,8 @@ class GroupForecast
     public function __construct(
         private GroupProperties $groupProperties,
         private HistoryForecastReport $historyForecast,
+        private ForecastMonthCache $monthCache,
+        private CurrentBusinessDate $businessDate,
     ) {}
 
     /**
@@ -57,8 +60,8 @@ class GroupForecast
         $allLastYear = [];
 
         foreach ($visible as $property) {
-            $thisYear = $this->byMonth($this->historyForecast->rows($property, new ReportFilters($from->toDateString(), $to->toDateString())), 0);
-            $lastYear = $this->byMonth($this->historyForecast->rows($property, new ReportFilters($from->subYear()->toDateString(), $to->subYear()->endOfMonth()->toDateString())), 1);
+            $thisYear = $this->byMonth($this->monthCache->rows($property, $from, $to), 0);
+            $lastYear = $this->byMonth($this->lastYearRows($property, $from->subYear(), $to->subYear()->endOfMonth()), 1);
 
             foreach ($monthKeys as $month) {
                 $rows[] = $this->row($month, $property->code, $thisYear[$month] ?? [], $lastYear[$month] ?? [], true);
@@ -78,6 +81,20 @@ class GroupForecast
             currency: $oneCurrency && $visible->isNotEmpty() ? CurrencyData::forProperty($visible->first()) : null,
             leftOut: $leftOut,
         );
+    }
+
+    /**
+     * Last year's rows, closed dates only: only actual figures count a year back, so the dates from the property's
+     * business date on are not asked for (they would be priced night by night and then dropped).
+     *
+     * @return list<HistoryForecastRow>
+     */
+    private function lastYearRows(Property $property, CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        $open = $this->businessDate->date($property);
+        $to = $open === null ? $to : $to->min($open->subDay());
+
+        return $to->lt($from) ? [] : $this->historyForecast->rows($property, new ReportFilters($from->toDateString(), $to->toDateString()));
     }
 
     /**

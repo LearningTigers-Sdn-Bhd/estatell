@@ -9,6 +9,7 @@ use App\Services\Group\GroupForecast;
 use App\Services\Staff\GroupProperties;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -80,6 +81,7 @@ test('the forecast costs the same queries however many bookings and months', fun
     $setup = liveGroupSetup();
     grantKinabatangan($setup, $setup['manager'], DefaultRoleEnum::Manager);
     $count = function (int $months) use ($setup): int {
+        Cache::flush();
         DB::flushQueryLog();
         DB::enableQueryLog();
         app(GroupForecast::class)->for($setup['manager'], app(GroupProperties::class)->propertiesFor($setup['manager'], $setup['sepilok']->group), CarbonImmutable::parse('2026-10-01'), $months);
@@ -103,4 +105,33 @@ test('the forecast costs the same queries however many bookings and months', fun
     }
 
     expect($many)->toBe($few);
+});
+
+test('the months are kept in the cache, and any booking change works them out again', function () {
+    $setup = liveGroupSetup();
+    grantKinabatangan($setup, $setup['manager'], DefaultRoleEnum::Manager);
+    $properties = app(GroupProperties::class)->propertiesFor($setup['manager'], $setup['sepilok']->group);
+    $sold = fn (int $months): int => collect(app(GroupForecast::class)->for($setup['manager'], $properties, CarbonImmutable::parse('2026-10-01'), $months)->rows)
+        ->firstWhere(fn ($row) => $row->code === null && $row->month === '2026-10')->sold;
+    $queries = function (int $months) use ($sold): int {
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $sold($months);
+        DB::disableQueryLog();
+
+        return count(DB::getQueryLog());
+    };
+    $unit = groupArrival($setup['sepilok'], $setup['roomTypes']['sepilok']);
+
+    $cold = $queries(3);
+    $warm = $queries(3);
+
+    expect($warm)->toBeLessThan($cold)
+        ->and($sold(3))->toBe(2);
+
+    $unit->nights()->first()->update(['base_amount' => '999.00', 'amount' => '999.00']);
+    groupArrival($setup['kinabatangan'], $setup['roomTypes']['kinabatangan']);
+
+    expect($sold(6))->toBe(4)
+        ->and($sold(3))->toBe(4);
 });
