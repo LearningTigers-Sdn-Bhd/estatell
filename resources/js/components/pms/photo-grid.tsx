@@ -16,8 +16,10 @@ import {
 } from '@dnd-kit/sortable';
 import { Form, router } from '@inertiajs/react';
 import { GripVertical, ImageIcon, Trash2, Upload } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
+import { PanelHeading } from '@/components/pms/panel-heading';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -120,6 +122,7 @@ export function PhotoGrid({
     uploadUrl,
     reorderUrl,
     removeForm,
+    icon,
 }: {
     title: string;
     description: string;
@@ -130,6 +133,8 @@ export function PhotoGrid({
     uploadUrl: string;
     reorderUrl: string;
     removeForm: (photoId: number) => { action: string; method: 'post' };
+    /** An icon box before the title, for a section inside a Workspace panel. */
+    icon?: LucideIcon;
 }) {
     const fileInput = useRef<HTMLInputElement>(null);
     const [uploading, setUploading] = useState(false);
@@ -224,16 +229,30 @@ export function PhotoGrid({
               .filter(Boolean)
               .join(' ');
 
+    const headerDescription = (
+        <>
+            {description}
+            {!readOnly &&
+                ` JPEG, PNG or WebP, up to ${photoMaxKb / 1024} MB each. Up to ${photoLimit} photos.`}
+        </>
+    );
+
     return (
         <section className="flex flex-col gap-5">
-            <header className="flex flex-col gap-1">
-                <h3 className="text-base font-medium">{title}</h3>
-                <p className="text-sm text-muted-foreground">
-                    {description}
-                    {!readOnly &&
-                        ` JPEG, PNG or WebP, up to ${photoMaxKb / 1024} MB each. Up to ${photoLimit} photos.`}
-                </p>
-            </header>
+            {icon ? (
+                <PanelHeading
+                    icon={icon}
+                    title={title}
+                    description={headerDescription}
+                />
+            ) : (
+                <header className="flex flex-col gap-1">
+                    <h3 className="text-base font-medium">{title}</h3>
+                    <p className="text-sm text-muted-foreground">
+                        {headerDescription}
+                    </p>
+                </header>
+            )}
             {!readOnly && (
                 <input
                     ref={fileInput}

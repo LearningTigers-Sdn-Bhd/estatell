@@ -160,7 +160,8 @@ A full-page form whose tabs or links lead to other pages guards its unsaved chan
 - Prefetches, non-GET requests and visits to the current URL are not blocked. A browser reload or tab close asks the browser to confirm.
 - After a successful save the form calls `form.setDefaults()`, so it is clean again.
 - Built for the rate plan editor. Use it for any other full-page editor with several tab pages.
-- A long `SettingsSection` form can set `saveBar`: instead of a Save button, a bar floats at the bottom of the window while the form is dirty, with **Discard** (puts the saved values back) and **Save**. Settings › Concierge forms use it.
+- A long `SettingsSection` form can set `saveBar`: instead of a Save button, a bar floats at the bottom of the window while the form is dirty, with **Discard** (puts the saved values back) and **Save**. Settings › Concierge and Settings › Property forms use it. A form that does not use `SettingsSection` (the Business licence, Age groups and Meal periods tables) renders the same `SaveBar` (`components/pms/save-bar.tsx`) while dirty.
+- Settings › Property marks an optional field with `OptionalBadge` (`components/pms/optional-badge.tsx`), a secondary "Optional" badge after the label, instead of "(optional)" in the label text. Other forms still use the text.
 
 ## Editable tables
 

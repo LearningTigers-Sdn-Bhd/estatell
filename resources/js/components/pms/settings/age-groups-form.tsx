@@ -1,6 +1,8 @@
 import { useForm } from '@inertiajs/react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Baby, Plus, Save, Trash2 } from 'lucide-react';
+import { PanelHeading } from '@/components/pms/panel-heading';
 import { EmptyState } from '@/components/pms/empty-state';
+import { SaveBar } from '@/components/pms/save-bar';
 import { UnsavedChangesDialog } from '@/components/pms/unsaved-changes-dialog';
 import { Button } from '@/components/ui/button';
 import { FieldError } from '@/components/ui/field';
@@ -94,13 +96,11 @@ export function AgeGroupsForm({
 
     return (
         <form onSubmit={submit} className="flex flex-col gap-5">
-            <header className="space-y-1">
-                <h3 className="text-base font-medium">Age groups</h3>
-                <p className="text-sm text-muted-foreground">
-                    Who counts as an infant or a child. Every rate plan and the
-                    booking form use these groups.
-                </p>
-            </header>
+            <PanelHeading
+                icon={Baby}
+                title="Age groups"
+                description="Who counts as an infant or a child. Every rate plan and the booking form use these groups."
+            />
 
             {rows.length === 0 ? (
                 <EmptyState
@@ -114,7 +114,7 @@ export function AgeGroupsForm({
                     }
                 />
             ) : (
-                <div className="overflow-auto rounded-lg border">
+                <div className="overflow-auto rounded-xl border">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -222,16 +222,30 @@ export function AgeGroupsForm({
             )}
 
             <FieldError>{errors.groups}</FieldError>
-            <footer className="flex justify-end">
-                <Button
-                    type="submit"
-                    disabled={form.processing || !form.isDirty}
-                    focusableWhenDisabled
-                >
-                    {form.processing && <Spinner data-icon="inline-start" />}
-                    Save age groups
-                </Button>
-            </footer>
+            {form.isDirty && (
+                <SaveBar
+                    name="Age groups"
+                    processing={form.processing}
+                    onDiscard={() => {
+                        form.reset();
+                        form.clearErrors();
+                    }}
+                    saveButton={
+                        <Button
+                            type="submit"
+                            disabled={form.processing}
+                            focusableWhenDisabled
+                        >
+                            {form.processing ? (
+                                <Spinner data-icon="inline-start" />
+                            ) : (
+                                <Save data-icon="inline-start" />
+                            )}
+                            Save
+                        </Button>
+                    }
+                />
+            )}
             <UnsavedChangesDialog
                 guard={guard}
                 name="Age groups"
