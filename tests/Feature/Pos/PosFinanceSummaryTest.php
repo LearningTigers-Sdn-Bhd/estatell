@@ -4,6 +4,7 @@ use App\Enums\PosOrderStatus;
 use App\Enums\PosOrderType;
 use App\Models\PosOrder;
 use App\Models\PosShift;
+use App\Models\User;
 
 require_once __DIR__.'/../Support/PosTerminalSetup.php';
 
@@ -22,7 +23,9 @@ it('sums the filtered receipts, leaving voided ones out of sales', function () {
     $order(['grand_total' => '999.00', 'status' => PosOrderStatus::Voided]);
     $order(['grand_total' => '40.00', 'business_date' => '2026-10-01']);
 
-    $this->actingAs($setup['manager'])
+    $viewer = User::factory()->for($setup['property'])->withPermissions(['pos.view'])->create();
+
+    $this->actingAs($viewer)
         ->get(route('finance.pos-orders.index', [$setup['property']->code, 'from' => '2026-10-10']))
         ->assertOk()
         ->assertInertia(fn ($page) => $page->where('summary', ['netSales' => '79.50', 'sales' => 1, 'refunds' => 1, 'refundTotal' => '20.50', 'voided' => 1]));
