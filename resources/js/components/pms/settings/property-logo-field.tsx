@@ -1,6 +1,9 @@
-import { Form, router } from '@inertiajs/react';
-import { ImageOff, Upload } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { Form } from '@inertiajs/react';
+import { Eye, Pencil, Trash2, Upload } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { LogoCropDialog } from '@/components/pms/settings/logo-crop-dialog';
+import type { LogoSource } from '@/components/pms/settings/logo-crop-dialog';
 import {
     AlertDialog,
     AlertDialogCancel,
@@ -9,140 +12,254 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {
     Field,
     FieldDescription,
     FieldError,
-    FieldLabel,
+    FieldTitle,
 } from '@/components/ui/field';
 import { Spinner } from '@/components/ui/spinner';
-import { destroy, store } from '@/routes/settings/logo';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { destroy } from '@/routes/settings/logo';
+
+/** The largest file the browser accepts before cropping. Only the small cropped file is uploaded. */
+const MAX_PICK_BYTES = 10 * 1024 * 1024;
+
+const ACCEPTED_TYPES = ['image/png', 'image/jpeg'] as const;
+
+function isAcceptedType(type: string): type is LogoSource['type'] {
+    return (ACCEPTED_TYPES as readonly string[]).includes(type);
+}
 
 /**
- * The property logo. It uploads as soon as a file is picked and is not part of the profile Save.
+ * The property logo in a rounded tile. A picked image opens the crop dialog, which uploads a square file. The logo
+ * is not part of the profile Save.
  */
 export function PropertyLogoField({ logoUrl }: { logoUrl: string | null }) {
     const fileInput = useRef<HTMLInputElement>(null);
-    const [uploading, setUploading] = useState(false);
-    const [error, setError] = useState<string>();
+    const [source, setSource] = useState<LogoSource | null>(null);
+    const [cropOpen, setCropOpen] = useState(false);
+    const [viewOpen, setViewOpen] = useState(false);
     const [removeOpen, setRemoveOpen] = useState(false);
+    const [loadingCurrent, setLoadingCurrent] = useState(false);
+    const [error, setError] = useState<string>();
 
-    const upload = (file: File) => {
+    useEffect(() => {
+        return () => {
+            if (source) {
+                URL.revokeObjectURL(source.url);
+            }
+        };
+    }, [source]);
+
+    const openCrop = (blob: Blob) => {
+        if (!isAcceptedType(blob.type)) {
+            setError('The logo must be a PNG or JPEG image.');
+
+            return;
+        }
+
+        if (blob.size > MAX_PICK_BYTES) {
+            setError('Choose an image up to 10 MB.');
+
+            return;
+        }
+
         setError(undefined);
-        router.post(
-            store.url(),
-            { logo: file },
-            {
-                forceFormData: true,
-                preserveScroll: true,
-                onStart: () => setUploading(true),
-                onError: (errors) => setError(errors.logo),
-                onFinish: () => {
-                    setUploading(false);
+        setSource({ url: URL.createObjectURL(blob), type: blob.type });
+        setCropOpen(true);
+    };
 
-                    if (fileInput.current) {
-                        fileInput.current.value = '';
-                    }
-                },
-            },
-        );
+    const pickFile = () => fileInput.current?.click();
+
+    const editCurrent = async () => {
+        if (!logoUrl) {
+            return;
+        }
+
+        setLoadingCurrent(true);
+
+        try {
+            const response = await fetch(logoUrl);
+
+            if (!response.ok) {
+                throw new Error();
+            }
+
+            openCrop(await response.blob());
+        } catch {
+            setError('The current logo could not be loaded.');
+        } finally {
+            setLoadingCurrent(false);
+        }
     };
 
     return (
         <Field className="md:col-span-2">
-            <FieldLabel htmlFor="logo">Logo</FieldLabel>
-            <div className="flex flex-wrap items-center gap-4">
-                <div className="flex h-16 w-28 items-center justify-center rounded-md border bg-muted/40 p-2">
-                    {logoUrl ? (
+            <FieldTitle>Logo</FieldTitle>
+            <input
+                ref={fileInput}
+                type="file"
+                accept={ACCEPTED_TYPES.join(',')}
+                className="hidden"
+                aria-label="Logo file"
+                onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = '';
+
+                    if (file) {
+                        openCrop(file);
+                    }
+                }}
+            />
+            <div>
+                {logoUrl ? (
+                    <div className="group relative flex size-28 items-center justify-center overflow-hidden rounded-2xl border bg-muted">
                         <img
                             src={logoUrl}
                             alt="Property logo"
-                            className="max-h-full max-w-full object-contain"
+                            className="size-full object-contain"
                         />
-                    ) : (
-                        <ImageOff className="size-5 text-muted-foreground" />
-                    )}
-                </div>
-                <input
-                    ref={fileInput}
-                    id="logo"
-                    type="file"
-                    accept="image/png,image/jpeg"
-                    className="hidden"
-                    onChange={(event) => {
-                        const file = event.target.files?.[0];
-
-                        if (file) {
-                            upload(file);
-                        }
-                    }}
-                />
-                <Button
-                    type="button"
-                    variant="outline"
-                    disabled={uploading}
-                    focusableWhenDisabled
-                    onClick={() => fileInput.current?.click()}
-                >
-                    {uploading ? (
-                        <Spinner data-icon="inline-start" />
-                    ) : (
-                        <Upload data-icon="inline-start" />
-                    )}
-                    {logoUrl ? 'Replace' : 'Upload logo'}
-                </Button>
-                {logoUrl && (
-                    <AlertDialog open={removeOpen} onOpenChange={setRemoveOpen}>
-                        <AlertDialogTrigger
-                            render={<Button type="button" variant="ghost" />}
-                        >
-                            Remove
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                    Remove the logo?
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    PDFs will start the header with the property
-                                    name. You can upload a logo again later.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <Form
-                                {...destroy.form()}
-                                options={{ preserveScroll: true }}
-                                onSuccess={() => setRemoveOpen(false)}
-                            >
-                                {({ processing }) => (
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>
-                                            Cancel
-                                        </AlertDialogCancel>
-                                        <Button
-                                            type="submit"
-                                            variant="destructive"
-                                            disabled={processing}
-                                            focusableWhenDisabled
-                                        >
-                                            {processing && (
-                                                <Spinner data-icon="inline-start" />
-                                            )}
-                                            Remove logo
-                                        </Button>
-                                    </AlertDialogFooter>
-                                )}
-                            </Form>
-                        </AlertDialogContent>
-                    </AlertDialog>
+                        <div className="absolute inset-0 flex items-center justify-center gap-1 bg-foreground/60 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 pointer-coarse:opacity-100">
+                            <TileAction
+                                icon={Eye}
+                                label="View logo"
+                                onClick={() => setViewOpen(true)}
+                            />
+                            <TileAction
+                                icon={Pencil}
+                                label="Edit logo"
+                                loading={loadingCurrent}
+                                onClick={editCurrent}
+                            />
+                            <TileAction
+                                icon={Trash2}
+                                label="Delete logo"
+                                onClick={() => setRemoveOpen(true)}
+                            />
+                        </div>
+                    </div>
+                ) : (
+                    <button
+                        type="button"
+                        className="flex size-28 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed bg-muted text-muted-foreground transition-colors outline-none hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50"
+                        onClick={pickFile}
+                    >
+                        <Upload className="size-5" />
+                        <span className="text-sm">Upload logo</span>
+                    </button>
                 )}
             </div>
             <FieldDescription>
-                PNG or JPEG, up to 1 MB. Printed at the top of PDFs.
+                PNG or JPEG, up to 10 MB. You crop it to a square. Printed at
+                the top of PDFs.
             </FieldDescription>
             <FieldError>{error}</FieldError>
+
+            <LogoCropDialog
+                source={source}
+                open={cropOpen}
+                onOpenChange={setCropOpen}
+                onChooseAnother={logoUrl ? pickFile : undefined}
+            />
+
+            {logoUrl && (
+                <Dialog open={viewOpen} onOpenChange={setViewOpen}>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>Property logo</DialogTitle>
+                        </DialogHeader>
+                        <div className="flex aspect-square items-center justify-center overflow-hidden rounded-2xl border bg-muted">
+                            <img
+                                src={logoUrl}
+                                alt="Property logo"
+                                className="size-full object-contain"
+                            />
+                        </div>
+                        <DialogFooter showCloseButton />
+                    </DialogContent>
+                </Dialog>
+            )}
+
+            <AlertDialog open={removeOpen} onOpenChange={setRemoveOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Remove the logo?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            PDFs will start the header with the property name.
+                            You can upload a logo again later.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <Form
+                        {...destroy.form()}
+                        options={{ preserveScroll: true }}
+                        onSuccess={() => setRemoveOpen(false)}
+                    >
+                        {({ processing }) => (
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <Button
+                                    type="submit"
+                                    variant="destructive"
+                                    disabled={processing}
+                                    focusableWhenDisabled
+                                >
+                                    {processing && (
+                                        <Spinner data-icon="inline-start" />
+                                    )}
+                                    Remove logo
+                                </Button>
+                            </AlertDialogFooter>
+                        )}
+                    </Form>
+                </AlertDialogContent>
+            </AlertDialog>
         </Field>
+    );
+}
+
+function TileAction({
+    icon: Icon,
+    label,
+    loading = false,
+    onClick,
+}: {
+    icon: LucideIcon;
+    label: string;
+    loading?: boolean;
+    onClick: () => void;
+}) {
+    return (
+        <Tooltip>
+            <TooltipTrigger
+                render={
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        size="icon-sm"
+                        aria-label={label}
+                        disabled={loading}
+                        focusableWhenDisabled
+                        onClick={onClick}
+                    />
+                }
+            >
+                {loading ? <Spinner /> : <Icon />}
+            </TooltipTrigger>
+            <TooltipContent>{label}</TooltipContent>
+        </Tooltip>
     );
 }

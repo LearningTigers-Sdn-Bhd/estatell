@@ -106,7 +106,10 @@ The legal details, on the Details page, **Business licence** tab (`/p/{code}/set
 ### Logo
 
 - A single-file `logo` media collection on Property, on the platform media disk (private). PNG or JPEG, up to 1 MB. SVG is refused because dompdf draws it poorly.
-- The logo uploads as soon as a file is picked. It is not part of Save.
+- The settings tile is a rounded square. Empty, it is an **Upload logo** button. With a logo, hover or focus shows **View**, **Edit** and **Delete** (always shown on touch screens). Delete asks first.
+- A picked image (PNG or JPEG, up to 10 MB in the browser) opens a crop dialog (`react-easy-crop`). The crop is square. The image always fills it: it cannot zoom out below 1 or move past its edges, so a saved logo has no empty space. **Edit** opens the current logo, with **Choose another image**.
+- Save crops in the browser to a square of at most 512 × 512 (`lib/crop-image.ts`) and uploads that file. A PNG keeps its transparency. The server's 1 MB limit applies to the cropped file. It is not part of the profile Save.
+- Logos uploaded before cropping existed can be wide. Every place that shows the logo fits it without cutting it.
 - `UploadPropertyLogo` replaces the file. `RemovePropertyLogo` deletes it. Each logs `property.updated` with `logo`.
 - `settings.logo` streams the file to staff with `settings.manage`, for the browser previews. PDFs embed the file as a data URI, read from its disk.
 - The staff navbar shows the uploaded logo in the square beside the property name. It falls back to the property's name initials when no logo exists or the image fails to load. `property.logo` streams the private logo to verified staff of that live property without requiring `settings.manage`. Upload and removal permissions stay unchanged. The guest registration screen can show it later. See [App shell](../design-system/09-app-shell.md).
