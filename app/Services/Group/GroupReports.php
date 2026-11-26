@@ -151,7 +151,7 @@ class GroupReports
             }
         }
 
-        usort($rows, fn (GroupBookingChangeRowData $a, GroupBookingChangeRowData $b): int => [$a->change->changed_at, $a->propertyName] <=> [$b->change->changed_at, $b->propertyName]);
+        usort($rows, fn (GroupBookingChangeRowData $a, GroupBookingChangeRowData $b): int => [$a->propertyName, $a->propertyCode, $a->change->changed_at] <=> [$b->propertyName, $b->propertyCode, $b->change->changed_at]);
 
         return $rows;
     }

@@ -1,12 +1,16 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { ChevronLeft, ChevronRight, FileText } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { DatePicker } from '@/components/pms/date-picker';
 import { DateRangePicker } from '@/components/pms/date-range-picker';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { GroupExportMenu } from '@/components/pms/group/group-export-menu';
+import {
+    PropertySectionRow,
+    startsProperty,
+} from '@/components/pms/group/property-section-row';
 import {
     ReservationPeekSheet,
     type PeekTarget,
@@ -32,7 +36,6 @@ import {
     exportMethod as exportCsv,
     pdf as exportPdf,
 } from '@/routes/group/property-reports';
-import { dashboard as propertyDashboard } from '@/routes';
 
 type Group = { id: number; name: string };
 type Result = App.Data.Group.GroupPropertyReportData;
@@ -107,6 +110,22 @@ export default function GroupPropertyReports({
             : column.label;
     const right = (column: App.Data.Reports.ReportLayoutColumnData) =>
         column.align === 'right' ? 'text-right tabular-nums' : undefined;
+    // A total names its property in the first column, where its rows have a name or a date and the total has none.
+    const footerCell = (
+        row: App.Data.Group.GroupReportRowData,
+        key: string,
+        position: number,
+    ) => {
+        const cell = row.cells[key] === 'Total' ? '' : (row.cells[key] ?? '');
+
+        if (position > 0) {
+            return cell;
+        }
+
+        return cell === ''
+            ? `${row.property} total`
+            : `${row.property} total: ${cell}`;
+    };
 
     return (
         <>
@@ -228,7 +247,6 @@ export default function GroupPropertyReports({
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Property</TableHead>
                                             {result.columns.map((column) => (
                                                 <TableHead
                                                     key={column.key}
@@ -240,82 +258,96 @@ export default function GroupPropertyReports({
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {result.rows.map((row, index) => (
-                                            <TableRow
-                                                key={index}
-                                                className={cn(
-                                                    row.reservationId !==
-                                                        null &&
-                                                        'cursor-pointer',
-                                                )}
-                                                onClick={() =>
-                                                    row.reservationId !==
-                                                        null &&
-                                                    row.code !== null &&
-                                                    setPeek({
-                                                        propertyCode: row.code,
-                                                        reservationId:
-                                                            row.reservationId,
-                                                    })
-                                                }
-                                            >
-                                                <TableCell className="font-medium whitespace-nowrap">
-                                                    {row.code ? (
-                                                        row.reservationId !==
-                                                        null ? (
-                                                            <button
-                                                                type="button"
-                                                                className="text-left underline-offset-2 hover:underline focus-visible:underline focus-visible:outline-none"
-                                                                aria-label={`Show the booking at ${row.property}: ${Object.values(row.cells).slice(0, 2).join(', ')}`}
-                                                                onClick={(
-                                                                    event,
-                                                                ) => {
-                                                                    event.stopPropagation();
-                                                                    setPeek({
-                                                                        propertyCode:
-                                                                            row.code!,
-                                                                        reservationId:
-                                                                            row.reservationId!,
-                                                                    });
-                                                                }}
-                                                            >
-                                                                {row.property}
-                                                            </button>
-                                                        ) : (
-                                                            <Link
-                                                                href={propertyDashboard.url(
-                                                                    {
-                                                                        property:
-                                                                            row.code,
-                                                                    },
-                                                                )}
-                                                                className="underline-offset-2 hover:underline"
-                                                            >
-                                                                {row.property}
-                                                            </Link>
-                                                        )
-                                                    ) : (
-                                                        row.property
-                                                    )}
-                                                </TableCell>
-                                                {result.columns.map(
-                                                    (column) => (
-                                                        <TableCell
-                                                            key={column.key}
-                                                            className={right(
-                                                                column,
-                                                            )}
-                                                        >
-                                                            {
-                                                                row.cells[
-                                                                    column.key
-                                                                ]
+                                        {result.rows.map((row, index) => {
+                                            const peekAt =
+                                                row.reservationId !== null &&
+                                                row.code !== null
+                                                    ? {
+                                                          propertyCode:
+                                                              row.code,
+                                                          reservationId:
+                                                              row.reservationId,
+                                                      }
+                                                    : null;
+
+                                            return (
+                                                <Fragment key={index}>
+                                                    {startsProperty(
+                                                        result.rows,
+                                                        index,
+                                                        (item) =>
+                                                            item.code ??
+                                                            item.property,
+                                                    ) && (
+                                                        <PropertySectionRow
+                                                            name={row.property}
+                                                            code={row.code}
+                                                            colSpan={
+                                                                result.columns
+                                                                    .length
                                                             }
-                                                        </TableCell>
-                                                    ),
-                                                )}
-                                            </TableRow>
-                                        ))}
+                                                        />
+                                                    )}
+                                                    <TableRow
+                                                        className={cn(
+                                                            peekAt &&
+                                                                'cursor-pointer',
+                                                        )}
+                                                        onClick={() =>
+                                                            peekAt &&
+                                                            setPeek(peekAt)
+                                                        }
+                                                    >
+                                                        {result.columns.map(
+                                                            (
+                                                                column,
+                                                                position,
+                                                            ) => (
+                                                                <TableCell
+                                                                    key={
+                                                                        column.key
+                                                                    }
+                                                                    className={right(
+                                                                        column,
+                                                                    )}
+                                                                >
+                                                                    {position ===
+                                                                        0 &&
+                                                                    peekAt ? (
+                                                                        <button
+                                                                            type="button"
+                                                                            className="text-left font-medium underline-offset-2 hover:underline focus-visible:underline focus-visible:outline-none"
+                                                                            aria-label={`Show the booking at ${row.property}: ${Object.values(row.cells).slice(0, 2).join(', ')}`}
+                                                                            onClick={(
+                                                                                event,
+                                                                            ) => {
+                                                                                event.stopPropagation();
+                                                                                setPeek(
+                                                                                    peekAt,
+                                                                                );
+                                                                            }}
+                                                                        >
+                                                                            {row
+                                                                                .cells[
+                                                                                column
+                                                                                    .key
+                                                                            ] ||
+                                                                                'Open'}
+                                                                        </button>
+                                                                    ) : (
+                                                                        row
+                                                                            .cells[
+                                                                            column
+                                                                                .key
+                                                                        ]
+                                                                    )}
+                                                                </TableCell>
+                                                            ),
+                                                        )}
+                                                    </TableRow>
+                                                </Fragment>
+                                            );
+                                        })}
                                     </TableBody>
                                     {result.totals.length > 0 && (
                                         <TableFooter>
@@ -323,29 +355,29 @@ export default function GroupPropertyReports({
                                                 <TableRow
                                                     key={row.code ?? 'all'}
                                                     className={cn(
-                                                        row.code === null &&
-                                                            'font-semibold',
+                                                        row.code === null
+                                                            ? 'border-t-2 border-foreground/20 bg-muted font-semibold hover:bg-muted'
+                                                            : 'text-muted-foreground hover:bg-transparent',
                                                     )}
                                                 >
-                                                    <TableCell className="whitespace-nowrap">
-                                                        {`${row.property} total`}
-                                                    </TableCell>
                                                     {result.columns.map(
-                                                        (column) => (
+                                                        (column, position) => (
                                                             <TableCell
                                                                 key={column.key}
-                                                                className={right(
-                                                                    column,
+                                                                className={cn(
+                                                                    right(
+                                                                        column,
+                                                                    ),
+                                                                    position ===
+                                                                        0 &&
+                                                                        'whitespace-nowrap',
                                                                 )}
                                                             >
-                                                                {row.cells[
-                                                                    column.key
-                                                                ] === 'Total'
-                                                                    ? ''
-                                                                    : row.cells[
-                                                                          column
-                                                                              .key
-                                                                      ]}
+                                                                {footerCell(
+                                                                    row,
+                                                                    column.key,
+                                                                    position,
+                                                                )}
                                                             </TableCell>
                                                         ),
                                                     )}

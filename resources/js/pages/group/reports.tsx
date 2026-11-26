@@ -1,12 +1,16 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Building2, CalendarDays, History } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useMemo } from 'react';
+import { Fragment, useMemo } from 'react';
 import { DateRangePicker } from '@/components/pms/date-range-picker';
 import { DateText, formatDate } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
 import { MoneyText } from '@/components/pms/money-text';
 import { GroupExportMenu } from '@/components/pms/group/group-export-menu';
+import {
+    PropertySectionRow,
+    startsProperty,
+} from '@/components/pms/group/property-section-row';
 import { RoomStatsChart } from '@/components/pms/reports/room-stats-chart';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { TabLinks } from '@/components/pms/tab-links';
@@ -191,7 +195,6 @@ function BookingsTable({
                 <TableHeader>
                     <TableRow>
                         {[
-                            'Property',
                             'Change',
                             'Time',
                             'Reservation',
@@ -210,53 +213,68 @@ function BookingsTable({
                 </TableHeader>
                 <TableBody>
                     {rows.map(
-                        ({ propertyCode, propertyName, change, canOpen }) => (
-                            <TableRow key={`${propertyCode}-${change.key}`}>
-                                <TableCell className="font-medium">
-                                    {propertyName}
-                                </TableCell>
-                                <TableCell>
-                                    <StatusBadge status={change.kind} />
-                                </TableCell>
-                                <TableCell className="tabular-nums">
-                                    {formatDate(change.changed_at.slice(0, 10))}{' '}
-                                    {change.changed_at.slice(11)}
-                                </TableCell>
-                                <TableCell>
-                                    {canOpen ? (
-                                        <Link
-                                            href={show.url({
-                                                property: propertyCode,
-                                                reservation:
-                                                    change.reservation_id,
-                                            })}
-                                            className="underline-offset-2 hover:underline"
-                                        >
-                                            {change.reservation}
-                                        </Link>
-                                    ) : (
-                                        change.reservation
-                                    )}
-                                </TableCell>
-                                <TableCell>{change.guest}</TableCell>
-                                <TableCell>{change.room}</TableCell>
-                                <TableCell>
-                                    <DateText date={change.arrival} />
-                                </TableCell>
-                                <TableCell>
-                                    <DateText date={change.departure} />
-                                </TableCell>
-                                <TableCell className="text-right tabular-nums">
-                                    {signed(change.nights_change, 0)}
-                                </TableCell>
-                                <TableCell className="text-right tabular-nums">
-                                    {signed(change.revenue_change, 2)}
-                                </TableCell>
-                                <TableCell>{change.source}</TableCell>
-                                <TableCell className="text-muted-foreground">
-                                    {change.reason ?? ''}
-                                </TableCell>
-                            </TableRow>
+                        (
+                            { propertyCode, propertyName, change, canOpen },
+                            index,
+                        ) => (
+                            <Fragment key={`${propertyCode}-${change.key}`}>
+                                {startsProperty(
+                                    rows,
+                                    index,
+                                    (item) => item.propertyCode,
+                                ) && (
+                                    <PropertySectionRow
+                                        name={propertyName}
+                                        code={propertyCode}
+                                        colSpan={11}
+                                    />
+                                )}
+                                <TableRow>
+                                    <TableCell>
+                                        <StatusBadge status={change.kind} />
+                                    </TableCell>
+                                    <TableCell className="tabular-nums">
+                                        {formatDate(
+                                            change.changed_at.slice(0, 10),
+                                        )}{' '}
+                                        {change.changed_at.slice(11)}
+                                    </TableCell>
+                                    <TableCell>
+                                        {canOpen ? (
+                                            <Link
+                                                href={show.url({
+                                                    property: propertyCode,
+                                                    reservation:
+                                                        change.reservation_id,
+                                                })}
+                                                className="underline-offset-2 hover:underline"
+                                            >
+                                                {change.reservation}
+                                            </Link>
+                                        ) : (
+                                            change.reservation
+                                        )}
+                                    </TableCell>
+                                    <TableCell>{change.guest}</TableCell>
+                                    <TableCell>{change.room}</TableCell>
+                                    <TableCell>
+                                        <DateText date={change.arrival} />
+                                    </TableCell>
+                                    <TableCell>
+                                        <DateText date={change.departure} />
+                                    </TableCell>
+                                    <TableCell className="text-right tabular-nums">
+                                        {signed(change.nights_change, 0)}
+                                    </TableCell>
+                                    <TableCell className="text-right tabular-nums">
+                                        {signed(change.revenue_change, 2)}
+                                    </TableCell>
+                                    <TableCell>{change.source}</TableCell>
+                                    <TableCell className="text-muted-foreground">
+                                        {change.reason ?? ''}
+                                    </TableCell>
+                                </TableRow>
+                            </Fragment>
                         ),
                     )}
                 </TableBody>

@@ -20,7 +20,8 @@ use Illuminate\Support\Facades\DB;
 /**
  * Group › Reservations: the bookings of every property whose role shows reservations, in one list, found by reference,
  * channel reference or booker (name, email, phone; only where the role shows guests), with a status, a stay window and a property filter. Each row has
- * its stay dates, rooms, pax, room total and folio balance from the same joins as the property's reservation list.
+ * its stay dates, rooms, pax, room total and folio balance from the same joins as the property's reservation list. Rows
+ * come by property (by name), then by arrival, so the list shows each property under one heading.
  * Queries do not grow with the number of bookings on a page. See docs/03-staff/05-group-mode.md#reservations.
  */
 class GroupReservations
@@ -134,6 +135,8 @@ class GroupReservations
                 DB::raw('coalesce(ledger.balance, 0)::numeric(14, 2) as balance'),
             ])
             ->with(['property.settings', 'booker', 'bookingSource'])
+            ->orderBy(Property::query()->select('name')->whereColumn('properties.id', 'reservations.property_id'))
+            ->orderBy('reservations.property_id')
             ->orderBy('stay.first_arrival')
             ->orderBy('reservations.id');
 

@@ -31,10 +31,11 @@ function groupBooking(Property $property, array $setup, string $key, string $gue
     return $reservation;
 }
 
-test('the list shows every property\'s bookings from today, by arrival, with the property', function () {
+test('the list shows every property\'s bookings from today, property by property, by arrival', function () {
     $setup = liveGroupSetup();
     grantKinabatangan($setup, $setup['manager'], DefaultRoleEnum::Manager);
-    groupBooking($setup['sepilok'], $setup, 'sepilok', 'Ann Lee', '2026-10-22');
+    groupBooking($setup['sepilok'], $setup, 'sepilok', 'Ann Lee', '2026-10-15');
+    groupBooking($setup['kinabatangan'], $setup, 'kinabatangan', 'Cal Ng', '2026-10-25');
     groupBooking($setup['kinabatangan'], $setup, 'kinabatangan', 'Ben Tan', '2026-10-18');
     groupBooking($setup['kinabatangan'], $setup, 'kinabatangan', 'Old Stay', '2026-09-01');
 
@@ -43,11 +44,12 @@ test('the list shows every property\'s bookings from today, by arrival, with the
         ->assertInertia(fn (Assert $page) => $page
             ->component('group/reservations')
             ->where('filters.from', '2026-10-14')
-            ->has('reservations.data', 2)
+            ->has('reservations.data', 3)
             ->where('reservations.data.0.guest', 'Ben Tan')
             ->where('reservations.data.0.propertyName', 'Tanini Kinabatangan')
             ->where('reservations.data.0.rooms', 1)
-            ->where('reservations.data.1.guest', 'Ann Lee')
+            ->where('reservations.data.1.guest', 'Cal Ng')
+            ->where('reservations.data.2.guest', 'Ann Lee')
             ->has('properties', 2));
 });
 

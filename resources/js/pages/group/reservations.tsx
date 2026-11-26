@@ -1,6 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import { CalendarCheck, Search } from 'lucide-react';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { DateRangePicker } from '@/components/pms/date-range-picker';
 import { formatDate } from '@/components/pms/date-text';
 import { EmptyState } from '@/components/pms/empty-state';
@@ -8,6 +8,10 @@ import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { formatMoney } from '@/components/pms/money-text';
 import { GroupExportMenu } from '@/components/pms/group/group-export-menu';
+import {
+    PropertySectionRow,
+    startsProperty,
+} from '@/components/pms/group/property-section-row';
 import {
     ReservationPeekSheet,
     type PeekTarget,
@@ -192,7 +196,6 @@ export default function GroupReservations({
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Property</TableHead>
                                         <TableHead>Booking</TableHead>
                                         <TableHead>Stay</TableHead>
                                         <TableHead className="text-right">
@@ -212,93 +215,108 @@ export default function GroupReservations({
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {page.data.map((row) => (
-                                        <TableRow
+                                    {page.data.map((row, index) => (
+                                        <Fragment
                                             key={`${row.propertyCode}-${row.id}`}
-                                            className="cursor-pointer"
-                                            data-state={
-                                                peek?.reservationId ===
-                                                    row.id &&
-                                                peek.propertyCode ===
-                                                    row.propertyCode
-                                                    ? 'selected'
-                                                    : undefined
-                                            }
-                                            onClick={() =>
-                                                setPeek({
-                                                    propertyCode:
-                                                        row.propertyCode,
-                                                    reservationId: row.id,
-                                                })
-                                            }
                                         >
-                                            <TableCell className="whitespace-nowrap">
-                                                {row.propertyName}
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-col">
-                                                    <button
-                                                        type="button"
-                                                        className="text-left font-medium underline-offset-2 hover:underline focus-visible:underline focus-visible:outline-none"
-                                                        aria-label={`Show ${row.guest ?? row.reference} at ${row.propertyName}`}
-                                                        onClick={(event) => {
-                                                            event.stopPropagation();
-                                                            setPeek({
-                                                                propertyCode:
-                                                                    row.propertyCode,
-                                                                reservationId:
-                                                                    row.id,
-                                                            });
-                                                        }}
-                                                    >
-                                                        {row.guest ??
-                                                            row.reference}
-                                                    </button>
-                                                    {row.guest !== null && (
-                                                        <span className="text-xs text-muted-foreground">
-                                                            {row.reference}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="whitespace-nowrap tabular-nums">
-                                                {row.arrival && row.departure
-                                                    ? `${formatDate(row.arrival)} → ${formatDate(row.departure)}`
-                                                    : '—'}
-                                            </TableCell>
-                                            <TableCell className="text-right tabular-nums">
-                                                {row.rooms}
-                                            </TableCell>
-                                            <TableCell className="text-right tabular-nums">
-                                                {row.pax}
-                                            </TableCell>
-                                            <TableCell>
-                                                <StatusBadge
-                                                    status={row.status}
+                                            {startsProperty(
+                                                page.data,
+                                                index,
+                                                (item) => item.propertyCode,
+                                            ) && (
+                                                <PropertySectionRow
+                                                    name={row.propertyName}
+                                                    code={row.propertyCode}
+                                                    colSpan={8}
                                                 />
-                                            </TableCell>
-                                            <TableCell>
-                                                {row.source ?? '—'}
-                                            </TableCell>
-                                            <TableCell className="text-right tabular-nums">
-                                                {amount(
-                                                    row.total,
-                                                    row.currency,
-                                                )}
-                                            </TableCell>
-                                            <TableCell
-                                                className={cn(
-                                                    'text-right tabular-nums',
-                                                    Number(row.balance) > 0 &&
-                                                        'text-destructive',
-                                                )}
+                                            )}
+                                            <TableRow
+                                                className="cursor-pointer"
+                                                data-state={
+                                                    peek?.reservationId ===
+                                                        row.id &&
+                                                    peek.propertyCode ===
+                                                        row.propertyCode
+                                                        ? 'selected'
+                                                        : undefined
+                                                }
+                                                onClick={() =>
+                                                    setPeek({
+                                                        propertyCode:
+                                                            row.propertyCode,
+                                                        reservationId: row.id,
+                                                    })
+                                                }
                                             >
-                                                {amount(
-                                                    row.balance,
-                                                    row.currency,
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
+                                                <TableCell>
+                                                    <div className="flex flex-col">
+                                                        <button
+                                                            type="button"
+                                                            className="text-left font-medium underline-offset-2 hover:underline focus-visible:underline focus-visible:outline-none"
+                                                            aria-label={`Show ${row.guest ?? row.reference} at ${row.propertyName}`}
+                                                            onClick={(
+                                                                event,
+                                                            ) => {
+                                                                event.stopPropagation();
+                                                                setPeek({
+                                                                    propertyCode:
+                                                                        row.propertyCode,
+                                                                    reservationId:
+                                                                        row.id,
+                                                                });
+                                                            }}
+                                                        >
+                                                            {row.guest ??
+                                                                row.reference}
+                                                        </button>
+                                                        {row.guest !== null && (
+                                                            <span className="text-xs text-muted-foreground">
+                                                                {row.reference}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="whitespace-nowrap tabular-nums">
+                                                    {row.arrival &&
+                                                    row.departure
+                                                        ? `${formatDate(row.arrival)} → ${formatDate(row.departure)}`
+                                                        : '—'}
+                                                </TableCell>
+                                                <TableCell className="text-right tabular-nums">
+                                                    {row.rooms}
+                                                </TableCell>
+                                                <TableCell className="text-right tabular-nums">
+                                                    {row.pax}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <StatusBadge
+                                                        status={row.status}
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    {row.source ?? '—'}
+                                                </TableCell>
+                                                <TableCell className="text-right tabular-nums">
+                                                    {amount(
+                                                        row.total,
+                                                        row.currency,
+                                                    )}
+                                                </TableCell>
+                                                <TableCell
+                                                    className={cn(
+                                                        'text-right tabular-nums',
+                                                        Number(row.balance) >
+                                                            0 &&
+                                                            'text-destructive',
+                                                    )}
+                                                >
+                                                    {amount(
+                                                        row.balance,
+                                                        row.currency,
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        </Fragment>
                                     ))}
                                 </TableBody>
                             </Table>
