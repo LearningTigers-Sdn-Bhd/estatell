@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Where the chat appears, the routes behind it, how a quote becomes a booking, the chat API for n8n, the handover and the AI chats inbox.
+Where the chat appears, the routes behind it, how a quote becomes a booking, the chat API for n8n, the handover and the Chat handovers inbox.
 
 ## Chat UI
 
@@ -14,23 +14,23 @@ Every chat shows "You are chatting with an AI assistant" and a link to contact t
 
 ## Routes
 
-| Route                                                                                | Place           | Auth                                                |
-| ------------------------------------------------------------------------------------ | --------------- | --------------------------------------------------- |
-| `GET`, `POST /stay/{code}/ai/messages`                                               | Concierge lobby | None; throttled by address and property             |
-| `GET`, `POST /c/{token}/ai/messages`                                                 | Concierge stay  | The stay token                                      |
-| `POST /api/booking/v1/properties/{code}/ai/messages`                                 | Booking engine  | Booking client token (`booking:*`) and `X-Guest-IP` |
-| `POST /p/{property:code}/ai/messages`                                                | Staff           | Staff session                                       |
-| `POST /api/ai/v1/messages`                                                           | API             | AI connection token (`ai:chat`)                     |
-| `GET /p/{property:code}/ai-chats` (`?thread={id}` opens one)                         | AI chats inbox  | `front-desk.view`                                   |
-| `POST /p/{property:code}/ai-chats/{thread}/resolve`                                  | AI chats inbox  | `front-desk.view`                                   |
-| `GET /p/{property:code}/settings/ai-assistant` (General), `/places`, `/capabilities` | Settings        | `settings.manage`                                   |
-| `PUT /p/{property:code}/settings/ai-assistant/scopes`, `/handover-message`           | Settings        | `settings.manage`                                   |
-| `PUT`, `DELETE /p/{property:code}/settings/ai-assistant/key`                         | Settings        | `settings.manage`                                   |
-| `POST /p/{property:code}/settings/ai-assistant/key/test`, `PUT .../monthly-cap`      | Settings        | `settings.manage`                                   |
-| `GET /p/{property:code}/settings/ai-assistant/usage`                                 | Settings        | `settings.manage`                                   |
-| `GET /admin/properties/{property:code}/chat-api`                                     | Admin           | Platform admin                                      |
-| `POST /admin/properties/{property:code}/chat-api/connections`                        | Admin           | Platform admin, `support.2fa`                       |
-| `DELETE /admin/properties/{property:code}/chat-api/connections/{aiConnection}`       | Admin           | Platform admin, `support.2fa`                       |
+| Route                                                                                | Place                | Auth                                                |
+| ------------------------------------------------------------------------------------ | -------------------- | --------------------------------------------------- |
+| `GET`, `POST /stay/{code}/ai/messages`                                               | Concierge lobby      | None; throttled by address and property             |
+| `GET`, `POST /c/{token}/ai/messages`                                                 | Concierge stay       | The stay token                                      |
+| `POST /api/booking/v1/properties/{code}/ai/messages`                                 | Booking engine       | Booking client token (`booking:*`) and `X-Guest-IP` |
+| `POST /p/{property:code}/ai/messages`                                                | Staff                | Staff session                                       |
+| `POST /api/ai/v1/messages`                                                           | API                  | AI connection token (`ai:chat`)                     |
+| `GET /p/{property:code}/ai-chats` (`?thread={id}` opens one)                         | Chat handovers inbox | `front-desk.view`                                   |
+| `POST /p/{property:code}/ai-chats/{thread}/resolve`                                  | Chat handovers inbox | `front-desk.view`                                   |
+| `GET /p/{property:code}/settings/ai-assistant` (General), `/places`, `/capabilities` | Settings             | `settings.manage`                                   |
+| `PUT /p/{property:code}/settings/ai-assistant/scopes`, `/handover-message`           | Settings             | `settings.manage`                                   |
+| `PUT`, `DELETE /p/{property:code}/settings/ai-assistant/key`                         | Settings             | `settings.manage`                                   |
+| `POST /p/{property:code}/settings/ai-assistant/key/test`, `PUT .../monthly-cap`      | Settings             | `settings.manage`                                   |
+| `GET /p/{property:code}/settings/ai-assistant/usage`                                 | Settings             | `settings.manage`                                   |
+| `GET /admin/properties/{property:code}/chat-api`                                     | Admin                | Platform admin                                      |
+| `POST /admin/properties/{property:code}/chat-api/connections`                        | Admin                | Platform admin, `support.2fa`                       |
+| `DELETE /admin/properties/{property:code}/chat-api/connections/{aiConnection}`       | Admin                | Platform admin, `support.2fa`                       |
 
 Every chat route sits behind the `ai-assistant` middleware and checks its place [scope](01-overview.md#scopes) through `AiScopes`. A scope that is off returns 404. A cap that is reached, or a key that is Failing, returns the handover message with no model call (see [Monthly cap](04-usage-and-cost.md#monthly-cap) and [API key](01-overview.md#api-key)).
 
@@ -105,7 +105,7 @@ For WhatsApp or any other channel run by n8n. Estatell sets it up for the hotel,
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Switch         | The **Chat API (n8n)** row under the AI assistant on Admin › Properties › {property} › Features. It is the `Api` scope, an [admin-only scope](01-overview.md#scopes): allowed means on. While on, the row says "{n} active connections · Manage in Chat API".                                                                                                                                                                                      |
 | Tab            | **Chat API** on the admin property page (`/admin/properties/{code}/chat-api`), after Commissions. Shown, like Channels, only while the AI assistant feature and the switch are on (`chatApiOn`). Otherwise the URL returns 404.                                                                                                                                                                                                                    |
-| Connections    | A table of name, status (Active or Revoked), last used, and **Revoke**. The header always shows; with no connections, the empty state is a full-width row. **Add connection** sits in the panel heading. It asks for a name ("n8n – WhatsApp"). The token is shown once in a Connection created dialog with Copy. Revoke asks first: "n8n can no longer send messages with this token. Past chats stay in AI chats."                               |
+| Connections    | A table of name, status (Active or Revoked), last used, and **Revoke**. The header always shows; with no connections, the empty state is a full-width row. **Add connection** sits in the panel heading. It asks for a name ("n8n – WhatsApp"). The token is shown once in a Connection created dialog with Copy. Revoke asks first: "n8n can no longer send messages with this token. Past chats stay in Chat handovers."                         |
 | Key notice     | An `Alert` "The hotel's OpenAI key" with the key status badge. When there is no key or it is Failing, a warning `Alert` says n8n messages get the handover message until the hotel fixes the key.                                                                                                                                                                                                                                                  |
 | How to call it | An example n8n workflow (three cards: WhatsApp trigger, HTTP request to Estatell, WhatsApp send, built from `Card` and `Badge` in a rounded, bordered `bg-muted` panel, joined by arrows that touch each card, stacked on small screens), then the request with Copy, the fields, the reply with Copy, and the errors. The token shows as `<token>`, and the URL comes from the app URL. The idempotency key is left out to keep the setup simple. |
 
@@ -132,7 +132,7 @@ Idempotency-Key: <n8n execution id>   (optional)
 | `channel`    | Required. `AiChannel`: `whatsapp`, `instagram`, `messenger`, `telegram` or `other`        |
 | `thread`     | Required. The channel's own chat id, such as the WhatsApp chat id. At most 255 characters |
 | `message`    | Required. The guest's text, at most 2,000 characters                                      |
-| `guest_name` | Optional. At most 100 characters. Shown to staff in the AI chats inbox                    |
+| `guest_name` | Optional. At most 100 characters. Shown to staff in the Chat handovers inbox              |
 
 - Middleware: `api.token:ai:chat`, `throttle:api-token` and the API throttle (60 a minute per connection), then `api.idempotent`.
 - The reply is plain JSON, not a stream. n8n sends `reply` back on the channel. `escalated` is true when this turn handed over to staff.
@@ -171,17 +171,17 @@ n8n stores nothing. It sends the same `thread` each time, and Estatell finds the
 | Webhook        | `ai.escalated`, with the thread id, place, reservation id if any and the summary         |
 | The thread     | Status Escalated. The assistant still answers                                            |
 
-The summary is written by the model in one or two sentences, as the `summary` argument of the `HandOver` call, so it costs no extra model call. When it is empty, the `reason` is used. It is cut at 500 characters. The webhook and the notification never carry the full chat. With the inbox, the summary is also saved as `ai_threads.handover_summary`, so the list can show it (see [AI chats inbox](#ai-chats-inbox)).
+The summary is written by the model in one or two sentences, as the `summary` argument of the `HandOver` call, so it costs no extra model call. When it is empty, the `reason` is used. It is cut at 500 characters. The webhook and the notification never carry the full chat. With the inbox, the summary is also saved as `ai_threads.handover_summary`, so the list can show it (see [Chat handovers inbox](#chat-handovers-inbox)).
 
-The notification goes to the active staff with `front-desk.view`. It opens the chat in the AI chats inbox (`?thread={id}`). Only the first handover of a thread sends: a second `HandOver` call, or one on a Closed thread, sends nothing. After staff resolve a handover, a new handover in the same thread sends again.
+The notification goes to the active staff with `front-desk.view`. It opens the chat in the Chat handovers inbox (`?thread={id}`). Only the first handover of a thread sends: a second `HandOver` call, or one on a Closed thread, sends nothing. After staff resolve a handover, a new handover in the same thread sends again.
 
-## AI chats inbox
+## Chat handovers inbox
 
 Built on 2026-11-24. Staff read what the assistant and the guest said, contact the guest their own way (phone, WhatsApp, the desk), and mark the handover resolved. Staff do not reply inside the guest's chat.
 
 | Part    | What it is                                                                                                                                                                                                                                                                                           |
 | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Nav     | **AI chats** in the Front desk nav, after Requests. Shown when the AI assistant feature is on and the user has `front-desk.view`.                                                                                                                                                                    |
+| Nav     | **Chat handovers** in the Front desk nav, in the Guest Services group after Requests. Shown when the AI assistant feature is on and the user has `front-desk.view`. Named "AI chats" until 2026-11-26.                                                                                               |
 | Tabs    | **Handed over** (the default: status Escalated, oldest handover first) and **All** (every thread, last message first). The Handed over tab shows its count.                                                                                                                                          |
 | Columns | Last message (time ago), Place (a chat API thread shows "API · {channel}"), Guest (the stay's guest and room, the chat API guest name, or "Lobby guest"), Summary (the handover summary, else the guest's last message, one line), Status (`AiThreadStatus` tone), Turns.                            |
 | Filters | Place, and a date range on the last message. 25 rows a page.                                                                                                                                                                                                                                         |

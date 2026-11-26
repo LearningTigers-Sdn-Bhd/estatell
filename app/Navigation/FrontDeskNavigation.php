@@ -58,18 +58,6 @@ class FrontDeskNavigation
                     icon: 'spray-can',
                     active: request()->routeIs('housekeeping.*'),
                 ) : null,
-                $user->can(PermissionEnum::GuestRequestsView->value) ? new NavItemData(
-                    title: __('Requests'),
-                    href: route('guest-requests.index', ['property' => $property->code], absolute: false),
-                    icon: 'concierge-bell',
-                    active: request()->routeIs('guest-requests.*'),
-                ) : null,
-                $user->can(PermissionEnum::FrontDeskView->value) && Feature::for($property)->active(AiAssistant::class) ? new NavItemData(
-                    title: __('AI chats'),
-                    href: route('ai-chats.index', ['property' => $property->code], absolute: false),
-                    icon: 'bot',
-                    active: request()->routeIs('ai-chats.*'),
-                ) : null,
                 $user->can(PermissionEnum::ReservationsView->value) && Feature::for($property)->active(Boats::class) ? new NavItemData(
                     title: __('Boat Trips'),
                     href: route('boats.index', ['property' => $property->code], absolute: false),
@@ -91,20 +79,32 @@ class FrontDeskNavigation
                     active: request()->routeIs('reservations.*'),
                 ) : null,
                 $user->can(PermissionEnum::EventsView->value) && Feature::for($property)->active(Facilities::class) ? new NavItemData(
-                    title: __('Events'),
+                    title: __('All non-room reservations'),
                     href: route('events.index', ['property' => $property->code], absolute: false),
                     icon: 'calendar-heart',
                     active: request()->routeIs('events.*'),
                 ) : null,
             ]))),
-            new NavGroupData(label: __('Guests'), items: array_filter([
+            new NavGroupData(label: __('Guest Services'), items: array_values(array_filter([
                 $user->can(PermissionEnum::GuestsView->value) ? new NavItemData(
                     title: __('Guests'),
                     href: route('guests.index', ['property' => $property->code], absolute: false),
                     icon: 'users',
                     active: request()->routeIs('guests.*'),
                 ) : null,
-            ])),
+                $user->can(PermissionEnum::GuestRequestsView->value) ? new NavItemData(
+                    title: __('Requests'),
+                    href: route('guest-requests.index', ['property' => $property->code], absolute: false),
+                    icon: 'concierge-bell',
+                    active: request()->routeIs('guest-requests.*'),
+                ) : null,
+                $user->can(PermissionEnum::FrontDeskView->value) && Feature::for($property)->active(AiAssistant::class) ? new NavItemData(
+                    title: __('Chat handovers'),
+                    href: route('ai-chats.index', ['property' => $property->code], absolute: false),
+                    icon: 'bot',
+                    active: request()->routeIs('ai-chats.*'),
+                ) : null,
+            ]))),
             new NavGroupData(label: __('Operations'), items: array_values(array_filter([
                 $user->can(PermissionEnum::RatesView->value) ? new NavItemData(
                     title: __('Rate calendar'),

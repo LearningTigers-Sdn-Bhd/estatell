@@ -285,15 +285,15 @@ test('the invoice of a closed event folio and the receipt of its payment print',
         ->assertHeader('content-type', 'application/pdf');
 });
 
-test('the front desk sidebar shows Events only with the Facilities feature', function () {
+test('the front desk sidebar shows All non-room reservations only with the Facilities feature', function () {
     ['property' => $property, 'owner' => $owner] = eventSetup();
     $titles = fn ($response) => collect(data_get($response->viewData('page'), 'props.navigation.contexts'))
         ->flatMap(fn ($context) => collect($context['groups'])->flatMap(fn ($group) => $group['items']))
         ->pluck('title');
 
-    expect($titles($this->actingAs($owner)->get(route('dashboard', $property->code))))->toContain('Events');
+    expect($titles($this->actingAs($owner)->get(route('dashboard', $property->code))))->toContain('All non-room reservations');
 
     Feature::for($property)->deactivate(Facilities::class);
 
-    expect($titles($this->actingAs($owner)->get(route('dashboard', $property->code))))->not->toContain('Events');
+    expect($titles($this->actingAs($owner)->get(route('dashboard', $property->code))))->not->toContain('All non-room reservations');
 });

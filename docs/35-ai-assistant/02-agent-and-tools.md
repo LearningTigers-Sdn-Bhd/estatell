@@ -74,7 +74,7 @@ Rules for every tool:
 
 ## Handover
 
-`EscalateAiThread` (an Action) marks the thread Escalated (built with guest questions), sends the staff notification `AiThreadEscalated` (to staff with `front-desk.view`) and queues the `ai.escalated` webhook (a new `WebhookEvent`). The guest sees the handover message from Settings. An escalated thread keeps answering questions, and staff see it in the [AI chats inbox](03-places-and-routes.md#ai-chats-inbox). See [Handover](03-places-and-routes.md#handover).
+`EscalateAiThread` (an Action) marks the thread Escalated (built with guest questions), sends the staff notification `AiThreadEscalated` (to staff with `front-desk.view`) and queues the `ai.escalated` webhook (a new `WebhookEvent`). The guest sees the handover message from Settings. An escalated thread keeps answering questions, and staff see it in the [Chat handovers inbox](03-places-and-routes.md#chat-handovers-inbox). See [Handover](03-places-and-routes.md#handover).
 
 ## Safety in the instructions is not enough
 

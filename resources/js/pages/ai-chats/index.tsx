@@ -63,12 +63,12 @@ export default function AiChatsIndex({
 
     return (
         <>
-            <Head title="AI chats" />
+            <Head title="Chat handovers" />
 
             <div className="flex flex-1 flex-col gap-6 p-4">
                 <PageHeader
-                    title="AI chats"
-                    description="Chats with the AI assistant. Contact the guest, then resolve the handover."
+                    title="Chat handovers"
+                    description="Guest chats the AI assistant hands to staff. Contact the guest, then resolve the handover."
                 />
 
                 <TabLinks
@@ -124,7 +124,7 @@ export default function AiChatsIndex({
 
 AiChatsIndex.layout = (props: Props) => ({
     breadcrumbs: withTabCrumb(
-        [{ title: 'AI chats', href: index() }],
+        [{ title: 'Chat handovers', href: index() }],
         aiChatTabs(props.handedOverCount),
         props.tab,
     ),
