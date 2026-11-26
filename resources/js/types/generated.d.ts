@@ -1329,6 +1329,13 @@ description: string | null,
 mapsUrl: string,
 distance: string | null,
 };
+export type ConciergePlanData = {
+kind: string,
+date: string,
+time: string,
+title: string,
+detail: string | null,
+};
 export type ConciergePoliciesData = {
 checkInTime: string,
 checkOutTime: string,
@@ -1414,6 +1421,7 @@ eInvoiceUrl: string | null,
 checkInTime: string | null,
 checkInOpensLater: boolean,
 fromQuote: boolean,
+plans: App.Data.Concierge.ConciergePlanData[],
 };
 export type ConciergeTermsData = {
 version: number,
@@ -2650,6 +2658,7 @@ moves: App.Data.Shared.BadgeData[],
 blocked: boolean,
 stay: App.Data.Shared.BadgeData | null,
 guest: string | null,
+guestRemark: string | null,
 };
 export type HousekeepingBulkResultData = {
 done: number,
@@ -2689,6 +2698,7 @@ stay: App.Data.Shared.BadgeData | null,
 isPriority: boolean,
 priorityNote: string | null,
 remark: string | null,
+guestRemark: string | null,
 needsMaintenance: boolean,
 canDismissMaintenance: boolean,
 doNotDisturb: boolean,
@@ -3585,6 +3595,7 @@ groupName: string | null,
 externalReference: string | null,
 expectedTotal: string,
 boatTrips: App.Data.Boats.BoatTripData[],
+transfers: App.Data.Transfers.UnitTransferInputData[],
 };
 export type NewPortalGuestData = {
 fullName: string | null,
@@ -4721,6 +4732,8 @@ housekeeping_remarks: string | null,
 dietary_remarks: string | null,
 package_remarks: string | null,
 payment_remarks: string | null,
+pick_up: string | null,
+drop_off: string | null,
 };
 export type BoatManifestRow = {
 key: number,
@@ -4901,6 +4914,7 @@ capacity: number,
 unit: string,
 counts: boolean,
 crew: string | null,
+party: string | null,
 };
 export type FolioLedgerRow = {
 key: number,
@@ -5297,6 +5311,7 @@ place: string,
 unit: string,
 lead_guest: string | null,
 phone: string | null,
+party: string | null,
 adults: number,
 children: number,
 total: number,
@@ -5770,6 +5785,7 @@ creditOverrideReason: string | null,
 salesPersonId: number | null,
 marketSegmentId: number | null,
 remarks: Partial<Record<App.Enums.RemarkKind, string>>,
+transfers: App.Data.Transfers.UnitTransferInputData[],
 };
 export type NewBookingGuestData = {
 guestId: number | null,

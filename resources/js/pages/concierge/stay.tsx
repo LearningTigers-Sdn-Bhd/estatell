@@ -7,6 +7,7 @@ import { IdentityStep } from '@/components/concierge/identity-step';
 import { KeyStep } from '@/components/concierge/key-step';
 import { PaymentStep } from '@/components/concierge/payment-step';
 import { StayHome } from '@/components/concierge/stay-home';
+import { StayPlans } from '@/components/concierge/stay-plans';
 import { GuestFrame } from '@/components/concierge/stay-menu';
 import { SAVED_STAY_DAYS, removeStay, saveStay } from '@/lib/concierge-stays';
 import { identity, lobby, requests, stayContact } from '@/routes/concierge';
@@ -165,6 +166,11 @@ export default function ConciergeStay({
             )}
             {stay.step === 'desk' && (
                 <FrontDeskStep propertyCode={stay.property.code} />
+            )}
+            {stay.plans.length > 0 && (
+                <div className="mt-8">
+                    <StayPlans plans={stay.plans} />
+                </div>
             )}
             {aiChat && (
                 <AiChatSheet

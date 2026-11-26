@@ -21,6 +21,7 @@ use App\Services\FrontDesk\SelfCheckInPayment;
 use App\Services\Kiosk\KioskPin;
 use App\Services\Kiosk\KioskRegistrationTerms;
 use App\Services\Kiosk\KioskStays;
+use App\Services\Property\PropertyToday;
 use App\Services\Registration\RegistrationCardFieldRules;
 use Illuminate\Support\Str;
 
@@ -42,6 +43,8 @@ class ConciergePageBuilder
         private ConciergeEInvoice $eInvoice,
         private ConciergeStays $concierge,
         private ConciergeQuoteStays $quotes,
+        private ConciergePlans $plans,
+        private PropertyToday $propertyToday,
     ) {}
 
     public function build(string $token, ReservationUnit $stay, ?Locale $locale): ConciergeStayData
@@ -91,6 +94,10 @@ class ConciergePageBuilder
             checkInTime: $opensLater ? $this->concierge->checkInOpensAt($stay)?->format('H:i') : null,
             checkInOpensLater: $opensLater,
             fromQuote: in_array($step, [ConciergeStep::Payment, ConciergeStep::HoldExpired], true) && $quoted,
+            // Not once the stay has ended or moved to the front desk: there is nothing left to be on time for.
+            plans: in_array($step, [ConciergeStep::Desk, ConciergeStep::HoldExpired, ConciergeStep::CheckedOut], true)
+                ? []
+                : $this->plans->forStay($stay, $this->propertyToday->date($stay->property)),
         );
     }
 
