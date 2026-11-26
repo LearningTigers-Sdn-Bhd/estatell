@@ -31,6 +31,8 @@ class ConciergeGuideController extends Controller
             'checkOut' => $request->query('for') === 'check-out',
             'nameCheckIn' => (bool) $property->settings?->concierge_name_check_in_enabled,
             'checkInHref' => $request->session()->get('checkInHref'),
+            'confirmId' => (bool) $request->session()->get('confirmId', false),
+            'confirmName' => $request->session()->get('confirmName'),
         ]);
     }
 

@@ -204,11 +204,42 @@ it('opens nothing by a name that is not enough', function (array $unit, string $
     'not arrived yet' => [['arrival_date' => '2026-10-20', 'departure_date' => '2026-10-22'], 'Aisha Rahman'],
 ]);
 
-it('opens nothing by name once the guest has an ID document', function () {
+it('asks a returning guest with a saved ID to confirm their ID number before opening the stay by name', function () {
+    ['property' => $property, 'guest' => $guest, 'unit' => $unit] = conciergeNameSetup();
+    BookingPreCheckInToken::query()->delete();
+    $guest->documents()->create(['type' => 'mykad', 'number' => '900101141234', 'issuing_country_code' => 'MY']);
+
+    // Name alone asks for the saved ID number and issues no stay link yet.
+    conciergeFind($property->code, 'Aisha Rahman')
+        ->assertRedirect("/stay/{$property->code}/find")
+        ->assertSessionHas('confirmId', true)
+        ->assertSessionHas('confirmName', 'Aisha Rahman');
+    expect(BookingPreCheckInToken::query()->where('reservation_unit_id', $unit->id)->count())->toBe(0);
+
+    $this->get("/stay/{$property->code}/find")->assertInertia(fn (Assert $page) => $page
+        ->component('concierge/find')
+        ->where('confirmId', true)
+        ->where('confirmName', 'Aisha Rahman'));
+
+    // A wrong ID number is refused and still issues no stay link.
+    $this->post("/stay/{$property->code}", ['reference' => 'Aisha Rahman', 'id_number' => '900101-14-9999'])
+        ->assertRedirect("/stay/{$property->code}/find")
+        ->assertSessionHasErrors('id_number');
+    expect(BookingPreCheckInToken::query()->where('reservation_unit_id', $unit->id)->count())->toBe(0);
+
+    // The matching ID number (ignoring dashes and spaces) opens the stay.
+    $response = $this->post("/stay/{$property->code}", ['reference' => 'Aisha Rahman', 'id_number' => ' 900101-14-1234 '])
+        ->assertSessionHasNoErrors()
+        ->assertRedirect();
+    $token = BookingPreCheckInToken::query()->where('reservation_unit_id', $unit->id)->sole();
+    expect(hash('sha256', basename($response->headers->get('Location'))))->toBe($token->token_hash);
+});
+
+it('still opens a returning guest stay directly with the booking code without asking for an ID number', function () {
     ['property' => $property, 'guest' => $guest] = conciergeNameSetup();
     conciergeIdentityDone($guest);
 
-    conciergeFind($property->code, 'Aisha Rahman')->assertSessionHasErrors('reference');
+    conciergeFind($property->code, 'R100')->assertSessionHasNoErrors()->assertRedirect();
 });
 
 it('opens nothing when two arriving stays share the name', function () {

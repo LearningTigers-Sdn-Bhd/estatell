@@ -10,6 +10,7 @@ use App\Models\GuestIdentityDocument;
 use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Services\Guests\GuestName;
+use App\Services\Guests\IdentityNumber;
 use App\Services\Kiosk\KioskStays;
 use App\Services\Kiosk\KioskWalkInHolds;
 use Carbon\CarbonImmutable;
@@ -55,9 +56,9 @@ class ConciergeStays
 
     /**
      * The stay a guest opens by the name on the booking: an OTA booking reaches the property with no email or phone, so a
-     * guest at the door may have no booking code. A name is easy to know, so it opens less than a code: only a stay that
-     * can check in today and whose guest has no ID document yet (the guest enters it next). A checked-in stay, a
-     * one-word name and a name that matches more than one stay open nothing.
+     * guest at the door may have no booking code. A name is easy to know, so it opens less than a code: only a Confirmed
+     * stay that can check in today. A checked-in stay, a one-word name and a name that matches more than one stay open
+     * nothing. When the guest already has a saved ID document, `OpenConciergeStay` requires confirming that ID number first.
      */
     public function byGuestName(Property $property, string $name): ?ReservationUnit
     {
@@ -82,9 +83,28 @@ class ConciergeStays
                 && ! $holds->expired($property, $stay->id)
                 && $kiosk->window($stay) === KioskStays::OPEN);
 
-        $stay = $matches->count() === 1 ? $matches->first() : null;
+        return $matches->count() === 1 ? $matches->first() : null;
+    }
 
-        return $stay === null || $kiosk->guest($stay)->documents()->exists() ? null : $stay;
+    /** Whether the stay's guest already has at least one saved ID document on file. */
+    public function guestHasIdDocument(ReservationUnit $stay): bool
+    {
+        return app(KioskStays::class)->guest($stay)?->documents()->exists() === true;
+    }
+
+    /** Whether the typed ID number matches one of the stay guest's saved ID documents (ignoring case, spaces and dashes). */
+    public function matchesGuestIdNumber(ReservationUnit $stay, string $idNumber): bool
+    {
+        $normalized = app(IdentityNumber::class)->normalize($idNumber);
+
+        if (strlen($normalized) < 4) {
+            return false;
+        }
+
+        $guest = app(KioskStays::class)->guest($stay);
+
+        return $guest !== null
+            && $guest->documents()->whereBlind('number', GuestIdentityDocument::NUMBER_INDEX, $normalized)->exists();
     }
 
     /** Whether an ID document has its photos: the front, and for a MyKad the back too. */
