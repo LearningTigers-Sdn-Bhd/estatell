@@ -3,6 +3,7 @@
 namespace App\Services\Concierge;
 
 use App\Models\Property;
+use App\Services\Guests\GuestName;
 use Illuminate\Support\Facades\RateLimiter;
 
 /**
@@ -78,6 +79,9 @@ class ConciergeLookupLockout
 
     private function codeKey(Property $property, string $reference): string
     {
-        return 'concierge-lookup-code:'.$property->id.':'.sha1(mb_strtolower(trim($reference)));
+        $trimmed = trim($reference);
+        $normalized = str_contains($trimmed, ' ') ? app(GuestName::class)->key($trimmed) : mb_strtolower($trimmed);
+
+        return 'concierge-lookup-code:'.$property->id.':'.sha1($normalized);
     }
 }

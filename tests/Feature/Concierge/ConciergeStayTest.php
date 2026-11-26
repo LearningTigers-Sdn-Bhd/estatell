@@ -313,3 +313,37 @@ it('never sends the saved ID number or birth date to the page, and keeps them wh
     expect($guest->documents()->count())->toBe(1)
         ->and($guest->fresh()->date_of_birth->toDateString())->toBe('1990-05-01');
 });
+
+it('asks for an ID photo only while Check in by name is on', function () {
+    ['property' => $property, 'token' => $token] = conciergeSetup();
+
+    $this->post("/c/{$token}/identity", conciergeIdentityBody())->assertSessionHasNoErrors();
+
+    $property->settings->forceFill(['concierge_name_check_in_enabled' => true])->save();
+
+    // The ID saved without a photo no longer finishes the step, and check-in cannot be posted around it.
+    conciergeStep($token, 'identity');
+    $this->post("/c/{$token}/identity", conciergeIdentityBody())->assertSessionHasErrors('scan');
+    $this->post("/c/{$token}/check-in");
+    conciergeStep($token, 'identity');
+
+    $this->post("/c/{$token}/identity", conciergeIdentityBody(['scan' => UploadedFile::fake()->image('passport.jpg')]))->assertSessionHasNoErrors();
+    conciergeStep($token, 'check_in');
+});
+
+it('asks for both sides of a MyKad while Check in by name is on', function () {
+    ['property' => $property, 'token' => $token] = conciergeSetup();
+    $property->settings->forceFill(['concierge_name_check_in_enabled' => true])->save();
+
+    $this->post("/c/{$token}/identity", conciergeIdentityBody(['kind' => 'my_kad', 'number' => '900101141234', 'scan' => UploadedFile::fake()->image('front.jpg')]))
+        ->assertSessionHasErrors('scan_back')->assertSessionDoesntHaveErrors('scan');
+});
+
+it('counts a saved ID photo only while the guest keeps that document', function () {
+    ['property' => $property, 'token' => $token] = conciergeSetup();
+    $property->settings->forceFill(['concierge_name_check_in_enabled' => true])->save();
+    $this->post("/c/{$token}/identity", conciergeIdentityBody(['scan' => UploadedFile::fake()->image('passport.jpg')]))->assertSessionHasNoErrors();
+
+    $this->post("/c/{$token}/identity", conciergeIdentityBody(['number' => 'B7654321']))->assertSessionHasErrors('scan');
+    $this->post("/c/{$token}/identity", conciergeIdentityBody(['number' => '', 'keep_saved_document' => '1']))->assertSessionHasNoErrors();
+});

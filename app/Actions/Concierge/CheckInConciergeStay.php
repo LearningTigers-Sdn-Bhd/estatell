@@ -25,7 +25,7 @@ class CheckInConciergeStay
      * guest who still owes the deposit. A stay already checked in answers the same room again, so a retry is safe.
      * The page never skips the registration card and never overrides a credit limit.
      *
-     * Refusals are `card_required_for_check_in`, `deposit_not_paid`, `nationality_required`, `arrival_not_reached`, `check_in_time_not_reached`, `location_required`, `too_far_away`,
+     * Refusals are `card_required_for_check_in`, `deposit_not_paid`, `nationality_required`, `arrival_not_reached`, `check_in_time_not_reached`, `id_photo_required`, `location_required`, `too_far_away`,
      * and `server_error` for everything the guest cannot fix (no room ready, credit limit, no business date).
      * `concierge.checked_in` holds the property id only, never guest data.
      */
@@ -37,6 +37,10 @@ class CheckInConciergeStay
 
         if (! $this->concierge->checkInTimeReached($stay)) {
             return KioskCheckInResult::refused('check_in_time_not_reached');
+        }
+
+        if ($this->concierge->idPhotoMissing($stay)) {
+            return KioskCheckInResult::refused('id_photo_required');
         }
 
         $refusal = $this->locationRefusal($stay, $latitude, $longitude);

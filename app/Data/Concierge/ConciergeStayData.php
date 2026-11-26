@@ -36,6 +36,7 @@ class ConciergeStayData extends Data
         public ?ConciergeRequestData $refundRequest = null,
         public bool $locationRequired = false,
         public ?ConciergeIdentityPrefillData $identity = null,
+        public bool $idPhotoRequired = false,
         public ?string $eInvoiceUrl = null,
         public ?string $checkInTime = null,
         public bool $checkInOpensLater = false,

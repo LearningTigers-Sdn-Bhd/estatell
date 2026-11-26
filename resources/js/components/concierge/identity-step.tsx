@@ -41,6 +41,7 @@ export function IdentityStep({
     fields = {},
     saved = null,
     nationalityRequired,
+    photoRequired = false,
     contact = '',
     kinds,
     genders,
@@ -53,6 +54,8 @@ export function IdentityStep({
     /** The details already saved for the guest, when the page has any. */
     saved?: App.Data.Concierge.ConciergeIdentityPrefillData | null;
     nationalityRequired: boolean;
+    /** The property asks every guest for a photo of their ID. */
+    photoRequired?: boolean;
     /** An email or phone the guest already typed, put in the matching box. */
     contact?: string;
     kinds: EnumOption[];
@@ -69,6 +72,7 @@ export function IdentityStep({
             ? savedKinds[saved.documentKind]
             : kindFor(nationality),
     );
+    const [number, setNumber] = useState('');
 
     const passport = kind === 'passport';
 
@@ -86,6 +90,11 @@ export function IdentityStep({
         !!saved?.documentNumberHint &&
         saved.documentKind !== null &&
         savedKinds[saved.documentKind as keyof typeof savedKinds] === kind;
+    const keepingSavedDocument = keepNumber && number.trim() === '';
+
+    // A saved photo counts only while the guest keeps that same document (a blank number).
+    const needsPhoto =
+        photoRequired && !(keepingSavedDocument && saved?.hasDocumentPhoto);
 
     return (
         <Form
@@ -135,7 +144,7 @@ export function IdentityStep({
                                             </FieldError>
                                         </Field>
                                         <Field data-invalid={!!errors.number}>
-                                            {keepNumber && (
+                                            {keepingSavedDocument && (
                                                 <input
                                                     type="hidden"
                                                     name="keep_saved_document"
@@ -148,7 +157,15 @@ export function IdentityStep({
                                             <Input
                                                 id="number"
                                                 name="number"
+                                                value={number}
+                                                onChange={(event) =>
+                                                    setNumber(
+                                                        event.target.value,
+                                                    )
+                                                }
                                                 autoComplete="off"
+                                                autoCorrect="off"
+                                                spellCheck={false}
                                                 placeholder={
                                                     keepNumber
                                                         ? `Saved ${saved?.documentNumberHint}. Leave blank to keep`
@@ -410,14 +427,22 @@ export function IdentityStep({
                                         />
                                         Identification Document Photo
                                         <Badge variant="secondary" size="lg">
-                                            Optional
+                                            {photoRequired
+                                                ? 'Required'
+                                                : 'Optional'}
                                         </Badge>
                                     </h2>
                                 </CardTitle>
                                 <CardDescription>
-                                    {passport
-                                        ? 'You can add a photo of your passport. You can also continue without it.'
-                                        : 'You can add photos of your MyKad. You can also continue without them.'}
+                                    {photoRequired
+                                        ? needsPhoto
+                                            ? passport
+                                                ? 'Add a photo of your passport to continue.'
+                                                : 'Add photos of the front and back of your MyKad to continue.'
+                                            : 'We already have your photo. Add a new one only to replace it.'
+                                        : passport
+                                          ? 'You can add a photo of your passport. You can also continue without it.'
+                                          : 'You can add photos of your MyKad. You can also continue without them.'}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
@@ -432,6 +457,7 @@ export function IdentityStep({
                                             id="scan"
                                             name="scan"
                                             type="file"
+                                            required={needsPhoto}
                                             accept="image/*"
                                             capture="environment"
                                             className="h-auto min-h-12 py-2 file:mr-3 file:h-8 file:rounded-md file:bg-muted file:px-3"
@@ -450,6 +476,7 @@ export function IdentityStep({
                                                 id="scan_back"
                                                 name="scan_back"
                                                 type="file"
+                                                required={needsPhoto}
                                                 accept="image/*"
                                                 capture="environment"
                                                 className="h-auto min-h-12 py-2 file:mr-3 file:h-8 file:rounded-md file:bg-muted file:px-3"
