@@ -10,7 +10,7 @@ import { categorySwatchClass } from './pos-types';
 import type { PosCategory, PosCurrency, PosItem } from './pos-types';
 
 /**
- * Category filters, search (with Enter-to-add barcode/SKU scanning), and touch tiles over the outlet menu snapshot.
+ * Category filters, barcode/SKU search, and touch menu tiles over the outlet snapshot.
  * Filtering runs in the browser with no server request.
  */
 export function PosMenuPanel({
@@ -102,7 +102,7 @@ export function PosMenuPanel({
                     aria-hidden="true"
                 />
                 <Input
-                    className="h-11 pr-11 pl-10"
+                    className="h-11 bg-card pr-11 pl-10"
                     placeholder="Search menu or scan barcode (Enter to add)"
                     aria-label="Search menu or scan barcode"
                     value={search}
@@ -125,7 +125,7 @@ export function PosMenuPanel({
 
             {categories.length > 0 && (
                 <div
-                    className="flex snap-x gap-2 overflow-x-auto pb-1"
+                    className="flex snap-x gap-1.5 overflow-x-auto pb-0.5"
                     role="group"
                     aria-label="Menu categories"
                 >
@@ -134,26 +134,28 @@ export function PosMenuPanel({
                             trimmedSearch === '' && category.id === categoryId;
 
                         return (
-                            <Button
+                            <button
                                 key={category.id}
                                 type="button"
                                 aria-pressed={isSelected}
-                                variant={isSelected ? 'default' : 'outline'}
-                                className="min-h-11 shrink-0 snap-start gap-2 px-3.5"
                                 onClick={() => {
                                     setSearch('');
                                     setCategoryId(category.id);
                                 }}
+                                className={cn(
+                                    'inline-flex min-h-11 shrink-0 snap-start items-center gap-2 rounded-lg px-3.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground',
+                                    isSelected
+                                        ? 'bg-foreground font-semibold text-background'
+                                        : 'border bg-card text-foreground hover:bg-muted/70',
+                                )}
                             >
                                 <span
                                     aria-hidden="true"
                                     className={cn(
-                                        'size-2.5 shrink-0 rounded-full',
-                                        isSelected
-                                            ? 'bg-primary-foreground'
-                                            : categorySwatchClass(
-                                                  category.colorToken,
-                                              ),
+                                        'size-2 shrink-0 rounded-full',
+                                        categorySwatchClass(
+                                            category.colorToken,
+                                        ),
                                     )}
                                 />
                                 <span>{category.name}</span>
@@ -161,13 +163,13 @@ export function PosMenuPanel({
                                     className={cn(
                                         'text-xs tabular-nums',
                                         isSelected
-                                            ? 'text-primary-foreground/80'
+                                            ? 'text-background/75'
                                             : 'text-muted-foreground',
                                     )}
                                 >
                                     {category.items.length}
                                 </span>
-                            </Button>
+                            </button>
                         );
                     })}
                 </div>
@@ -201,48 +203,53 @@ export function PosMenuPanel({
                             disabled={disabled}
                             onClick={() => onPick(item)}
                             className={cn(
-                                'relative flex min-h-24 flex-col items-start justify-between gap-2 overflow-hidden rounded-xl border bg-card p-3.5 pl-4 text-left transition-colors',
-                                'hover:border-foreground/25 hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:translate-y-px disabled:opacity-50',
+                                'flex min-h-28 flex-col items-start justify-between gap-3 rounded-xl border bg-card p-3.5 text-left transition-colors',
+                                'hover:border-foreground/30 hover:bg-muted/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:opacity-50 motion-safe:active:translate-y-px',
                                 soldOut && 'border-warning/60 bg-warning/5',
                             )}
                         >
-                            <span
-                                aria-hidden="true"
-                                className={cn(
-                                    'absolute inset-y-0 left-0 w-1.5',
-                                    categorySwatchClass(colorToken),
-                                )}
-                            />
-                            <div className="flex w-full items-start justify-between gap-1.5">
-                                <span className="line-clamp-2 text-sm leading-snug font-medium text-foreground">
+                            <div className="flex w-full items-start justify-between gap-2">
+                                <span className="line-clamp-2 text-sm leading-snug font-semibold text-foreground">
                                     {item.name}
                                 </span>
-                                {lowestStock !== null && (
-                                    <Badge
-                                        variant={
-                                            lowestStock <= 0
-                                                ? 'destructive'
-                                                : 'secondary'
-                                        }
-                                        className="shrink-0 tabular-nums"
-                                    >
-                                        {lowestStock <= 0
-                                            ? '0 left'
-                                            : `${lowestStock} left`}
-                                    </Badge>
-                                )}
+                                <span
+                                    aria-hidden="true"
+                                    className={cn(
+                                        'mt-1 size-2 shrink-0 rounded-full',
+                                        categorySwatchClass(colorToken),
+                                    )}
+                                />
                             </div>
 
-                            <div className="flex w-full flex-col gap-0.5">
-                                {metaLabel !== null && (
-                                    <span className="text-xs text-muted-foreground">
-                                        {metaLabel}
-                                    </span>
+                            <div className="flex w-full flex-col gap-1">
+                                {(metaLabel !== null ||
+                                    lowestStock !== null) && (
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                        {metaLabel !== null && (
+                                            <span className="text-xs text-muted-foreground">
+                                                {metaLabel}
+                                            </span>
+                                        )}
+                                        {lowestStock !== null && (
+                                            <Badge
+                                                variant={
+                                                    lowestStock <= 0
+                                                        ? 'destructive'
+                                                        : 'secondary'
+                                                }
+                                                className="tabular-nums"
+                                            >
+                                                {lowestStock <= 0
+                                                    ? '0 left'
+                                                    : `${lowestStock} left`}
+                                            </Badge>
+                                        )}
+                                    </div>
                                 )}
                                 <div className="flex w-full items-baseline justify-between gap-1.5">
-                                    <span className="text-sm font-semibold text-foreground tabular-nums">
+                                    <span className="font-heading text-sm font-semibold text-foreground tabular-nums">
                                         {item.variants.length > 1 && (
-                                            <span className="font-normal text-muted-foreground">
+                                            <span className="font-sans font-normal text-muted-foreground">
                                                 from{' '}
                                             </span>
                                         )}
@@ -262,7 +269,7 @@ export function PosMenuPanel({
                     );
                 })}
                 {items.length === 0 && (
-                    <div className="col-span-full py-6">
+                    <div className="col-span-full flex items-center justify-center rounded-xl border bg-card py-10">
                         <EmptyState
                             icon={Search}
                             title={
@@ -273,7 +280,7 @@ export function PosMenuPanel({
                             description={
                                 trimmedSearch !== ''
                                     ? 'Check the spelling or scan another barcode.'
-                                    : 'Add items to this category under POS, Menu.'
+                                    : 'Add items to this category in POS under Menu.'
                             }
                             action={
                                 trimmedSearch !== '' ? (
