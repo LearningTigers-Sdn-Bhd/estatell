@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { CalendarCheck, Search } from 'lucide-react';
 import { useState } from 'react';
 import { DateRangePicker } from '@/components/pms/date-range-picker';
@@ -8,6 +8,10 @@ import { EnumSelect } from '@/components/pms/enum-select';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { formatMoney } from '@/components/pms/money-text';
 import { GroupExportMenu } from '@/components/pms/group/group-export-menu';
+import {
+    ReservationPeekSheet,
+    type PeekTarget,
+} from '@/components/pms/group/reservation-peek-sheet';
 import {
     PaginationFooter,
     toPaginationData,
@@ -29,7 +33,6 @@ import {
     exportMethod as exportCsv,
     pdf as exportPdf,
 } from '@/routes/group/reservations';
-import { show } from '@/routes/reservations';
 
 type Group = { id: number; name: string };
 type Row = App.Data.Group.GroupReservationRowData;
@@ -77,6 +80,7 @@ export default function GroupReservations({
     reservations: Page;
 }) {
     const [search, setSearch] = useState(filters.search ?? '');
+    const [peek, setPeek] = useState<PeekTarget>(null);
     const query = (next: Partial<Filters>) => {
         const merged = { ...filters, ...next };
 
@@ -209,23 +213,47 @@ export default function GroupReservations({
                                 </TableHeader>
                                 <TableBody>
                                     {page.data.map((row) => (
-                                        <TableRow key={row.id}>
+                                        <TableRow
+                                            key={`${row.propertyCode}-${row.id}`}
+                                            className="cursor-pointer"
+                                            data-state={
+                                                peek?.reservationId ===
+                                                    row.id &&
+                                                peek.propertyCode ===
+                                                    row.propertyCode
+                                                    ? 'selected'
+                                                    : undefined
+                                            }
+                                            onClick={() =>
+                                                setPeek({
+                                                    propertyCode:
+                                                        row.propertyCode,
+                                                    reservationId: row.id,
+                                                })
+                                            }
+                                        >
                                             <TableCell className="whitespace-nowrap">
                                                 {row.propertyName}
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex flex-col">
-                                                    <Link
-                                                        href={show.url({
-                                                            property:
-                                                                row.propertyCode,
-                                                            reservation: row.id,
-                                                        })}
-                                                        className="font-medium underline-offset-2 hover:underline"
+                                                    <button
+                                                        type="button"
+                                                        className="text-left font-medium underline-offset-2 hover:underline focus-visible:underline focus-visible:outline-none"
+                                                        aria-label={`Show ${row.guest ?? row.reference} at ${row.propertyName}`}
+                                                        onClick={(event) => {
+                                                            event.stopPropagation();
+                                                            setPeek({
+                                                                propertyCode:
+                                                                    row.propertyCode,
+                                                                reservationId:
+                                                                    row.id,
+                                                            });
+                                                        }}
                                                     >
                                                         {row.guest ??
                                                             row.reference}
-                                                    </Link>
+                                                    </button>
                                                     {row.guest !== null && (
                                                         <span className="text-xs text-muted-foreground">
                                                             {row.reference}
@@ -279,6 +307,11 @@ export default function GroupReservations({
                     </div>
                 )}
             </div>
+            <ReservationPeekSheet
+                groupId={group.id}
+                target={peek}
+                onClose={() => setPeek(null)}
+            />
         </>
     );
 }

@@ -4,6 +4,7 @@ use App\Http\Controllers\Group\GroupDashboardController;
 use App\Http\Controllers\Group\GroupForecastController;
 use App\Http\Controllers\Group\GroupPropertyReportController;
 use App\Http\Controllers\Group\GroupReportsController;
+use App\Http\Controllers\Group\GroupReservationPeekController;
 use App\Http\Controllers\Group\GroupReservationsController;
 use App\Http\Controllers\Group\GroupTimelineController;
 use Illuminate\Support\Facades\Route;
@@ -26,3 +27,4 @@ Route::get('property-reports/export.pdf', [GroupPropertyReportController::class,
 Route::get('reservations', [GroupReservationsController::class, 'index'])->name('reservations');
 Route::get('reservations/export.csv', [GroupReservationsController::class, 'export'])->name('reservations.export');
 Route::get('reservations/export.pdf', [GroupReservationsController::class, 'pdf'])->name('reservations.pdf');
+Route::get('peek/{propertyCode}/{reservation}', GroupReservationPeekController::class)->whereNumber('reservation')->name('peek');

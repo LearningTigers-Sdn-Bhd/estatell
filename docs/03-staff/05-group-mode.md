@@ -113,9 +113,20 @@ A single property gets the same look-ahead in Reports › History & forecast: th
 
 - Covers the properties whose role shows reservations (`reservations.view`); the others are named. Guest names show only where the role shows guests (`guests.view`), and a name search looks only there; elsewhere the row shows the reference.
 - Filters in the URL: `search` (reference, short code, channel reference, or the booker's name, email or phone), `status` (one reservation status, or all), `from` and `to` (stays that touch the dates) and `property` (a property code, or all). A plain list starts today; a search looks at every date.
-- Columns: Property, Booking (guest and reference; opens the booking in its property), Stay, Rooms, Pax, Status, Source, Room total and Balance in the property's currency (a balance owed shows in the danger colour). Sorted by arrival, 25 a page.
+- Columns: Property, Booking (guest and reference), Stay, Rooms, Pax, Status, Source, Room total and Balance in the property's currency (a balance owed shows in the danger colour). Sorted by arrival, 25 a page.
 - **Export CSV** (`group.reservations.export`): every matching booking, up to 5,000.
 - Built by `GroupReservations` with the same joins as the property's reservation list. Queries do not grow with the bookings on a page (tested).
+
+- **A row opens the [reservation panel](#reservation-panel)** (2026-11-26), not the property: the owner reads the booking without leaving the group, and the panel links into the property.
+
+## Reservation panel
+
+Added 2026-11-26 so owners and managers can read any lodge's booking from group pages without switching. A Sheet on the right (`components/pms/group/reservation-peek-sheet.tsx`), opened by a row of Reservations, a stay on the Timeline View and a booking row of the Front desk reports.
+
+- Loaded when it opens: `GET /g/{group}/peek/{propertyCode}/{reservation}` (`group.peek`, JSON, `GroupReservationPeek`, `GroupPeekData`). A property outside the group, a role there without `reservations.view`, or another property's reservation is a 404.
+- Shows: status and "Balance due", the booker's phone, email and company, the stay (arrival, departure, nights, source), each live room with its guests (`GuestParty`: names, nationality, age) and its road transfers, the remarks, and Room total, Paid and Balance.
+- Guest name, phone, email, the party and the guest profile link need `guests.view` at that property; without it they are left out.
+- **Open reservation** and **Guest profile** sit at the top and the bottom, and open the page inside the property, where changes are made.
 
 ## Property reports
 

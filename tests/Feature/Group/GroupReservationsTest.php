@@ -9,11 +9,13 @@ use App\Models\Property;
 use App\Models\Reservation;
 use App\Models\ReservationUnit;
 use App\Models\Role;
+use App\Models\User;
 use App\Services\Group\GroupReservations;
 use App\Services\Staff\GroupProperties;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
+use Spatie\Permission\PermissionRegistrar;
 
 function groupReservationsUrl(Property $property, string $query = ''): string
 {
@@ -126,4 +128,37 @@ test('a page of bookings costs the same queries however many bookings it shows',
     }
 
     expect($many)->toBe($few);
+});
+
+test('the side panel shows a booking of any property the role may view, with guests only for guests.view', function () {
+    $setup = liveGroupSetup();
+    grantKinabatangan($setup, $setup['manager'], DefaultRoleEnum::Manager);
+    $booking = groupBooking($setup['kinabatangan'], $setup, 'kinabatangan', 'Ben Tan');
+    $noGuests = Role::query()->create(['property_id' => $setup['kinabatangan']->id, 'name' => 'Bookings only']);
+    $noGuests->givePermissionTo('reservations.view');
+    app(PermissionRegistrar::class)->forgetCachedPermissions();
+    $this->actingAs($setup['kinabatanganOwner'])
+        ->post(route('settings.staff.access.store', $setup['kinabatangan']->code), ['user_id' => $setup['frontDesk']->id, 'role_id' => $noGuests->id])
+        ->assertSessionHasNoErrors();
+    $url = fn (Property $property, Reservation $reservation): string => route('group.peek', [$setup['sepilok']->property_group_id, $property->code, $reservation->id]);
+
+    $this->actingAs($setup['manager'])->getJson($url($setup['kinabatangan'], $booking))
+        ->assertOk()
+        ->assertJsonPath('reference', $booking->reference)
+        ->assertJsonPath('booker', 'Ben Tan')
+        ->assertJsonPath('propertyName', 'Tanini Kinabatangan')
+        ->assertJsonPath('units.0.party', fn (string $party) => str_starts_with($party, 'Ben Tan'))
+        ->assertJsonPath('reservationUrl', route('reservations.show', [$setup['kinabatangan']->code, $booking->id], absolute: false));
+
+    $this->getJson($url($setup['sepilok'], $booking))->assertNotFound();
+
+    $this->actingAs($setup['frontDesk'])->getJson($url($setup['kinabatangan'], $booking))
+        ->assertOk()
+        ->assertJsonPath('booker', null)
+        ->assertJsonPath('units.0.party', null)
+        ->assertJsonPath('guestUrl', null);
+
+    $housekeeper = User::factory()->for($setup['sepilok'])->withRole(DefaultRoleEnum::Manager)->create();
+    grantKinabatangan($setup, $housekeeper, DefaultRoleEnum::Housekeeping);
+    $this->actingAs($housekeeper)->getJson($url($setup['kinabatangan'], $booking))->assertNotFound();
 });
