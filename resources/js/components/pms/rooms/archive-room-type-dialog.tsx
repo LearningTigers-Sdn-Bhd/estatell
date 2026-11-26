@@ -18,30 +18,8 @@ import { archive } from '@/routes/settings/room-types';
 type RoomTypeName = Pick<App.Data.Rooms.RoomTypeData, 'id' | 'name'>;
 
 /**
- * Asks before archiving a room type. Outline in the room type page header.
- */
-export function ArchiveRoomTypeButton({
-    roomType,
-    variant = 'ghost',
-}: {
-    roomType: RoomTypeName;
-    variant?: 'ghost' | 'outline';
-}) {
-    const [open, setOpen] = useState(false);
-
-    return (
-        <ArchiveRoomTypeDialog
-            roomType={roomType}
-            open={open}
-            onOpenChange={setOpen}
-            trigger={<Button variant={variant} size="sm" />}
-        />
-    );
-}
-
-/**
- * The archive confirm on its own, for a control that opens it itself (the Available switch in the room types list).
- * `trigger` renders a button that opens it. `onProcessingChange` follows the request.
+ * Asks before archiving a room type. Opened by the Available switch in the room types list and by More actions on
+ * the room type page. `trigger` renders a button that opens it. `onProcessingChange` follows the request.
  */
 export function ArchiveRoomTypeDialog({
     roomType,

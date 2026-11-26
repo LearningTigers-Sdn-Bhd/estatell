@@ -6,7 +6,7 @@ import { EnumSelect, type EnumOption } from '@/components/pms/enum-select';
 import { FormOverlay } from '@/components/pms/form-overlay';
 import { PageHeader } from '@/components/pms/page-header';
 import { PaxCount } from '@/components/pms/pax-count';
-import { ArchiveRoomTypeDialog } from '@/components/pms/rooms/archive-room-type-button';
+import { ArchiveRoomTypeDialog } from '@/components/pms/rooms/archive-room-type-dialog';
 import { GuestsIncludedLabel } from '@/components/pms/rooms/room-type-details-form';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';

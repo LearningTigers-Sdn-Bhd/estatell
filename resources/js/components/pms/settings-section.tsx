@@ -49,6 +49,7 @@ export function SettingsSection({
     hideHeader = false,
     saveBar = false,
     submitInField = false,
+    onDiscard,
     children,
 }: {
     form: RouteFormDefinition<'post'>;
@@ -73,6 +74,8 @@ export function SettingsSection({
     saveBar?: boolean;
     /** The fields hold their own submit button; no save button below them. */
     submitInField?: boolean;
+    /** Runs on Discard, to reset state the fields keep outside the form (for example rooms picked to add). */
+    onDiscard?: () => void;
     children: (
         errors: Record<string, string>,
         state: { processing: boolean },
@@ -116,6 +119,7 @@ export function SettingsSection({
                         submit();
                     }}
                     onDiscard={() => {
+                        onDiscard?.();
                         setFieldsKey((key) => key + 1);
                         resetAndClearErrors();
                     }}
