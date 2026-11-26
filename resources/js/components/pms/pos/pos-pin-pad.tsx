@@ -77,14 +77,15 @@ export function PosPinPad({
                 submit(pin);
             } else if (event.key === 'Escape') {
                 event.preventDefault();
+                event.stopPropagation();
                 setPerson(null);
                 setPin('');
             }
         };
 
-        window.addEventListener('keydown', onKeyDown);
+        window.addEventListener('keydown', onKeyDown, true);
 
-        return () => window.removeEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown, true);
     }, [person, pin, processing, submit]);
 
     if (person === null) {
@@ -95,7 +96,7 @@ export function PosPinPad({
                         key={member.id}
                         type="button"
                         onClick={() => setPerson(member)}
-                        className="flex min-h-24 flex-col items-center justify-center gap-2 rounded-xl border bg-card p-3 text-center transition-colors hover:border-foreground/25 hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none active:translate-y-px"
+                        className="flex min-h-24 flex-col items-center justify-center gap-2 rounded-xl border bg-card p-3 text-center transition-colors hover:border-foreground/30 hover:bg-muted/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground motion-safe:active:translate-y-px"
                     >
                         <span
                             aria-hidden="true"
@@ -114,21 +115,23 @@ export function PosPinPad({
 
     return (
         <div className="mx-auto flex w-full max-w-xs flex-col gap-4">
-            <div className="flex items-center justify-between gap-2 rounded-xl border bg-muted/30 px-3 py-2">
-                <div className="flex items-center gap-2.5">
+            <div className="flex items-center justify-between gap-2 rounded-xl border bg-muted/40 px-3 py-2">
+                <div className="flex min-w-0 items-center gap-2.5">
                     <span
                         aria-hidden="true"
-                        className="flex size-9 items-center justify-center rounded-full bg-primary/15 font-heading text-xs font-semibold text-primary"
+                        className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary font-heading text-xs font-semibold text-primary-foreground"
                     >
                         {initials(person.name)}
                     </span>
-                    <p className="font-medium text-foreground">{person.name}</p>
+                    <p className="truncate font-medium text-foreground">
+                        {person.name}
+                    </p>
                 </div>
                 <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="min-h-11"
+                    className="min-h-11 shrink-0"
                     onClick={() => {
                         setPerson(null);
                         setPin('');
@@ -154,14 +157,14 @@ export function PosPinPad({
                             className={cn(
                                 'flex size-10 items-center justify-center rounded-lg border transition-colors',
                                 filled
-                                    ? 'border-primary bg-primary/10'
+                                    ? 'border-primary bg-primary'
                                     : required
-                                      ? 'border-border bg-card'
-                                      : 'border-dashed border-border/70 bg-muted/30',
+                                      ? 'border-input bg-card'
+                                      : 'border-dashed border-border bg-muted/40',
                             )}
                         >
                             {filled && (
-                                <span className="size-3 rounded-full bg-primary" />
+                                <span className="size-2.5 rounded-full bg-primary-foreground" />
                             )}
                         </span>
                     );
