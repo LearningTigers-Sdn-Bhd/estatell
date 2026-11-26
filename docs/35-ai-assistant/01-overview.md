@@ -1,6 +1,6 @@
 # AI assistant
 
-> **In progress.** Researched on 2026-11-20, decided on 2026-11-24, merged in #229 on 2026-11-25. Built: the feature flag, the scopes, the Places, Capabilities, General and Usage tabs with the status rail, the 80% cap notice, the 90-day purge, each hotel's own OpenAI key, the Concierge lobby and stay chat, the handover to staff, the AI chats inbox and the chat API for n8n. Still open: the booking website chat and the staff helper (WIP, behind switches), and the PDPA check before launch. The build items are in [checklist.md](../checklist.md#35-ai-assistant).
+> **In progress.** Researched on 2026-11-20, decided on 2026-11-24, merged in #229 on 2026-11-25. Built: the feature flag, the scopes, the Places, Capabilities, General and Usage tabs with the status rail, the 80% cap notice, the 90-day purge, each hotel's own OpenAI key, the Concierge lobby and stay chat, the handover to staff, the Chat handovers inbox and the chat API for n8n. Still open: the booking website chat and the staff helper (WIP, behind switches), and the PDPA check before launch. The build items are in [checklist.md](../checklist.md#35-ai-assistant).
 
 ## Purpose
 
@@ -135,12 +135,12 @@ property_settings   ai_openai_key (text, nullable, encrypted cast),
 
 ## Files
 
-| File                                         | Covers                                                                                 |
-| -------------------------------------------- | -------------------------------------------------------------------------------------- |
-| [Agent and tools](02-agent-and-tools.md)     | The agent, its instructions, knowledge, languages and each tool                        |
-| [Places and routes](03-places-and-routes.md) | Each place's routes and UI, quote links, the chat API, handover and the AI chats inbox |
-| [Usage and cost](04-usage-and-cost.md)       | `ai_threads`, `ai_turns`, the cost, the monthly cap and the Usage tab                  |
-| [AI eval](05-eval.md)                        | The opt-in live test of the assistant's answers, run by hand, never in CI              |
+| File                                         | Covers                                                                                       |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| [Agent and tools](02-agent-and-tools.md)     | The agent, its instructions, knowledge, languages and each tool                              |
+| [Places and routes](03-places-and-routes.md) | Each place's routes and UI, quote links, the chat API, handover and the Chat handovers inbox |
+| [Usage and cost](04-usage-and-cost.md)       | `ai_threads`, `ai_turns`, the cost, the monthly cap and the Usage tab                        |
+| [AI eval](05-eval.md)                        | The opt-in live test of the assistant's answers, run by hand, never in CI                    |
 
 ## Permissions
 

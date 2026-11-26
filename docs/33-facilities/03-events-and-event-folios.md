@@ -46,10 +46,10 @@ folios   reservation_id becomes nullable, adds event_id null → events (restric
 
 ## Events list (Index)
 
-Front desk sidebar, in the Reservations group after All reservations: **Events** (icon `calendar-heart`). Needs `events.view` and the feature.
+Front desk sidebar, in the Reservations group after All reservations: **All non-room reservations** (icon `calendar-heart`). Needs `events.view` and the feature. The list page heading, breadcrumb and back links say **Non-room reservations**. A single record is still an event. Named "Events" until 2026-11-26.
 
 ```
-Events                                                            [+ New event]
+Non-room reservations                                             [+ New event]
 [ e.g. Lim wedding ]   [ All statuses ▾ ]   [ This month ▾ ]
 ────────────────────────────────────────────────────────────────────────────────
 No.             Event                      Payer               Dates          Status     Balance (MYR)

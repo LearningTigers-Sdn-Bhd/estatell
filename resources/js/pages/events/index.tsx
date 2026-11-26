@@ -106,11 +106,11 @@ export default function EventsIndex({
 
     return (
         <>
-            <Head title="Events" />
+            <Head title="Non-room reservations" />
 
             <div className="flex flex-1 flex-col gap-4 p-4">
                 <PageHeader
-                    title="Events"
+                    title="Non-room reservations"
                     description="Bills for people who are not staying: weddings, meetings, walk-in meals and activities."
                     actions={
                         canManage && (
@@ -198,5 +198,5 @@ export default function EventsIndex({
 }
 
 EventsIndex.layout = {
-    breadcrumbs: [{ title: 'Events', href: index() }],
+    breadcrumbs: [{ title: 'Non-room reservations', href: index() }],
 };

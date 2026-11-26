@@ -152,13 +152,13 @@ Routes live in `routes/guest-requests.php` with `scopeBindings()`. The reservati
 
 ## UI
 
-| Where                                                 | What                                                                                                                                                    |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Front desk context > **Requests**, after Housekeeping | The work queue (Index archetype), a table                                                                                                               |
-| Reservation page, **Requests** tab, before Activity   | See [Reservation page](../12-reservations/06-reservation-page.md#requests-tab)                                                                          |
-| Housekeeping board                                    | A 🛎 tag in Flags and **New request** in the row ⋯ menu, see [Room status board](../19-housekeeping/01-room-status-board.md#guest-requests-on-the-board) |
-| Front desk dashboard                                  | A **Requests** row in To do today                                                                                                                       |
-| Dashboard Performance tab                             | The two KPI tiles                                                                                                                                       |
+| Where                                                            | What                                                                                                                                                    |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Front desk context > Guest Services > **Requests**, after Guests | The work queue (Index archetype), a table                                                                                                               |
+| Reservation page, **Requests** tab, before Activity              | See [Reservation page](../12-reservations/06-reservation-page.md#requests-tab)                                                                          |
+| Housekeeping board                                               | A 🛎 tag in Flags and **New request** in the row ⋯ menu, see [Room status board](../19-housekeeping/01-room-status-board.md#guest-requests-on-the-board) |
+| Front desk dashboard                                             | A **Requests** row in To do today                                                                                                                       |
+| Dashboard Performance tab                                        | The two KPI tiles                                                                                                                                       |
 
 ### List page
 

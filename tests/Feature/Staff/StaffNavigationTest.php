@@ -1,6 +1,8 @@
 <?php
 
+use App\Features\AiAssistant;
 use App\Features\Boats;
+use App\Features\Facilities;
 use App\Models\BusinessDate;
 use App\Models\Property;
 use App\Models\PropertySetting;
@@ -72,7 +74,7 @@ test('admins and staff of suspended properties get no staff navigation', functio
         ->assertInertia(fn (Assert $page) => $page->where('navigation', null));
 });
 
-test('front desk navigation puts house status and Boat Trips under rooms, and no Boat manifest entry', function () {
+test('front desk navigation puts house status and Boat Trips under rooms, requests under guest services, and no Boat manifest entry', function () {
     $staff = User::factory()->owner()->create();
     $code = $staff->property->code;
 
@@ -80,15 +82,15 @@ test('front desk navigation puts house status and Boat Trips under rooms, and no
         ->get(route('dashboard', $code))
         ->assertInertia(function (Assert $page) use ($code) {
             $rooms = collect($page->toArray()['props']['navigation']['contexts'][0]['groups'])->firstWhere('label', 'Rooms');
-            $guests = collect($page->toArray()['props']['navigation']['contexts'][0]['groups'])->firstWhere('label', 'Guests');
+            $guests = collect($page->toArray()['props']['navigation']['contexts'][0]['groups'])->firstWhere('label', 'Guest Services');
 
-            expect(collect($rooms['items'])->pluck('title')->all())->toBe(['Room blocks', 'Housekeeping', 'Requests', 'House status'])
-                ->and($rooms['items'][3])->toMatchArray([
+            expect(collect($rooms['items'])->pluck('title')->all())->toBe(['Room blocks', 'Housekeeping', 'House status'])
+                ->and($rooms['items'][2])->toMatchArray([
                     'title' => 'House status',
                     'href' => "/p/{$code}/reports/house-status",
                     'icon' => 'layout-grid',
                 ])
-                ->and(collect($guests['items'])->pluck('title')->all())->toBe(['Guests']);
+                ->and(collect($guests['items'])->pluck('title')->all())->toBe(['Guests', 'Requests']);
         });
 
     Feature::for($staff->property)->activate(Boats::class);
@@ -97,15 +99,34 @@ test('front desk navigation puts house status and Boat Trips under rooms, and no
         ->get(route('dashboard', $code))
         ->assertInertia(function (Assert $page) use ($code) {
             $rooms = collect($page->toArray()['props']['navigation']['contexts'][0]['groups'])->firstWhere('label', 'Rooms');
-            $guests = collect($page->toArray()['props']['navigation']['contexts'][0]['groups'])->firstWhere('label', 'Guests');
+            $guests = collect($page->toArray()['props']['navigation']['contexts'][0]['groups'])->firstWhere('label', 'Guest Services');
 
-            expect(collect($rooms['items'])->pluck('title')->all())->toBe(['Room blocks', 'Housekeeping', 'Requests', 'Boat Trips', 'House status'])
-                ->and($rooms['items'][3])->toMatchArray([
+            expect(collect($rooms['items'])->pluck('title')->all())->toBe(['Room blocks', 'Housekeeping', 'Boat Trips', 'House status'])
+                ->and($rooms['items'][2])->toMatchArray([
                     'title' => 'Boat Trips',
                     'href' => "/p/{$code}/boats",
                     'icon' => 'ship',
                 ])
-                ->and(collect($guests['items'])->pluck('title')->all())->toBe(['Guests']);
+                ->and(collect($guests['items'])->pluck('title')->all())->toBe(['Guests', 'Requests']);
+        });
+});
+
+test('front desk navigation names non-room reservations and chat handovers when their features are on', function () {
+    $staff = User::factory()->owner()->create();
+    Feature::for($staff->property)->activate([AiAssistant::class, Facilities::class]);
+    $code = $staff->property->code;
+
+    $this->actingAs($staff)
+        ->get(route('dashboard', $code))
+        ->assertInertia(function (Assert $page) use ($code) {
+            $groups = collect($page->toArray()['props']['navigation']['contexts'][0]['groups']);
+            $reservations = $groups->firstWhere('label', 'Reservations');
+            $guestServices = $groups->firstWhere('label', 'Guest Services');
+
+            expect(collect($reservations['items'])->pluck('title')->all())->toBe(['All reservations', 'All non-room reservations'])
+                ->and($reservations['items'][1]['href'])->toBe("/p/{$code}/events")
+                ->and(collect($guestServices['items'])->pluck('title')->all())->toBe(['Guests', 'Requests', 'Chat handovers'])
+                ->and($guestServices['items'][2]['href'])->toBe("/p/{$code}/ai-chats");
         });
 });
 
