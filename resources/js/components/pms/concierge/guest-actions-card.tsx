@@ -2,6 +2,7 @@ import { Link } from '@inertiajs/react';
 import {
     BedDouble,
     FlaskConical,
+    IdCard,
     MapPinCheck,
     ReceiptText,
 } from 'lucide-react';
@@ -26,6 +27,7 @@ type Switches = {
     walk_in_enabled: boolean;
     refund_requests_enabled: boolean;
     location_check_enabled: boolean;
+    name_check_in_enabled: boolean;
     test_payments_enabled: boolean;
 };
 
@@ -45,6 +47,7 @@ export function GuestActionsCard({
     walkInEnabled,
     refundRequestsEnabled,
     locationCheckEnabled,
+    nameCheckInEnabled,
     testPaymentsEnabled,
     hasLocation,
 }: {
@@ -52,6 +55,7 @@ export function GuestActionsCard({
     walkInEnabled: boolean;
     refundRequestsEnabled: boolean;
     locationCheckEnabled: boolean;
+    nameCheckInEnabled: boolean;
     testPaymentsEnabled: boolean;
     hasLocation: boolean;
 }) {
@@ -60,6 +64,7 @@ export function GuestActionsCard({
             walk_in_enabled: walkInEnabled,
             refund_requests_enabled: refundRequestsEnabled,
             location_check_enabled: locationCheckEnabled,
+            name_check_in_enabled: nameCheckInEnabled,
             test_payments_enabled: testPaymentsEnabled,
         },
         (value) => ({
@@ -99,6 +104,12 @@ export function GuestActionsCard({
                     first. Without it, this has no effect.
                 </>
             ),
+        },
+        {
+            name: 'name_check_in_enabled',
+            icon: IdCard,
+            title: 'Check in by name',
+            body: 'Guests arriving today can check in with the name on their booking, and every guest must upload an ID photo. The photo is not checked automatically, so someone who knows a guest’s name could check in as them. Check in at the property only lowers that risk.',
         },
         {
             name: 'test_payments_enabled',

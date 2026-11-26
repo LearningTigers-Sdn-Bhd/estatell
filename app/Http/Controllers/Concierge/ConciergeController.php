@@ -39,8 +39,8 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * The Concierge page: a guest checks in on their own phone. There is no login. The lobby asks for the booking code and
- * booking code and sends the guest to the stay's own link; every other page works from that link (`EnsureConciergeIsActive`
+ * The Concierge page: a guest checks in on their own phone. There is no login. The lobby asks for the booking code or the
+ * name on the booking and sends the guest to the stay's own link; every other page works from that link (`EnsureConciergeIsActive`
  * resolves it). Controllers only call one Action and answer with a page or a redirect.
  */
 class ConciergeController extends Controller
@@ -55,6 +55,7 @@ class ConciergeController extends Controller
             'walkInEnabled' => (bool) $property->settings?->concierge_walk_in_enabled,
             'bookingUrl' => $guide->bookingUrl($property),
             'aiChat' => $aiScopes->isOn($property, AiScope::Concierge),
+            'nameCheckIn' => (bool) $property->settings?->concierge_name_check_in_enabled,
         ]);
     }
 
@@ -80,7 +81,9 @@ class ConciergeController extends Controller
             'multiple_rooms' => __('This booking has more than one room. Use the link in your booking message to open each room, or ask the front desk.'),
             'checked_out' => __('This stay has already checked out. Thank you for staying with us.'),
             'closed' => __('This booking is no longer active. Please ask the front desk.'),
-            default => __('We could not find a booking with that code. Check it against your confirmation, or ask the front desk.'),
+            default => $property->settings?->concierge_name_check_in_enabled
+                ? __('We could not open a booking with that code or name. Already checked in? Use your booking code, or ask the front desk.')
+                : __('We could not find a booking with that code. Check it against your confirmation, or ask the front desk.'),
         }]);
     }
 
@@ -147,6 +150,7 @@ class ConciergeController extends Controller
             Inertia::flash('toast', ['type' => 'error', 'message' => match ($result->refusal) {
                 'card_required_for_check_in' => __('Sign the registration card first.'),
                 'deposit_not_paid' => __('A payment is still due. Pay it on this page to continue.'),
+                'id_photo_required' => __('Add a photo of your ID in your details first.'),
                 'nationality_required' => __('Choose your nationality in your details first.'),
                 'arrival_not_reached' => __('Check-in opens on your arrival day.'),
                 'check_in_time_not_reached' => __('Check-in has not opened yet. Come back at check-in time.'),

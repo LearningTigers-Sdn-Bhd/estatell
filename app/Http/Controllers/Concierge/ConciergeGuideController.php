@@ -29,6 +29,7 @@ class ConciergeGuideController extends Controller
             'property' => PropertySummaryData::fromModel($property, forGuest: true),
             'heroUrl' => $property->heroUrl(),
             'checkOut' => $request->query('for') === 'check-out',
+            'nameCheckIn' => (bool) $property->settings?->concierge_name_check_in_enabled,
             'checkInHref' => $request->session()->get('checkInHref'),
         ]);
     }

@@ -17,7 +17,7 @@ class OpenConciergeStay
     ) {}
 
     /**
-     * Open a stay from the lobby page by booking code alone. The booking code is the reservation's `short_code`, the one the guest is given, not the staff `reference`. The lockout is the main guard against guessing. Every lookup takes an attempt from the lockout, and a
+     * Open a stay from the lobby page by booking code, or, when the property allows it, by the name on the booking (`ConciergeStays::byGuestName`). The booking code is the reservation's `short_code`, the one the guest is given, not the staff `reference`. The lockout is the main guard against guessing. Every lookup takes an attempt from the lockout, and a
      * stay that is found gives it back. The link it returns is the stay's own pre-check-in link, so every later page
      * works from one signed token and no session. Refusals are `rate_limited`, `not_found` (wrong code or another property), and, for a booking that exists here, `multiple_rooms`, `checked_out` and `closed`; nothing is written for any.
      */
@@ -27,7 +27,8 @@ class OpenConciergeStay
             return ConciergeLookupResult::refused('rate_limited', $this->lockout->retryAfter($property, $address, $reference));
         }
 
-        $stay = $this->stays->byShortCode($property, $reference);
+        $stay = $this->stays->byShortCode($property, $reference)
+            ?? ($property->settings?->concierge_name_check_in_enabled ? $this->stays->byGuestName($property, $reference) : null);
 
         if ($stay === null) {
             return ConciergeLookupResult::refused($this->stays->lookupFailure($property, $reference));

@@ -16,7 +16,7 @@ class UpdateConciergeSettings
      *
      * @param  array<string, mixed>  $policyTexts  Validated `POLICY_FIELDS`, only those the request sent.
      */
-    public function __invoke(User $actor, Property $property, bool $walkInEnabled, bool $refundRequestsEnabled, ?string $houseRules, array $policyTexts = [], ?bool $locationCheckEnabled = null, ?bool $testPaymentsEnabled = null): void
+    public function __invoke(User $actor, Property $property, bool $walkInEnabled, bool $refundRequestsEnabled, ?string $houseRules, array $policyTexts = [], ?bool $locationCheckEnabled = null, ?bool $testPaymentsEnabled = null, ?bool $nameCheckInEnabled = null): void
     {
         $settings = $property->settings()->firstOrNew();
         $settings->fill([
@@ -29,6 +29,10 @@ class UpdateConciergeSettings
         }
         if ($testPaymentsEnabled !== null) {
             $settings->concierge_test_payments_enabled = $testPaymentsEnabled;
+        }
+
+        if ($nameCheckInEnabled !== null) {
+            $settings->concierge_name_check_in_enabled = $nameCheckInEnabled;
         }
 
         foreach (self::POLICY_FIELDS as $field) {

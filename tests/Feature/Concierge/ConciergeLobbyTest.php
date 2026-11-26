@@ -17,6 +17,15 @@ function conciergeFind(string $code, string $reference): TestResponse
     return test()->post("/stay/{$code}", ['reference' => $reference]);
 }
 
+/** `conciergeSetup` with Check in by name on. */
+function conciergeNameSetup(array $unit = []): array
+{
+    $setup = conciergeSetup($unit);
+    $setup['property']->settings->forceFill(['concierge_name_check_in_enabled' => true])->save();
+
+    return $setup;
+}
+
 it('shows the lobby of a property that has the Concierge feature on', function () {
     ['property' => $property] = conciergeSetup();
 
@@ -175,4 +184,52 @@ it('keeps a guest who has not checked in on the Check out page, with a way to ch
         ->component('concierge/find')
         ->where('checkOut', true)
         ->where('checkInHref', fn (string $href) => str_starts_with($href, '/c/')));
+});
+
+it('opens an arriving stay by the name on the booking and starts at the ID step', function (string $name) {
+    ['property' => $property] = conciergeNameSetup();
+
+    $response = conciergeFind($property->code, $name)->assertSessionHasNoErrors()->assertRedirect();
+
+    conciergeStep(basename($response->headers->get('Location')), 'identity');
+})->with([['Aisha Rahman'], [' rahman, AISHA ']]);
+
+it('opens nothing by a name that is not enough', function (array $unit, string $name) {
+    ['property' => $property] = conciergeNameSetup($unit);
+
+    conciergeFind($property->code, $name)->assertSessionHasErrors('reference');
+})->with([
+    'one word' => [[], 'Aisha'],
+    'another name' => [[], 'Aisha Karim'],
+    'not arrived yet' => [['arrival_date' => '2026-10-20', 'departure_date' => '2026-10-22'], 'Aisha Rahman'],
+]);
+
+it('opens nothing by name once the guest has an ID document', function () {
+    ['property' => $property, 'guest' => $guest] = conciergeNameSetup();
+    conciergeIdentityDone($guest);
+
+    conciergeFind($property->code, 'Aisha Rahman')->assertSessionHasErrors('reference');
+});
+
+it('opens nothing when two arriving stays share the name', function () {
+    ['property' => $property] = conciergeNameSetup();
+    kioskStayFor($property, 'R-200');
+
+    conciergeFind($property->code, 'Aisha Rahman')->assertSessionHasErrors('reference');
+});
+
+it('opens nothing by name while Check in by name is off', function () {
+    ['property' => $property] = conciergeSetup();
+
+    conciergeFind($property->code, 'Aisha Rahman')->assertSessionHasErrors('reference');
+});
+
+it('answers a checked-in name the same as an unknown one', function () {
+    ['property' => $property] = conciergeNameSetup(['status' => UnitStatus::CheckedIn, 'checked_in_at' => '2026-10-14 09:00:00']);
+    foreach (['Aisha Rahman', 'Nobody Here'] as $name) {
+        $this->flushSession();
+        $response = conciergeFind($property->code, $name)->assertSessionHasErrors('reference');
+
+        expect($response->getSession()->get('errors')->first('reference'))->toBe('We could not open a booking with that code or name. Already checked in? Use your booking code, or ask the front desk.');
+    }
 });

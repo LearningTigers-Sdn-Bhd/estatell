@@ -34,6 +34,7 @@ export default function ConciergeWalkInDetails({
     offer,
     booking,
     nationalityRequired,
+    idPhotoRequired,
     identityKinds,
     genders,
     countries,
@@ -42,6 +43,7 @@ export default function ConciergeWalkInDetails({
     offer: App.Data.Concierge.ConciergeOfferData;
     booking: Booking;
     nationalityRequired: boolean;
+    idPhotoRequired: boolean;
     identityKinds: EnumOption[];
     genders: EnumOption[];
     countries: EnumOption[];
@@ -97,6 +99,7 @@ export default function ConciergeWalkInDetails({
             </section>
             {showFull ? (
                 <IdentityStep
+                    photoRequired={idPhotoRequired}
                     action={book.url({ property: property.code })}
                     fields={booking}
                     nationalityRequired={nationalityRequired}

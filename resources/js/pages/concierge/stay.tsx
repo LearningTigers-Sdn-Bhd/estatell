@@ -107,6 +107,7 @@ export default function ConciergeStay({
             )}
             {stay.step === 'identity' && (
                 <IdentityStep
+                    photoRequired={stay.idPhotoRequired}
                     action={identity.url({ token: stay.token })}
                     saved={stay.identity}
                     nationalityRequired={stay.nationalityRequired}

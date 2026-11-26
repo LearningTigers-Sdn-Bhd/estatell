@@ -86,6 +86,7 @@ class ConciergePageBuilder
             refundRequest: $step === ConciergeStep::CheckedOut ? $this->refundRequest($stay) : null,
             locationRequired: $stay->property->settings->concierge_location_check_enabled && filled($stay->property->latitude) && filled($stay->property->longitude),
             identity: $step === ConciergeStep::Identity && $guest !== null ? $this->identity($guest, $walkIn) : null,
+            idPhotoRequired: $stay->property->settings->concierge_name_check_in_enabled,
             eInvoiceUrl: $step === ConciergeStep::CheckedOut && $this->eInvoice->isOffered($stay) ? route('concierge.e-invoice', ['token' => $token], absolute: false) : null,
             checkInTime: $opensLater ? $this->concierge->checkInOpensAt($stay)?->format('H:i') : null,
             checkInOpensLater: $opensLater,
@@ -114,6 +115,7 @@ class ConciergePageBuilder
             hasName: filled($guest->full_name),
             hasPhone: filled($guest->phone),
             hasEmail: filled($guest->email),
+            hasDocumentPhoto: $document !== null && $this->concierge->hasIdPhoto($guest, $document->type),
         );
     }
 
