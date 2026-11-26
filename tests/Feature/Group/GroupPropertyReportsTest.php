@@ -90,3 +90,32 @@ test('every report group mode offers runs for the group with its default dates',
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->where('result.report', $report));
 })->with(fn (): array => array_map(fn ($key): string => $key->value, GroupPropertyReportRequest::reports()));
+
+test('the property filter runs one property, a booking row opens the panel, and the rows come 50 a page', function () {
+    $setup = liveGroupSetup();
+    grantKinabatangan($setup, $setup['manager'], DefaultRoleEnum::Manager);
+    $unit = groupArrival($setup['kinabatangan'], $setup['roomTypes']['kinabatangan']);
+    groupArrival($setup['sepilok'], $setup['roomTypes']['sepilok']);
+    $url = fn (string $query): string => groupPropertyReportUrl($setup['sepilok'], '?report=arrivals&from=2026-10-14&to=2026-10-14'.$query);
+
+    $this->actingAs($setup['manager'])->get($url('&property='.$setup['kinabatangan']->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('filters.property', $setup['kinabatangan']->code)
+            ->has('properties', 2)
+            ->where('result.rowCount', 1)
+            ->where('result.rows.0.code', $setup['kinabatangan']->code)
+            ->where('result.rows.0.reservationId', $unit->reservation_id));
+
+    $this->get($url('&property=NOPE'))->assertInertia(fn (Assert $page) => $page->where('filters.property', null)->where('result.rowCount', 2));
+
+    foreach (range(1, 50) as $ignored) {
+        groupArrival($setup['sepilok'], $setup['roomTypes']['sepilok']);
+    }
+
+    $this->get($url(''))->assertInertia(fn (Assert $page) => $page->where('result.rowCount', 52)->has('result.rows', 50)->where('result.pages', 2)->where('result.page', 1));
+    $this->get($url('&page=2'))->assertInertia(fn (Assert $page) => $page->has('result.rows', 2)->where('result.page', 2));
+    $this->get($url('&page=9'))->assertInertia(fn (Assert $page) => $page->where('result.page', 2));
+
+    $this->get(groupPropertyReportUrl($setup['sepilok'], '?report=payments'))
+        ->assertInertia(fn (Assert $page) => $page->where('result.rows', fn ($rows) => collect($rows)->every(fn ($row) => $row['reservationId'] === null)));
+});

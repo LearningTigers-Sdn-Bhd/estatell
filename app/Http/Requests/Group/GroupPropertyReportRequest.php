@@ -40,6 +40,8 @@ class GroupPropertyReportRequest extends FormRequest
             'from' => ['nullable', 'date_format:Y-m-d'],
             'to' => ['nullable', 'date_format:Y-m-d'],
             'group' => ['nullable', Rule::enum(ReportGroup::class)],
+            'property' => ['nullable', 'string', 'max:20'],
+            'page' => ['nullable', 'integer', 'min:1'],
         ];
     }
 

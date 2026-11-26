@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Group;
 
 use App\Data\Group\GroupPropertyReportData;
+use App\Data\Property\PropertySummaryData;
 use App\Data\Reports\ReportFilters;
 use App\Enums\ReportKey;
 use App\Http\Controllers\Controller;
@@ -44,7 +45,8 @@ class GroupPropertyReportController extends Controller
             'oneDate' => $key->maxRangeDays() === null,
             'maxRangeDays' => $key->maxRangeDays(),
             'groups' => array_map(fn ($group): array => ['value' => $group->value, 'label' => $group->label()], $key->groups()),
-            'filters' => ['from' => $filters->from, 'to' => $filters->to, 'group' => $filters->group?->value],
+            'filters' => ['from' => $filters->from, 'to' => $filters->to, 'group' => $filters->group?->value, 'property' => $this->pickedProperty($request)?->code],
+            'properties' => array_values($this->groupProperties($request)->map(fn (Property $property): PropertySummaryData => PropertySummaryData::fromModel($property))->all()),
             'today' => $this->today($request)->toDateString(),
             'result' => $report,
         ]);
@@ -106,12 +108,30 @@ class GroupPropertyReportController extends Controller
      */
     private function open(GroupPropertyReportRequest $request, bool $allRows): array
     {
-        /** @var Collection<int, Property> $properties */
-        $properties = $request->attributes->get(EnsureGroupAccess::PROPERTIES);
+        $picked = $this->pickedProperty($request);
+        $properties = $picked === null ? $this->groupProperties($request) : new Collection([$picked]);
         $key = $request->reportKey();
         $filters = $request->filters($this->today($request));
 
-        return [$key, $filters, $this->reports->run($request->user(), $properties, $key, $filters, $allRows)];
+        return [$key, $filters, $this->reports->run($request->user(), $properties, $key, $filters, $allRows, (int) ($request->validated('page') ?? 1))];
+    }
+
+    /**
+     * @return Collection<int, Property>
+     */
+    private function groupProperties(GroupPropertyReportRequest $request): Collection
+    {
+        return $request->attributes->get(EnsureGroupAccess::PROPERTIES);
+    }
+
+    /**
+     * The one property picked in the property filter, or null for all. A code outside the group counts as all.
+     */
+    private function pickedProperty(GroupPropertyReportRequest $request): ?Property
+    {
+        $code = $request->validated('property');
+
+        return $code === null ? null : $this->groupProperties($request)->first(fn (Property $property): bool => $property->code === $code);
     }
 
     private function today(GroupPropertyReportRequest $request): CarbonImmutable

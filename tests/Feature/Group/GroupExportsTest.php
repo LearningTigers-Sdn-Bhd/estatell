@@ -36,12 +36,12 @@ test('a report category opens on its first report and lists only its reports as 
             ->where('reports', fn ($reports): bool => collect($reports)->pluck('value')->all() === ['payments', 'outstanding-balance', 'deposit-liability', 'agent-payments']));
 });
 
-test('the group timeline opens on this whole month, and shows any whole month', function () {
+test('the group timeline opens on today and the next two weeks, and shows any whole month', function () {
     $setup = liveGroupSetup();
     grantKinabatangan($setup, $setup['manager'], DefaultRoleEnum::Manager);
 
     $this->actingAs($setup['manager'])->get(route('group.timeline', $setup['sepilok']->property_group_id))
-        ->assertInertia(fn (Assert $page) => $page->where('from', '2026-10-01')->where('to', '2026-10-31'));
+        ->assertInertia(fn (Assert $page) => $page->where('from', '2026-10-14')->where('to', '2026-10-27'));
 
     $this->get(route('group.timeline', $setup['sepilok']->property_group_id).'?from=2026-12-01&to=2026-12-31')
         ->assertOk()

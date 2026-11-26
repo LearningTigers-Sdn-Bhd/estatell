@@ -12,6 +12,7 @@ use App\Data\Reports\ReportRow;
 use App\Enums\PermissionEnum;
 use App\Enums\ReportKey;
 use App\Models\Property;
+use App\Models\ReservationUnit;
 use App\Models\User;
 use App\Services\Staff\GroupProperties;
 use Illuminate\Database\Eloquent\Collection;
@@ -24,14 +25,17 @@ use Illuminate\Database\Eloquent\Collection;
  */
 class GroupPropertyReports
 {
+    /** The reports whose row `key` is a reservation unit: a row opens the reservation panel. */
+    private const array BOOKING_ROWS = [ReportKey::Arrivals, ReportKey::Departures, ReportKey::InHouse, ReportKey::CheckedOut];
+
     public function __construct(private GroupProperties $groupProperties) {}
 
     /**
      * @param  Collection<int, Property>  $properties  The properties the user may open in the group.
      */
-    public function run(User $user, Collection $properties, ReportKey $key, ReportFilters $filters, bool $allRows = false): GroupPropertyReportData
+    public function run(User $user, Collection $properties, ReportKey $key, ReportFilters $filters, bool $allRows = false, int $page = 1): GroupPropertyReportData
     {
-        $permissions = $this->groupProperties->permissionsFor($user, $properties, [PermissionEnum::ReportsView]);
+        $permissions = $this->groupProperties->permissionsFor($user, $properties, [PermissionEnum::ReportsView, PermissionEnum::ReservationsView]);
         $allowed = $properties->filter(fn (Property $property): bool => in_array(PermissionEnum::ReportsView->value, $permissions[$property->id] ?? [], true))->values();
         $offered = $allowed->filter(fn (Property $property): bool => $key->isAvailable($property))->values();
         $oneCurrency = $offered->map(fn (Property $property): string => $property->settings->currency->getCurrencyCode())->unique()->count() === 1;
@@ -55,9 +59,11 @@ class GroupPropertyReports
         foreach ($offered as $property) {
             $reportRows = $key->report()->rows($property, $filters);
             $allReportRows = [...$allReportRows, ...$reportRows];
+            $canOpen = in_array($key, self::BOOKING_ROWS, true) && in_array(PermissionEnum::ReservationsView->value, $permissions[$property->id] ?? [], true);
+            $reservations = $canOpen ? $this->reservationsOfUnits(array_map(fn (ReportRow $row): int => (int) $row->key, $reportRows)) : [];
 
             foreach ($reportRows as $row) {
-                $rows[] = new GroupReportRowData($property->code, $property->name, $this->cells($row, $layout));
+                $rows[] = new GroupReportRowData($property->code, $property->name, $this->cells($row, $layout), reservationId: $reservations[(int) $row->key] ?? null);
             }
 
             $total = $key->totals($reportRows);
@@ -73,17 +79,33 @@ class GroupPropertyReports
             $totals[] = new GroupReportRowData(null, __('All properties'), $all->cellsFor($layout), true);
         }
 
+        $pages = max(1, (int) ceil(count($rows) / GroupPropertyReportData::PER_PAGE));
+        $page = min(max(1, $page), $pages);
+
         return new GroupPropertyReportData(
             report: $key->value,
             label: $key->label(),
             columns: $layout,
-            rows: $allRows ? $rows : array_slice($rows, 0, GroupPropertyReportData::ROW_LIMIT),
+            rows: $allRows ? $rows : array_slice($rows, ($page - 1) * GroupPropertyReportData::PER_PAGE, GroupPropertyReportData::PER_PAGE),
             rowCount: count($rows),
             totals: $totals,
             currency: $oneCurrency && $offered->isNotEmpty() ? CurrencyData::forProperty($offered->first()) : null,
             leftOut: array_values($properties->reject(fn (Property $property): bool => $allowed->contains($property))->map(fn (Property $property): string => $property->name)->all()),
             notOffered: array_values($allowed->reject(fn (Property $property): bool => $offered->contains($property))->map(fn (Property $property): string => $property->name)->all()),
+            page: $allRows ? 1 : $page,
+            pages: $allRows ? 1 : $pages,
         );
+    }
+
+    /**
+     * The reservation of each unit, in one read, for the rows of a front desk list.
+     *
+     * @param  list<int>  $unitIds
+     * @return array<int, int> Reservation id by unit id.
+     */
+    private function reservationsOfUnits(array $unitIds): array
+    {
+        return $unitIds === [] ? [] : ReservationUnit::query()->whereKey($unitIds)->pluck('reservation_id', 'id')->map(fn ($id): int => (int) $id)->all();
     }
 
     /**

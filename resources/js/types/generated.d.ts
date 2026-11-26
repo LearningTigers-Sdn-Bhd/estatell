@@ -2461,6 +2461,9 @@ totals: App.Data.Group.GroupReportRowData[],
 currency: App.Data.Property.CurrencyData | null,
 leftOut: string[],
 notOffered: string[],
+page: number,
+pages: number,
+perPage: number,
 };
 export type GroupPropertyTilesData = {
 property: App.Data.Property.PropertySummaryData,
@@ -2473,6 +2476,7 @@ code: string | null,
 property: string,
 cells: Record<string, string>,
 total: boolean,
+reservationId: number | null,
 };
 export type GroupReportsData = {
 properties: App.Data.Property.PropertySummaryData[],
