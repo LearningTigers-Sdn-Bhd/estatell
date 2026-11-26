@@ -1,5 +1,5 @@
 import { useForm, useHttp } from '@inertiajs/react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CountrySelect } from '@/components/pms/country-select';
 import { DatePicker } from '@/components/pms/date-picker';
 import { EnumSelect } from '@/components/pms/enum-select';
@@ -38,6 +38,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import type { GuestMatchCriteria } from '@/hooks/use-guest-matches';
 import { reveal, scan, store, update } from '@/routes/guests/documents';
+import { uploadToastCallbacks } from '@/lib/upload-with-toast';
 
 type Guest = Pick<
     App.Data.Guests.GuestData,
@@ -89,6 +90,7 @@ function DocumentSheetForm({
     const { data, errors } = form;
     const [checked, setChecked] = useState<GuestMatchCriteria>({});
     const [confirmingDiscard, setConfirmingDiscard] = useState(false);
+    const uploadToast = useMemo(() => uploadToastCallbacks('Uploading ID'), []);
 
     const requestClose = () =>
         form.isDirty ? setConfirmingDiscard(true) : onClose();
@@ -100,6 +102,7 @@ function DocumentSheetForm({
             forceFormData: true,
             preserveScroll: true,
             onSuccess: onClose,
+            ...uploadToast,
         };
 
         if (document) {

@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
 import { holdFlashToasts, toastProgress } from '@/lib/toast-progress';
+import type { ToastProgress } from '@/lib/toast-progress';
 import type { FlashToast } from '@/types/ui';
 
 export type UploadWithToastOptions = {
@@ -135,4 +136,58 @@ export async function uploadWithToast({
     } finally {
         release();
     }
+}
+
+/** Smaller uploads finish before a toast would be worth reading. */
+export const UPLOAD_TOAST_MIN_BYTES = 512 * 1024;
+
+export type UploadToastCallbacks = {
+    onProgress: (
+        progress: { percentage?: number; total?: number } | undefined,
+    ) => void;
+    onFinish: () => void;
+    onCancel: () => void;
+};
+
+/**
+ * Visit callbacks that show a progress toast for a form that sends files with its other fields. Merge them into the
+ * form's own options. The toast opens only for uploads of 512 KB or more, and closes when the request ends, so the
+ * server's flash toast shows the result. Reusable: create it once per form.
+ */
+export function uploadToastCallbacks(title: string): UploadToastCallbacks {
+    let progress: ToastProgress | null = null;
+
+    const end = () => {
+        progress?.close();
+        progress = null;
+    };
+
+    return {
+        onProgress: (event) => {
+            const percent = event?.percentage;
+
+            if (percent === undefined) {
+                return;
+            }
+
+            if (progress === null) {
+                if (
+                    (event?.total ?? 0) < UPLOAD_TOAST_MIN_BYTES ||
+                    percent >= 100
+                ) {
+                    return;
+                }
+
+                progress = toastProgress(title);
+            }
+
+            if (percent >= 100) {
+                progress.processing('Processing…');
+            } else {
+                progress.progress(`${Math.round(percent)}%`, percent);
+            }
+        },
+        onFinish: end,
+        onCancel: end,
+    };
 }

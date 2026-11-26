@@ -1,5 +1,5 @@
 import { Form } from '@inertiajs/react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ArrowRight, Camera, IdCard, UserRound } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import { uploadToastCallbacks } from '@/lib/upload-with-toast';
 
 /** A Malaysian guest has a MyKad; anyone else shows a passport. The guest can still change it. */
 const kindFor = (nationalityCode?: string | null) =>
@@ -58,6 +59,7 @@ export function IdentityStep({
     genders: EnumOption[];
     countries: EnumOption[];
 }) {
+    const uploadToast = useMemo(() => uploadToastCallbacks('Uploading ID'), []);
     // Malaysia is the usual guest, so it is picked until the guest changes it.
     const [nationality, setNationality] = useState(
         saved?.nationalityCode || 'MY',
@@ -86,7 +88,12 @@ export function IdentityStep({
         savedKinds[saved.documentKind as keyof typeof savedKinds] === kind;
 
     return (
-        <Form action={action} method="post" className="concierge-identity-form">
+        <Form
+            action={action}
+            method="post"
+            className="concierge-identity-form"
+            {...uploadToast}
+        >
             {({ processing, errors }) => (
                 <div className="flex flex-col gap-6">
                     <HiddenFields fields={fields} />

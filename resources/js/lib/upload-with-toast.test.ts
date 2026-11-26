@@ -1,6 +1,10 @@
 import { afterEach, expect, test, vi } from 'vite-plus/test';
 import { flashToastsHeld } from './toast-progress';
-import { uploadWithToast } from './upload-with-toast';
+import {
+    UPLOAD_TOAST_MIN_BYTES,
+    uploadToastCallbacks,
+    uploadWithToast,
+} from './upload-with-toast';
 
 type Callbacks = {
     onProgress?: (progress: { percentage?: number }) => void;
@@ -117,4 +121,32 @@ test('a single file shows the validation message', async () => {
     expect(add).toHaveBeenLastCalledWith(
         expect.objectContaining({ type: 'error', description: undefined }),
     );
+});
+
+test('form callbacks open a toast only for big uploads and close it at the end', () => {
+    const callbacks = uploadToastCallbacks('Uploading ID');
+    const big = UPLOAD_TOAST_MIN_BYTES;
+
+    callbacks.onProgress({ percentage: 40, total: big - 1 });
+    expect(add).not.toHaveBeenCalled();
+
+    callbacks.onProgress({ percentage: 40, total: big });
+    callbacks.onProgress({ percentage: 100, total: big });
+
+    expect(add).toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'Uploading ID', type: 'loading' }),
+    );
+    expect(update).toHaveBeenLastCalledWith(
+        'toast-1',
+        expect.objectContaining({ description: 'Processing…' }),
+    );
+
+    callbacks.onFinish();
+    expect(close).toHaveBeenCalledWith('toast-1');
+
+    // The same callbacks serve the next submit.
+    callbacks.onProgress({ percentage: 10, total: big });
+    expect(add).toHaveBeenCalledTimes(2);
+    callbacks.onCancel();
+    expect(close).toHaveBeenCalledTimes(2);
 });

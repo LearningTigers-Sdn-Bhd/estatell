@@ -52,16 +52,18 @@ Add `nativeButton={false}` only when a trigger renders an element that is not a 
 
 A task that takes more than a few seconds or sends many requests shows one progress toast, not one toast per request.
 
-| Use                       | How                                                                                                                   |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| File uploads              | `uploadWithToast({ url, files, field, asArray, oneByOne, noun })` from `lib/upload-with-toast.ts`                     |
-| Other slow tasks          | `toastProgress(title)` from `lib/toast-progress.ts`: `progress(text, percent)`, `processing(text)`, `succeed`, `fail` |
-| Many requests in one task | `holdFlashToasts()` stops server flash toasts until released. `uploadWithToast` does this for you                     |
+| Use                                     | How                                                                                                                                                 |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| File uploads                            | `uploadWithToast({ url, files, field, asArray, oneByOne, noun })` from `lib/upload-with-toast.ts`                                                   |
+| Form that sends files with other fields | `uploadToastCallbacks(title)` from `lib/upload-with-toast.ts`. Create it once with `useMemo` and spread it into the visit options or `<Form>` props |
+| Other slow tasks                        | `toastProgress(title)` from `lib/toast-progress.ts`: `progress(text, percent)`, `processing(text)`, `succeed`, `fail`                               |
+| Many requests in one task               | `holdFlashToasts()` stops server flash toasts until released. `uploadWithToast` does this for you                                                   |
 
 - Text: "Uploading 3 of 8 · 45%", then "Processing…". The result uses the server's message ("Photos uploaded.").
 - On a refusal, the error toast names the reason and, below it, how many files were saved.
 - `oneByOne` needs an endpoint that accepts a single file. Album uploads use it, so each request carries one photo.
 - The button keeps its `Spinner` and `disabled` state while the toast runs.
+- `uploadToastCallbacks` opens the toast only for uploads of 512 KB or more, and closes it when the request ends. The server's flash toast then shows the result. Used by guest ID scans (concierge and the guest document sheet) and payment proofs (portal and staff).
 
 ## Select
 
