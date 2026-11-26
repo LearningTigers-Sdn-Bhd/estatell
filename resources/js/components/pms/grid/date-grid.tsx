@@ -1,5 +1,11 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { useImperativeHandle, useMemo, useRef, useState } from 'react';
+import {
+    useEffect,
+    useImperativeHandle,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import type { ReactNode, Ref } from 'react';
 import { cn } from '@/lib/utils';
 import type { DateColumn } from './date-columns';
@@ -119,6 +125,15 @@ export function DateGrid<Row extends GridRow>({
         overscan: 4,
         scrollPaddingStart: labelWidth,
     });
+
+    // The virtualizer keeps the sizes it measured first: a night that changes width (a range stretched to fit its card)
+    // or a row that changes height is measured again, so the header, the cells and the bars stay in line.
+    useEffect(() => {
+        columnVirtualizer.measure();
+    }, [columnVirtualizer, columnWidth]);
+    useEffect(() => {
+        rowVirtualizer.measure();
+    }, [rowVirtualizer, rowHeight, groupHeight]);
 
     useImperativeHandle(ref, () => ({
         scrollToDate: (date) => {
