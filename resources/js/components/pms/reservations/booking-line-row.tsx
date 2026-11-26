@@ -351,11 +351,8 @@ export function BookingLineRow({
                                 value={bedId}
                                 onChange={(value) =>
                                     onChange({
-                                        bed_ids: beds.map(
-                                            (current, position) =>
-                                                position === bed
-                                                    ? value
-                                                    : current,
+                                        bed_ids: beds.map((current, position) =>
+                                            position === bed ? value : current,
                                         ),
                                     })
                                 }
