@@ -93,7 +93,8 @@ export function ReservationPeekSheet({
                   propertyCode: target.propertyCode,
                   reservation: target.reservationId,
               });
-    const http = useHttp<Record<string, never>, Peek>('get', url, {});
+    // The url goes to `get` on each request: `useHttp` keeps the url it was first given, from before a row was picked.
+    const http = useHttp<Record<string, never>, Peek>({});
     const [state, setState] = useState<State>({ status: 'loading' });
     const [attempt, setAttempt] = useState(0);
 
@@ -105,7 +106,7 @@ export function ReservationPeekSheet({
         let current = true;
 
         setState({ status: 'loading' });
-        http.submit()
+        http.get(url)
             .then((peek) => current && setState({ status: 'ready', peek }))
             .catch(() => current && setState({ status: 'failed' }));
 
