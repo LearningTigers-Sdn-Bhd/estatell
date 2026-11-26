@@ -244,19 +244,19 @@ export function MetricCard({
                                     <ChartTooltipContent
                                         indicator="dot"
                                         labelFormatter={(label) => {
+                                            const date =
+                                                typeof label === 'string'
+                                                    ? label
+                                                    : '';
                                             const point = data.find(
-                                                (item) => item.date === label,
+                                                (item) => item.date === date,
                                             );
 
                                             return (
                                                 <span className="flex flex-col">
                                                     {byMonth
-                                                        ? monthLabel(
-                                                              String(label),
-                                                          )
-                                                        : longDate(
-                                                              String(label),
-                                                          )}
+                                                        ? monthLabel(date)
+                                                        : longDate(date)}
                                                     {point?.reason && (
                                                         <span className="font-normal text-muted-foreground">
                                                             {point.reason}

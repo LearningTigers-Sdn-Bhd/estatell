@@ -50,7 +50,7 @@ enum NotificationType: string
             self::OnlineBookingReceived => __('Online booking received'),
             self::OnlineRefundNeedsAttention => __('Online refund needs attention'),
             self::OnlineBookingCancelled => __('Online booking cancelled'),
-            self::AiThreadEscalated => __('AI chat handed over'),
+            self::AiThreadEscalated => __('Chat handed over'),
             self::AiCapNearlyReached => __('AI assistant near its monthly cap'),
         };
     }

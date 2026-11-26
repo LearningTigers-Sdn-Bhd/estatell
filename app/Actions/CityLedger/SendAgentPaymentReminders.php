@@ -58,22 +58,25 @@ class SendAgentPaymentReminders
         $zone = $reservation->property->settings?->time_zone ?: config('app.timezone');
         $stages = $this->schedule->stages($reservation, $now);
         $next = $this->schedule->nextDue($reservation, $now);
+
+        if ($next === null) {
+            return 0;
+        }
+
         $already = SentReminder::query()->where('reservation_id', $reservation->id)->get()->map(fn (SentReminder $row): string => $row->stage.':'.$row->kind)->flip();
         $due = fn (CarbonImmutable $at): string => $at->setTimezone($zone)->format('j M Y, H:i');
         $toSend = [];
         $bill = $this->agentBill->for($reservation);
         $billText = fn (array $lines): array => array_values(array_map(fn (array $line): string => $line['label'].($line['quantity'] > 1 ? ' × '.$line['quantity'] : '').': '.$line['amount'], $lines));
 
-        if ($next !== null && ! $already->has('all:schedule')) {
+        if (! $already->has('all:schedule')) {
             $toSend[] = ['all', 'schedule'];
         }
 
-        if ($next !== null) {
-            $kind = $next['overdue'] ? 'overdue' : ($now->greaterThanOrEqualTo($next['due_at']->subDay()) ? 'reminder' : null);
+        $kind = $next['overdue'] ? 'overdue' : ($now->greaterThanOrEqualTo($next['due_at']->subDay()) ? 'reminder' : null);
 
-            if ($kind !== null && ! $already->has($next['kind'].':'.$kind)) {
-                $toSend[] = [$next['kind'], $kind];
-            }
+        if ($kind !== null && ! $already->has($next['kind'].':'.$kind)) {
+            $toSend[] = [$next['kind'], $kind];
         }
 
         foreach ($toSend as [$stage, $kind]) {
@@ -93,8 +96,8 @@ class SendAgentPaymentReminders
                     'amount' => $one['amount'],
                     'due' => $due($one['due_at']),
                 ], $stages),
-                amountDue: $next['amount_due'] ?? '0.00',
-                dueText: $next === null ? '' : $due($next['due_at']),
+                amountDue: $next['amount_due'],
+                dueText: $due($next['due_at']),
                 agentLines: $billText($bill->agentLines),
                 guestLines: $billText($bill->guestLines),
             )), hidden: [MailActorResolver::PROPERTY_CONTEXT_KEY => $reservation->property_id]);

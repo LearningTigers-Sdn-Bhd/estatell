@@ -122,6 +122,13 @@ jobs:
         if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
         run: npm run types:check
 
+      - name: Frontend tests
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        # Vitest loads vite.config.ts in serve mode, which laravel-vite-plugin refuses when CI is set.
+        env:
+          LARAVEL_BYPASS_ENV_CHECK: 1
+        run: npx vp test run --dir resources/js
+
   tests:
     runs-on: ubuntu-latest
 

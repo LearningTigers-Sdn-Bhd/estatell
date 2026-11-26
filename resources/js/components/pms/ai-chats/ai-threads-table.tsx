@@ -136,7 +136,7 @@ export function AiThreadsTable({
                         title={
                             handedOver
                                 ? 'No chats need the front desk'
-                                : 'No AI chats yet'
+                                : 'No chats yet'
                         }
                         description={
                             handedOver

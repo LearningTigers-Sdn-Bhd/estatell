@@ -53,7 +53,7 @@ test('notification types define their delivery rules', function (
     'online booking received' => [NotificationType::OnlineBookingReceived, ['mail', 'database'], ['mail' => true, 'database' => true], 'reservations.manage'],
     'online booking cancelled' => [NotificationType::OnlineBookingCancelled, ['mail', 'database'], ['mail' => true, 'database' => true], 'reservations.manage'],
     'nearby place removed' => [NotificationType::NearbyPlaceRemoved, ['database'], ['mail' => false, 'database' => false], null],
-    'AI chat handed over' => [NotificationType::AiThreadEscalated, ['mail', 'database'], ['mail' => true, 'database' => true], 'front-desk.view'],
+    'Chat handed over' => [NotificationType::AiThreadEscalated, ['mail', 'database'], ['mail' => true, 'database' => true], 'front-desk.view'],
     'AI assistant near its cap' => [NotificationType::AiCapNearlyReached, ['mail', 'database'], ['mail' => true, 'database' => true], 'settings.manage'],
 ]);
 
@@ -82,7 +82,7 @@ test('notification enums expose labelled options', function () {
         ['value' => 'online_booking_received', 'label' => 'Online booking received'],
         ['value' => 'online_refund_needs_attention', 'label' => 'Online refund needs attention'],
         ['value' => 'online_booking_cancelled', 'label' => 'Online booking cancelled'],
-        ['value' => 'ai_thread_escalated', 'label' => 'AI chat handed over'],
+        ['value' => 'ai_thread_escalated', 'label' => 'Chat handed over'],
         ['value' => 'ai_cap_nearly_reached', 'label' => 'AI assistant near its monthly cap'],
     ]);
 });
