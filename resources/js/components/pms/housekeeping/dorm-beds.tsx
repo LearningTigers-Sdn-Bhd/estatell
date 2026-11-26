@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { BedSingle, ChevronDown } from 'lucide-react';
+import { BedSingle, ChevronDown, NotebookPen } from 'lucide-react';
 import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,6 +33,17 @@ function summary(beds: Bed[]): string {
     return beds.every((bed) => bed.status.value === 'inspected')
         ? `${beds.length} beds inspected`
         : `${beds.length} beds ready`;
+}
+
+/** ", 2 booking notes" when guests asked for something, so the note is not missed behind the button. */
+function notes(beds: Bed[]): string {
+    const count = beds.filter((bed) => bed.guestRemark !== null).length;
+
+    if (count === 0) {
+        return '';
+    }
+
+    return count === 1 ? ', 1 booking note' : `, ${count} booking notes`;
 }
 
 /**
@@ -81,6 +92,7 @@ export function DormBeds({ room }: { room: Room }) {
             >
                 <BedSingle data-icon="inline-start" />
                 {summary(room.beds)}
+                {notes(room.beds)}
                 <ChevronDown className="size-3.5 text-muted-foreground" />
             </PopoverTrigger>
             <PopoverContent align="start" className="w-80">
@@ -107,6 +119,20 @@ export function DormBeds({ room }: { room: Room }) {
                                     )}
                                     {bed.guest ?? (bed.stay ? null : 'Empty')}
                                 </span>
+                                {bed.guestRemark && (
+                                    <span className="flex items-start gap-1 text-xs text-muted-foreground">
+                                        <NotebookPen
+                                            aria-hidden
+                                            className="mt-0.5 size-3 shrink-0"
+                                        />
+                                        <span>
+                                            <span className="sr-only">
+                                                From the booking:{' '}
+                                            </span>
+                                            {bed.guestRemark}
+                                        </span>
+                                    </span>
+                                )}
                             </div>
                             {bed.moves.length > 0 ? (
                                 <DropdownMenu>

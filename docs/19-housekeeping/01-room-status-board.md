@@ -88,6 +88,7 @@ It disappears when the room is Clean, so it can never be stale. For a Blocked ro
 
 - One remark for each room, plain text, 500 characters. Click the cell, type, and it saves when the cell loses focus. An empty value removes it.
 - A remark is **kept until someone removes it**. Making the room Clean does not clear it.
+- **Booking note** (added 2026-11-26): the Notes cell also shows, read only, the [housekeeping remark](../12-reservations/16-remarks.md) of the bookings sleeping in the room tonight (or arriving), each once (`HousekeepingRoomData.guestRemark`). Staff write it on the reservation, not here. A dorm shows it on each bed instead ([dorm beds](04-dorm-beds.md#board)). The printed sheet's Notes add "Booking: Extra pillow".
 - `SetRoomRemark` is the only writer, and the activity log keeps the old and new value.
 
 ## Needs maintenance

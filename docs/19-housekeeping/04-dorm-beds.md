@@ -33,6 +33,7 @@ bed_statuses   id, property_id, bed_id (unique, cascade), status (clean | dirty 
 
 - A dorm row shows a **"3 of 8 beds dirty"** button under its status badge ("8 beds ready" or "8 beds inspected" when none is dirty). It opens the beds: label, who is in it today (Due out, In house, Checked out, Arriving, or Empty) and its status, which opens the moves the viewer may make.
 - `HousekeepingRoomData.beds` (`HousekeepingBedData`): the dorm's active beds in order, read with the rooms (`beds.status`) and the day's units (one read, grouped by room and by bed). The query count does not grow with beds (tested).
+- **Booking notes** (added 2026-11-26): a bed shows its guest's [housekeeping remark](../12-reservations/16-remarks.md) under the name (`HousekeepingBedData.guestRemark`), and the button adds ", 1 booking note" so it is not missed. The printed sheet's Notes list them as "Bed A2: Lower bunk please".
 - `PUT /p/{code}/housekeeping/rooms/{room}/beds/{bed}/status` (`housekeeping.rooms.beds.status`), `housekeeping.update`. The bed must belong to the room (scoped binding).
 
 ## Code

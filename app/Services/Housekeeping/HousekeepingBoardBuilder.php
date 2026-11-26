@@ -8,6 +8,7 @@ use App\Data\Housekeeping\HousekeepingOutOfServiceData;
 use App\Data\Housekeeping\HousekeepingRoomData;
 use App\Enums\HousekeepingReason;
 use App\Enums\HousekeepingStay;
+use App\Enums\RemarkKind;
 use App\Enums\SellUnit;
 use App\Enums\StayType;
 use App\Enums\UnitStatus;
@@ -97,7 +98,7 @@ class HousekeepingBoardBuilder
     /**
      * Group the units that touch the date by the room they use that day, and by the dorm bed, in one read.
      *
-     * @return array{rooms: Collection<int, array{view: array{guest: ?string, adults: ?int, children: ?int, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool, stay: ?HousekeepingStay}, reason: ?HousekeepingReason, due: string}>, beds: Collection<int, array{stay: ?HousekeepingStay, guest: ?string}>}
+     * @return array{rooms: Collection<int, array{view: array{guest: ?string, adults: ?int, children: ?int, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool, stay: ?HousekeepingStay, guestRemark: ?string}, reason: ?HousekeepingReason, due: string}>, beds: Collection<int, array{stay: ?HousekeepingStay, guest: ?string, guestRemark: ?string}>}
      */
     private function stays(Property $property, CarbonImmutable $date): array
     {
@@ -114,6 +115,7 @@ class HousekeepingBoardBuilder
                 'guests.guest',
                 'reservation:id,booker_guest_id',
                 'reservation.booker:id,full_name',
+                'reservation.remarks' => fn ($query) => $query->where('kind', RemarkKind::Housekeeping->value),
             ])
             ->get();
 
@@ -146,14 +148,14 @@ class HousekeepingBoardBuilder
             'beds' => collect($byBed)->map(function (array $entries) use ($date): array {
                 $view = $this->summarize($entries, $date)['view'];
 
-                return ['stay' => $view['stay'], 'guest' => $view['guest']];
+                return ['stay' => $view['stay'], 'guest' => $view['guest'], 'guestRemark' => $view['guestRemark']];
             }),
         ];
     }
 
     /**
      * @param  list<array{unit: ReservationUnit, departing: bool}>  $entries
-     * @return array{view: array{guest: ?string, adults: ?int, children: ?int, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool, stay: ?HousekeepingStay}, reason: ?HousekeepingReason, due: string}
+     * @return array{view: array{guest: ?string, adults: ?int, children: ?int, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool, stay: ?HousekeepingStay, guestRemark: ?string}, reason: ?HousekeepingReason, due: string}
      */
     private function summarize(array $entries, CarbonImmutable $date): array
     {
@@ -201,6 +203,8 @@ class HousekeepingBoardBuilder
                 'departureTime' => $departing === null ? null : substr($departing->departure_time, 0, 5),
                 'isStayOver' => $present !== null,
                 'stay' => $stay,
+                // The booking's housekeeping remark of the guests who sleep here tonight, or of those arriving.
+                'guestRemark' => $this->guestRemark($party),
             ],
             'reason' => $reason,
             'due' => $due,
@@ -208,12 +212,28 @@ class HousekeepingBoardBuilder
     }
 
     /**
-     * @return array{view: array{guest: ?string, adults: ?int, children: ?int, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool, stay: ?HousekeepingStay}, reason: ?HousekeepingReason, due: string}
+     * The housekeeping remarks of the party's bookings, each once, joined with " · ". Expects `reservation.remarks`
+     * loaded with the housekeeping kind only. See docs/12-reservations/16-remarks.md.
+     *
+     * @param  Collection<int, ReservationUnit>  $party
+     */
+    private function guestRemark(Collection $party): ?string
+    {
+        $remarks = $party
+            ->flatMap(fn (ReservationUnit $unit) => $unit->reservation->remarks->pluck('body'))
+            ->unique()
+            ->values();
+
+        return $remarks->isEmpty() ? null : $remarks->implode(' · ');
+    }
+
+    /**
+     * @return array{view: array{guest: ?string, adults: ?int, children: ?int, arrivalDate: ?string, arrivalTime: ?string, departureDate: ?string, departureTime: ?string, isStayOver: bool, stay: ?HousekeepingStay, guestRemark: ?string}, reason: ?HousekeepingReason, due: string}
      */
     private function emptyStay(): array
     {
         return [
-            'view' => ['guest' => null, 'adults' => null, 'children' => null, 'arrivalDate' => null, 'arrivalTime' => null, 'departureDate' => null, 'departureTime' => null, 'isStayOver' => false, 'stay' => null],
+            'view' => ['guest' => null, 'adults' => null, 'children' => null, 'arrivalDate' => null, 'arrivalTime' => null, 'departureDate' => null, 'departureTime' => null, 'isStayOver' => false, 'stay' => null, 'guestRemark' => null],
             'reason' => null,
             'due' => '2',
         ];

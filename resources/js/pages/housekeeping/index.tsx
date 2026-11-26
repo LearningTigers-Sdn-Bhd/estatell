@@ -15,6 +15,7 @@ import {
     MessageSquarePlus,
     Monitor,
     MoreHorizontal,
+    NotebookPen,
     Pencil,
     Printer,
     Settings2,
@@ -1398,6 +1399,20 @@ function GroupRows({
                                         room.remark && (
                                             <span>{room.remark}</span>
                                         )
+                                    )}
+                                    {room.guestRemark && (
+                                        <span className="inline-flex items-start gap-1 text-muted-foreground">
+                                            <NotebookPen
+                                                aria-hidden
+                                                className="mt-0.5 size-3.5 shrink-0"
+                                            />
+                                            <span>
+                                                <span className="sr-only">
+                                                    From the booking:{' '}
+                                                </span>
+                                                {room.guestRemark}
+                                            </span>
+                                        </span>
                                     )}
                                     {room.outOfService?.notes && (
                                         <span className="text-muted-foreground">

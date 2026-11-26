@@ -4,9 +4,11 @@ use App\Actions\Housekeeping\UpdateBedStatus;
 use App\Actions\Housekeeping\UpdateRoomStatus;
 use App\Actions\NightAudit\Steps\UpdateRoomStatuses;
 use App\Actions\Rooms\CreateBed;
+use App\Data\Reports\HousekeepingTaskRow;
 use App\Enums\DefaultRoleEnum;
 use App\Enums\HousekeepingRefusal;
 use App\Enums\HousekeepingStatus;
+use App\Enums\RemarkKind;
 use App\Enums\SellUnit;
 use App\Enums\UnitStatus;
 use App\Models\Bed;
@@ -14,11 +16,13 @@ use App\Models\BusinessDate;
 use App\Models\NightAudit;
 use App\Models\Property;
 use App\Models\Reservation;
+use App\Models\ReservationRemark;
 use App\Models\ReservationUnit;
 use App\Models\Room;
 use App\Models\RoomBlock;
 use App\Models\RoomType;
 use App\Models\User;
+use App\Services\Housekeeping\HousekeepingBoardBuilder;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -149,6 +153,43 @@ test('the board shows a dorm\'s beds with their moves, and a bed changes through
 
     expect(bedStatusOf($setup['beds'][0]))->toBe(HousekeepingStatus::Dirty)
         ->and(dormRoomStatus($setup['room']))->toBe(HousekeepingStatus::Dirty);
+});
+
+test('the board shows the booking\'s housekeeping remark on the guest\'s bed or room, and the printed sheet lists it', function () {
+    $setup = dormBedsSetup();
+    $private = Room::factory()->for($setup['property'])->create(['number' => '105']);
+    $stay = function (array $night, string $remark) use ($setup, $private): void {
+        $reservation = Reservation::factory()->create(['property_id' => $setup['property']->id]);
+        ReservationRemark::factory()->for($reservation)->create(['kind' => RemarkKind::Housekeeping, 'body' => $remark]);
+        ReservationRemark::factory()->for($reservation)->create(['kind' => RemarkKind::Dietary, 'body' => 'No pork']);
+        $unit = ReservationUnit::factory()->withNights()->create([
+            'reservation_id' => $reservation->id,
+            'room_type_id' => isset($night['bed_id']) ? $setup['room']->room_type_id : $private->room_type_id,
+            'arrival_date' => '2026-10-12',
+            'departure_date' => '2026-10-14',
+            'status' => UnitStatus::Confirmed,
+        ]);
+        $unit->nights()->update(['room_id' => null, 'bed_id' => null, ...$night]);
+    };
+    $stay(['bed_id' => $setup['beds'][1]->id], 'Lower bunk please');
+    $stay(['room_id' => $private->id], 'Extra pillow');
+
+    $this->actingAs($setup['owner'])->get(route('housekeeping.index', $setup['property']->code))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('rooms', function ($rooms) {
+                $dorm = collect($rooms)->firstWhere('number', '201');
+                $room = collect($rooms)->firstWhere('number', '105');
+
+                return $dorm['guestRemark'] === null
+                    && collect($dorm['beds'])->pluck('guestRemark', 'label')->all() === ['A1' => null, 'A2' => 'Lower bunk please', 'A3' => null]
+                    && $room['guestRemark'] === 'Extra pillow';
+            }));
+
+    $rows = collect(app(HousekeepingBoardBuilder::class)->rows($setup['property'], CarbonImmutable::parse('2026-10-12'), false, false, false))
+        ->keyBy('number');
+
+    expect(HousekeepingTaskRow::fromRoom($rows['201'], 1)->remarks)->toBe('Bed A2: Lower bunk please')
+        ->and(HousekeepingTaskRow::fromRoom($rows['105'], 2)->remarks)->toBe('Booking: Extra pillow');
 });
 
 test('the board costs the same queries however many dorm beds there are', function () {

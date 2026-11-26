@@ -26,12 +26,13 @@ class HousekeepingBedData extends Data
         public bool $blocked,
         public ?BadgeData $stay,
         public ?string $guest,
+        public ?string $guestRemark,
     ) {}
 
     /**
      * Expects the bed's `status` loaded.
      *
-     * @param  array{stay: ?HousekeepingStay, guest: ?string}|null  $occupant
+     * @param  array{stay: ?HousekeepingStay, guest: ?string, guestRemark: ?string}|null  $occupant
      */
     public static function forBed(Bed $bed, bool $blocked, ?array $occupant, bool $canUpdate, bool $canInspect): self
     {
@@ -46,6 +47,7 @@ class HousekeepingBedData extends Data
             blocked: $blocked,
             stay: $stay === null ? null : new BadgeData($stay->value, $stay->label(), $stay->tone()),
             guest: $occupant['guest'] ?? null,
+            guestRemark: $occupant['guestRemark'] ?? null,
         );
     }
 }

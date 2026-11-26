@@ -109,6 +109,11 @@ class HousekeepingTaskRow extends Data implements ReportRow
             $room->doNotDisturb ? __('Do not disturb') : null,
             $room->needsMaintenance ? __('Needs maintenance') : null,
             $room->remark,
+            $room->guestRemark === null ? null : __('Booking: :remark', ['remark' => $room->guestRemark]),
+            ...array_map(
+                fn ($bed): ?string => $bed->guestRemark === null ? null : __('Bed :bed: :remark', ['bed' => $bed->label, 'remark' => $bed->guestRemark]),
+                $room->beds,
+            ),
         ], fn (?string $part): bool => $part !== null && $part !== '');
         $cleaning = $room->cleaning->cleaning;
         $housekeeper = match (true) {
