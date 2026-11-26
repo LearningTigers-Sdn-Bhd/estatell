@@ -63,6 +63,14 @@ function posOfflineSetup(): array
     return $s;
 }
 
+it('quotes each variant with the service charge and tax the sale is settled at', function () {
+    $s = posOfflineSetup();
+    $quote = collect($s['snapshot']['categories'])->flatMap(fn (array $category): array => $category['items'])->flatMap(fn (array $item): array => $item['variants'])->firstWhere('id', $s['steak']->id)['quote'];
+
+    expect($quote['total'])->toBe(posOfflineTotal($s, $s['steak']))
+        ->and($s['snapshot']['cashRounding'])->toBe($s['outlet']->refresh()->rounding_mode->value);
+});
+
 it('does not send a synced offline sale to the kitchen again', function () {
     $s = posOfflineSetup();
     $sale = posOfflineSale($s, $s['steak']);

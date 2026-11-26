@@ -38,7 +38,11 @@ import {
     removeSales,
     saveSnapshot,
 } from '@/lib/pos-offline-store';
-import type { QueuedSale, StoredSnapshot } from '@/lib/pos-offline-store';
+import type {
+    OfflineQuote,
+    QueuedSale,
+    StoredSnapshot,
+} from '@/lib/pos-offline-store';
 import { index as posIndex } from '@/routes/pos';
 import {
     snapshot as offlineSnapshot,
@@ -62,9 +66,12 @@ type Snapshot = {
     version: string;
     categories: SnapshotCategory[];
     diningOptions?: SnapshotDiningOption[];
+    packagingQuote?: string;
+    cashRounding?: 'none' | 'five_sen' | 'ten_sen';
 };
 
 type SnapshotVariant = {
+    quote?: OfflineQuote | null;
     id: number;
     name: string;
     price: string;
@@ -192,7 +199,12 @@ export default function PosOffline({
     const variantLookup = useMemo(() => {
         const map = new Map<
             number,
-            { itemName: string; variantName: string; price: string }
+            {
+                itemName: string;
+                variantName: string;
+                price: string;
+                quote?: OfflineQuote | null;
+            }
         >();
 
         for (const category of payload?.categories ?? []) {
@@ -202,6 +214,7 @@ export default function PosOffline({
                         itemName: item.name,
                         variantName: variant.name,
                         price: variant.price,
+                        quote: variant.quote,
                     });
                 }
             }
@@ -220,6 +233,7 @@ export default function PosOffline({
                     variantName: info?.variantName ?? 'Regular',
                     quantity: line.quantity,
                     unitPrice: info?.price ?? '0.00',
+                    quote: info?.quote,
                 };
             }),
         [pending, variantLookup],
@@ -236,17 +250,38 @@ export default function PosOffline({
         [pendingDetails],
     );
 
-    // The snapshot lists the default dining option first. Its service charge is only an estimate: the server prices the sale at sync.
+    // The server priced one unit of each variant with service charge and tax; the till only adds them up.
+    const quoted =
+        pendingDetails.length > 0 && pendingDetails.every((row) => row.quote);
+    const sumQuotes = (key: keyof OfflineQuote) =>
+        pendingDetails.reduce(
+            (sum, row) => sum + Number(row.quote?.[key] ?? 0) * row.quantity,
+            0,
+        );
+    // A menu saved before quotes existed only knows the default dining option's service charge.
     const defaultOption = payload?.diningOptions?.[0];
     const serviceChargeRate = defaultOption?.applyServiceCharge
         ? Number(defaultOption.serviceChargeRate)
         : 0;
     const estimatedServiceCharge = (
-        Number(estimatedSubtotal) *
-        (serviceChargeRate / 100)
+        quoted
+            ? sumQuotes('serviceCharge')
+            : Number(estimatedSubtotal) * (serviceChargeRate / 100)
     ).toFixed(2);
+    const estimatedTax = quoted ? sumQuotes('tax').toFixed(2) : null;
+    const billTotal = quoted
+        ? sumQuotes('total') + Number(payload?.packagingQuote ?? 0)
+        : Number(estimatedSubtotal) + Number(estimatedServiceCharge);
+    // Cash has no 1 sen coin: round to the outlet's step, as the server does.
+    const step =
+        tender === 'cash'
+            ? { none: 1, five_sen: 5, ten_sen: 10 }[
+                  payload?.cashRounding ?? 'none'
+              ]
+            : 1;
     const estimatedTotal = (
-        Number(estimatedSubtotal) + Number(estimatedServiceCharge)
+        (Math.round(Math.round(billTotal * 100) / step) * step) /
+        100
     ).toFixed(2);
     const estimatedChange =
         tender === 'cash' && tendered.trim() !== ''
@@ -274,6 +309,7 @@ export default function PosOffline({
             estimatedSubtotal,
             slipTotals: {
                 serviceCharge: estimatedServiceCharge,
+                tax: estimatedTax,
                 total: estimatedTotal,
                 handedOver:
                     tender === 'cash' && tendered.trim() !== ''
@@ -475,9 +511,8 @@ export default function PosOffline({
                             <CardHeader>
                                 <CardTitle>Take payment</CardTitle>
                                 <CardDescription>
-                                    Estimated item subtotal below. Taxes and
-                                    service charge are finalised when the sale
-                                    is synced.
+                                    Estimates with service charge and tax. The
+                                    server prices the sale when it syncs.
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="flex flex-col gap-4">
@@ -513,32 +548,49 @@ export default function PosOffline({
                                             />
                                         </span>
                                     </div>
-                                    {serviceChargeRate > 0 && (
-                                        <>
-                                            <div className="flex items-center justify-between">
-                                                <span>
-                                                    Estimated service charge (
-                                                    {serviceChargeRate}%)
-                                                </span>
-                                                <span className="tabular-nums">
-                                                    <MoneyText
-                                                        amount={
-                                                            estimatedServiceCharge
-                                                        }
-                                                        currency={currency}
-                                                    />
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center justify-between font-medium">
-                                                <span>Estimated total</span>
-                                                <span className="tabular-nums">
-                                                    <MoneyText
-                                                        amount={estimatedTotal}
-                                                        currency={currency}
-                                                    />
-                                                </span>
-                                            </div>
-                                        </>
+                                    {[
+                                        {
+                                            label: 'Estimated service charge',
+                                            amount: estimatedServiceCharge,
+                                        },
+                                        {
+                                            label: 'Estimated tax',
+                                            amount: estimatedTax,
+                                        },
+                                    ].map(
+                                        (row) =>
+                                            Number(row.amount) > 0 && (
+                                                <div
+                                                    key={row.label}
+                                                    className="flex items-center justify-between"
+                                                >
+                                                    <span>{row.label}</span>
+                                                    <span className="tabular-nums">
+                                                        <MoneyText
+                                                            amount={
+                                                                row.amount ??
+                                                                '0'
+                                                            }
+                                                            currency={currency}
+                                                        />
+                                                    </span>
+                                                </div>
+                                            ),
+                                    )}
+                                    <div className="flex items-center justify-between font-medium">
+                                        <span>Estimated total to collect</span>
+                                        <span className="tabular-nums">
+                                            <MoneyText
+                                                amount={estimatedTotal}
+                                                currency={currency}
+                                            />
+                                        </span>
+                                    </div>
+                                    {estimatedTax === null && (
+                                        <p className="text-xs text-warning-text">
+                                            Tax is not in this estimate. Reload
+                                            the offline menu while online.
+                                        </p>
                                     )}
                                     {estimatedChange !== null &&
                                         estimatedChange > 0 && (
@@ -793,6 +845,11 @@ export default function PosOffline({
                                             label: 'Est. service charge',
                                             amount: slipSale.slipTotals
                                                 .serviceCharge,
+                                        },
+                                        {
+                                            label: 'Est. tax',
+                                            amount:
+                                                slipSale.slipTotals.tax ?? null,
                                         },
                                         {
                                             label: 'Est. total',

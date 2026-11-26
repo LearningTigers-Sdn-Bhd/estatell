@@ -61,19 +61,20 @@ Loaded from `routes/native-pos.php` under `/p/{property:code}` with `EnsurePrope
 
 ### 3. Settings pages (`settings.pos.*`, listed in the POS sidebar area, each with its own page header)
 
-| URL                                                  | Permission      | Covers                                                                                                   |
-| ---------------------------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------- |
-| `GET /settings/pos-outlets` _(shared via `pos-any`)_ | `pos.manage`    | Outlets (`native_pos_enabled`, GL codes, tax/rounding/room-limit settings)                               |
-| `GET /settings/pos/menu`                             | `pos.menu`      | Categories, items, meal-period links, variants, `internal_name`, stock countdown                         |
-| `GET /settings/pos/modifiers`                        | `pos.menu`      | Modifier groups (`min`/`max`/`free_included`) & addon 86 toggles                                         |
-| `GET /settings/pos/dining-options`                   | `pos.menu`      | Dine-In / Takeaway / Room Service SC & packaging rules                                                   |
-| `GET /settings/pos/staff-pins`                       | `pos.manage`    | Staff PIN status/revoke, registered `pos_terminal_devices` (`POST /settings/pos/devices`) & void reasons |
-| `POST /settings/pos/staff-pins/{user}/invite`        | `pos.manage`    | Email a staff member without a PIN the link to set one (30-minute limit per person)                      |
-| `GET /settings/pos/floors` _(Phase 2)_               | `pos.menu`      | Visual floor plan editor & batch table creation                                                          |
-| `GET /settings/pos/schedules` _(Phase 2)_            | `pos.menu`      | Menu schedules & combos                                                                                  |
-| `GET /settings/pos/kitchen` _(Phase 3)_              | `pos.menu`      | Kitchen stations (`use_internal_name`, SLA thresholds)                                                   |
-| `GET /settings/pos/inventory` _(Phase 3)_            | `pos.inventory` | Ingredients, BOM recipes, purchases, waste & stocktake closing                                           |
-| `GET /settings/pos/hardware` _(Phase 4)_             | `pos.hardware`  | Posport pairing, private-LAN printers, failover & ECR terminals                                          |
+| URL                                                           | Permission      | Covers                                                                                                   |
+| ------------------------------------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------- |
+| `GET /settings/pos/staff-pins`, `/terminals`, `/void-reasons` | `pos.manage`    | Staff & terminals, one URL per tab (`TabLinks`)                                                          |
+| `GET /settings/pos-outlets` _(shared via `pos-any`)_          | `pos.manage`    | Outlets (`native_pos_enabled`, GL codes, tax/rounding/room-limit settings)                               |
+| `GET /settings/pos/menu`                                      | `pos.menu`      | Categories, items, meal-period links, variants, `internal_name`, stock countdown                         |
+| `GET /settings/pos/modifiers`                                 | `pos.menu`      | Modifier groups (`min`/`max`/`free_included`) & addon 86 toggles                                         |
+| `GET /settings/pos/dining-options`                            | `pos.menu`      | Dine-In / Takeaway / Room Service SC & packaging rules                                                   |
+| `GET /settings/pos/staff-pins`                                | `pos.manage`    | Staff PIN status/revoke, registered `pos_terminal_devices` (`POST /settings/pos/devices`) & void reasons |
+| `POST /settings/pos/staff-pins/{user}/invite`                 | `pos.manage`    | Email a staff member without a PIN the link to set one (30-minute limit per person)                      |
+| `GET /settings/pos/floors` _(Phase 2)_                        | `pos.menu`      | Visual floor plan editor & batch table creation                                                          |
+| `GET /settings/pos/schedules` _(Phase 2)_                     | `pos.menu`      | Menu schedules & combos                                                                                  |
+| `GET /settings/pos/kitchen` _(Phase 3)_                       | `pos.menu`      | Kitchen stations (`use_internal_name`, SLA thresholds)                                                   |
+| `GET /settings/pos/inventory` _(Phase 3)_                     | `pos.inventory` | Ingredients, BOM recipes, purchases, waste & stocktake closing                                           |
+| `GET /settings/pos/hardware` _(Phase 4)_                      | `pos.hardware`  | Posport pairing, private-LAN printers, failover & ECR terminals                                          |
 
 ### 4. Public Guest Routes (no staff auth, rate-limited)
 

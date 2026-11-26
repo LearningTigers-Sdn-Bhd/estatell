@@ -56,7 +56,7 @@ Deviations and open items:
 - **No shift-close block.** The register does not yet refuse a shift close while sales are waiting. The offline page shows the queue.
 - **No manager approval for old snapshots.** A snapshot older than 7 days is refused (`snapshot_expired`). The planned Manager PIN approval is not built.
 - **No cash offset for closed shifts.** The late cash counts in the open shift. The planned phantom-overage offset is not built.
-- **Estimated totals only.** The offline page and slip show an estimated service charge, total, cash and change. They leave out tax. The server prices the sale on sync, and the cash tendered must cover it.
+- **Estimated totals.** The server sends one priced unit of each variant (service charge and tax, default dining option, walk-in guest) and the packaging fee with the offline menu (`PosOfflineEstimate`). The till multiplies and adds them, rounds cash to the outlet's step, and prints the result. A larger sale can differ by a sen or so. The server prices the sale on sync, and the cash tendered must cover it.
 - **Provisional slip.** The `OFF-` reference prints on a provisional slip. The official receipt number is given on sync.
 - **Offline page entry.** Reached from the register index, next to an open register.
 

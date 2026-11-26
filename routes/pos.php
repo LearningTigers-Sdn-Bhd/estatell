@@ -161,6 +161,8 @@ Route::middleware('pos')->group(function () {
         Route::post('staff-pins/{user}/revoke', [PosStaffPinController::class, 'revoke'])->whereNumber('user')->name('staff-pins.revoke');
         Route::post('staff-pins/{user}/invite', [PosStaffPinController::class, 'invite'])->whereNumber('user')->middleware('throttle:10,1')->name('staff-pins.invite');
         Route::get('staff-pins', [PosStaffSettingsController::class, 'index'])->name('staff-pins.index');
+        Route::get('staff-pins/terminals', [PosStaffSettingsController::class, 'terminals'])->name('staff-pins.terminals');
+        Route::get('staff-pins/void-reasons', [PosStaffSettingsController::class, 'voidReasons'])->name('staff-pins.void-reasons');
         Route::post('void-reasons', [PosStaffSettingsController::class, 'storeVoidReason'])->name('void-reasons.store');
         Route::put('void-reasons/{reason}', [PosStaffSettingsController::class, 'updateVoidReason'])->whereNumber('reason')->name('void-reasons.update');
         Route::get('outlets', [PosOutletSettingsController::class, 'index'])->name('outlets.index');
