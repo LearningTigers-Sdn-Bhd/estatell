@@ -233,3 +233,27 @@ it('answers a checked-in name the same as an unknown one', function () {
         expect($response->getSession()->get('errors')->first('reference'))->toBe('We could not open a booking with that code or name. Already checked in? Use your booking code, or ask the front desk.');
     }
 });
+
+it('still requires a booking code on the Check out page even while Check in by name is on', function () {
+    ['property' => $property] = conciergeNameSetup();
+
+    $response = $this->post("/stay/{$property->code}", ['reference' => 'Aisha Rahman', 'for' => 'check-out'])
+        ->assertSessionHasErrors('reference');
+
+    expect($response->getSession()->get('errors')->first('reference'))->toContain('with that code');
+});
+
+it('locks name variants under one lockout bucket across addresses', function () {
+    ['property' => $property] = conciergeNameSetup();
+
+    foreach (['Nobody Here', 'nobody  here', 'Here, Nobody', 'Nobody bin Here', 'HERE NOBODY'] as $index => $variant) {
+        $this->withServerVariables(['REMOTE_ADDR' => '10.0.1.'.($index + 1)])
+            ->post("/stay/{$property->code}", ['reference' => $variant]);
+    }
+
+    $response = $this->withServerVariables(['REMOTE_ADDR' => '10.0.1.99'])
+        ->post("/stay/{$property->code}", ['reference' => 'Nobody Here'])
+        ->assertSessionHasErrors('reference');
+
+    expect($response->getSession()->get('errors')->first('reference'))->toContain('Too many tries');
+});

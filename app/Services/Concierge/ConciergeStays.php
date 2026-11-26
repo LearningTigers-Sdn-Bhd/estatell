@@ -11,6 +11,7 @@ use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Services\Guests\GuestName;
 use App\Services\Kiosk\KioskStays;
+use App\Services\Kiosk\KioskWalkInHolds;
 use Carbon\CarbonImmutable;
 use Spatie\Activitylog\Models\Activity;
 
@@ -67,6 +68,7 @@ class ConciergeStays
         }
 
         $kiosk = app(KioskStays::class);
+        $holds = app(KioskWalkInHolds::class);
         $named = fn ($query) => $query->where('name_key', $key);
 
         $matches = ReservationUnit::query()
@@ -76,7 +78,9 @@ class ConciergeStays
                 ->whereHas('guests', fn ($guests) => $guests->where('is_primary', true)->whereHas('guest', $named))
                 ->orWhereHas('reservation.booker', $named))
             ->get()
-            ->filter(fn (ReservationUnit $stay): bool => $kiosk->guest($stay)?->name_key === $key && $kiosk->window($stay) === KioskStays::OPEN);
+            ->filter(fn (ReservationUnit $stay): bool => $kiosk->guest($stay)?->name_key === $key
+                && ! $holds->expired($property, $stay->id)
+                && $kiosk->window($stay) === KioskStays::OPEN);
 
         $stay = $matches->count() === 1 ? $matches->first() : null;
 
@@ -101,7 +105,9 @@ class ConciergeStays
     /** Whether the property requires an ID photo and the stay's guest has none yet. */
     public function idPhotoMissing(ReservationUnit $stay): bool
     {
-        if (! $stay->property->settings->concierge_name_check_in_enabled) {
+        $stay->loadMissing('property.settings');
+
+        if (! $stay->property->settings?->concierge_name_check_in_enabled) {
             return false;
         }
 

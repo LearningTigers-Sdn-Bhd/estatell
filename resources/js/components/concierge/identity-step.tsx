@@ -72,6 +72,7 @@ export function IdentityStep({
             ? savedKinds[saved.documentKind]
             : kindFor(nationality),
     );
+    const [number, setNumber] = useState('');
 
     const passport = kind === 'passport';
 
@@ -89,10 +90,11 @@ export function IdentityStep({
         !!saved?.documentNumberHint &&
         saved.documentKind !== null &&
         savedKinds[saved.documentKind as keyof typeof savedKinds] === kind;
+    const keepingSavedDocument = keepNumber && number.trim() === '';
 
-    // A photo saved for this kind of document is kept, so it is not asked again.
+    // A saved photo counts only while the guest keeps that same document (a blank number).
     const needsPhoto =
-        photoRequired && !(keepNumber && saved?.hasDocumentPhoto);
+        photoRequired && !(keepingSavedDocument && saved?.hasDocumentPhoto);
 
     return (
         <Form
@@ -142,7 +144,7 @@ export function IdentityStep({
                                             </FieldError>
                                         </Field>
                                         <Field data-invalid={!!errors.number}>
-                                            {keepNumber && (
+                                            {keepingSavedDocument && (
                                                 <input
                                                     type="hidden"
                                                     name="keep_saved_document"
@@ -155,7 +157,15 @@ export function IdentityStep({
                                             <Input
                                                 id="number"
                                                 name="number"
+                                                value={number}
+                                                onChange={(event) =>
+                                                    setNumber(
+                                                        event.target.value,
+                                                    )
+                                                }
                                                 autoComplete="off"
+                                                autoCorrect="off"
+                                                spellCheck={false}
                                                 placeholder={
                                                     keepNumber
                                                         ? `Saved ${saved?.documentNumberHint}. Leave blank to keep`

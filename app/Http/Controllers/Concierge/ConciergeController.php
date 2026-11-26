@@ -61,10 +61,11 @@ class ConciergeController extends Controller
 
     public function find(FindStayRequest $request, Property $property, OpenConciergeStay $openStay): RedirectResponse
     {
-        $result = $openStay($property, $request->string('reference')->toString(), (string) $request->ip());
+        $checkOut = $request->input('for') === 'check-out';
+        $result = $openStay($property, $request->string('reference')->toString(), (string) $request->ip(), allowName: ! $checkOut);
 
         if ($result->token !== null) {
-            if ($request->input('for') !== 'check-out') {
+            if (! $checkOut) {
                 return to_route('concierge.show', ['token' => $result->token]);
             }
 
@@ -81,7 +82,7 @@ class ConciergeController extends Controller
             'multiple_rooms' => __('This booking has more than one room. Use the link in your booking message to open each room, or ask the front desk.'),
             'checked_out' => __('This stay has already checked out. Thank you for staying with us.'),
             'closed' => __('This booking is no longer active. Please ask the front desk.'),
-            default => $property->settings?->concierge_name_check_in_enabled
+            default => ! $checkOut && $property->settings?->concierge_name_check_in_enabled
                 ? __('We could not open a booking with that code or name. Already checked in? Use your booking code, or ask the front desk.')
                 : __('We could not find a booking with that code. Check it against your confirmation, or ask the front desk.'),
         }]);
