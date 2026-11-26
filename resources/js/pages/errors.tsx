@@ -7,6 +7,7 @@ type ErrorStatus = 403 | 404 | 419 | 500 | 503;
 type Props = {
     status: ErrorStatus;
     recoveryUrl: string;
+    leaveTerminalUrl?: string | null;
 };
 
 const messages = {
@@ -34,7 +35,11 @@ const messages = {
     },
 } satisfies Record<ErrorStatus, { title: string; description: string }>;
 
-export default function ErrorPage({ status, recoveryUrl }: Props) {
+export default function ErrorPage({
+    status,
+    recoveryUrl,
+    leaveTerminalUrl,
+}: Props) {
     const { title, description } = messages[status];
 
     function recover() {
@@ -72,27 +77,48 @@ export default function ErrorPage({ status, recoveryUrl }: Props) {
                         {description}
                     </p>
 
-                    <div className="mt-3 flex flex-wrap justify-center gap-3">
-                        {status === 419 || status === 503 ? (
-                            <Button onClick={recover}>
-                                {status === 419 ? 'Refresh' : 'Try again'}
-                            </Button>
-                        ) : (
-                            <>
+                    {leaveTerminalUrl ? (
+                        <>
+                            <p className="text-sm text-muted-foreground">
+                                This browser is in POS Terminal Mode. Close the
+                                terminal with your password to get back to the
+                                back office.
+                            </p>
+                            <div className="mt-3 flex flex-wrap justify-center gap-3">
                                 <Link
-                                    href={homeRedirect()}
+                                    href={leaveTerminalUrl}
                                     className={buttonVariants()}
                                 >
-                                    Go home
+                                    Close terminal
                                 </Link>
-                                {(status === 403 || status === 404) && (
-                                    <Button variant="outline" onClick={recover}>
-                                        Go back
-                                    </Button>
-                                )}
-                            </>
-                        )}
-                    </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="mt-3 flex flex-wrap justify-center gap-3">
+                            {status === 419 || status === 503 ? (
+                                <Button onClick={recover}>
+                                    {status === 419 ? 'Refresh' : 'Try again'}
+                                </Button>
+                            ) : (
+                                <>
+                                    <Link
+                                        href={homeRedirect()}
+                                        className={buttonVariants()}
+                                    >
+                                        Go home
+                                    </Link>
+                                    {(status === 403 || status === 404) && (
+                                        <Button
+                                            variant="outline"
+                                            onClick={recover}
+                                        >
+                                            Go back
+                                        </Button>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    )}
                 </div>
             </main>
         </>

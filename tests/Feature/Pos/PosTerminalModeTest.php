@@ -31,6 +31,17 @@ it('locks the browser session to /pos and blocks the back office until the passw
     $this->actingAs($setup['manager'])->withSession(posTerminalSession())->post(route('settings.pos.devices.store', $code), ['name' => 'Till', 'pos_outlet_id' => $setup['outlet']->id])->assertForbidden();
 });
 
+it('links the locked error page to the POS, with or without a property in the URL', function () {
+    $setup = nativePosSetup();
+    $code = $setup['property']->code;
+
+    foreach ([route('dashboard', $code), route('home.redirect'), route('account.profile.edit')] as $url) {
+        $this->actingAs($setup['manager'])->withSession(posTerminalSession())->get($url)
+            ->assertForbidden()
+            ->assertInertia(fn ($page) => $page->component('errors')->where('leaveTerminalUrl', "/p/{$code}/pos"));
+    }
+});
+
 it('lets a user without pos.sell not enter Terminal Mode', function () {
     $setup = nativePosSetup();
     $clerk = User::factory()->for($setup['property'])->withPermissions(['guests.view'])->create();
