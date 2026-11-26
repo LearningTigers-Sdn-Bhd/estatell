@@ -62,7 +62,14 @@ class ConciergeController extends Controller
     public function find(FindStayRequest $request, Property $property, OpenConciergeStay $openStay): RedirectResponse
     {
         $checkOut = $request->input('for') === 'check-out';
-        $result = $openStay($property, $request->string('reference')->toString(), (string) $request->ip(), allowName: ! $checkOut);
+        $reference = $request->string('reference')->toString();
+        $result = $openStay(
+            $property,
+            $reference,
+            (string) $request->ip(),
+            allowName: ! $checkOut,
+            idNumber: $request->filled('id_number') ? $request->string('id_number')->toString() : null,
+        );
 
         if ($result->token !== null) {
             if (! $checkOut) {
@@ -75,6 +82,17 @@ class ConciergeController extends Controller
                 ? to_route('concierge.bill', ['token' => $result->token])
                 : to_route('concierge.enter-code', ['property' => $property->code, 'for' => 'check-out'])
                     ->with('checkInHref', route('concierge.show', ['token' => $result->token], absolute: false));
+        }
+
+        if ($result->refusal === 'id_confirmation_required') {
+            return to_route('concierge.enter-code', ['property' => $property->code])
+                ->with(['confirmId' => true, 'confirmName' => $reference]);
+        }
+
+        if ($result->refusal === 'id_mismatch') {
+            return to_route('concierge.enter-code', ['property' => $property->code])
+                ->with(['confirmId' => true, 'confirmName' => $reference])
+                ->withErrors(['id_number' => __('That ID number does not match this booking. Check it and try again, or ask the front desk.')]);
         }
 
         return back()->withErrors(['reference' => match ($result->refusal) {

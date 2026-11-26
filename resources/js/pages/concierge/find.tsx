@@ -1,10 +1,12 @@
 import { Form, Link } from '@inertiajs/react';
-import { LogIn } from 'lucide-react';
+import { useState } from 'react';
+import { IdCard, LogIn } from 'lucide-react';
 import { GuestFrame } from '@/components/concierge/stay-menu';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
     Field,
+    FieldDescription,
     FieldError,
     FieldGroup,
     FieldLabel,
@@ -20,15 +22,35 @@ export default function ConciergeFind({
     checkOut,
     checkInHref,
     nameCheckIn,
+    confirmId = false,
+    confirmName = null,
 }: {
     property: App.Data.Property.PropertySummaryData;
     heroUrl: string | null;
     checkOut: boolean;
     checkInHref: string | null;
     nameCheckIn: boolean;
+    confirmId?: boolean;
+    confirmName?: string | null;
 }) {
     // Check out needs the booking code: a name never opens a stay that is already checked in.
     const byName = nameCheckIn && !checkOut;
+    const [reference, setReference] = useState(confirmName ?? '');
+    const [lastConfirmName, setLastConfirmName] = useState(confirmName);
+
+    if (confirmName !== lastConfirmName) {
+        setLastConfirmName(confirmName);
+
+        if (confirmName !== null) {
+            setReference(confirmName);
+        }
+    }
+
+    const askingId =
+        byName &&
+        confirmId &&
+        confirmName !== null &&
+        reference.trim() === confirmName.trim();
 
     return (
         <GuestFrame
@@ -78,6 +100,16 @@ export default function ConciergeFind({
                                     </AlertDescription>
                                 </Alert>
                             )}
+                            {askingId && (
+                                <Alert className="gap-y-1 p-4">
+                                    <IdCard />
+                                    <AlertTitle>Confirm your ID</AlertTitle>
+                                    <AlertDescription>
+                                        We found your booking. Enter the MyKad
+                                        or passport number on file to continue.
+                                    </AlertDescription>
+                                </Alert>
+                            )}
                             {checkOut && (
                                 <input
                                     type="hidden"
@@ -95,6 +127,10 @@ export default function ConciergeFind({
                                     <Input
                                         id="reference"
                                         name="reference"
+                                        value={reference}
+                                        onChange={(event) =>
+                                            setReference(event.target.value)
+                                        }
                                         placeholder={
                                             byName
                                                 ? 'Enter booking code or full name'
@@ -105,12 +141,38 @@ export default function ConciergeFind({
                                         autoCapitalize={
                                             byName ? 'words' : 'characters'
                                         }
-                                        autoFocus
+                                        autoFocus={!askingId}
                                         required
                                         aria-invalid={!!errors.reference}
                                     />
                                     <FieldError>{errors.reference}</FieldError>
                                 </Field>
+                                {askingId && (
+                                    <Field data-invalid={!!errors.id_number}>
+                                        <FieldLabel htmlFor="id_number">
+                                            MyKad or passport number
+                                        </FieldLabel>
+                                        <Input
+                                            id="id_number"
+                                            name="id_number"
+                                            placeholder="Enter your ID number"
+                                            className="h-14 px-4 text-base md:text-lg"
+                                            autoComplete="off"
+                                            autoCorrect="off"
+                                            spellCheck={false}
+                                            autoFocus
+                                            required
+                                            aria-invalid={!!errors.id_number}
+                                        />
+                                        <FieldDescription>
+                                            Enter the ID number from your
+                                            previous stay.
+                                        </FieldDescription>
+                                        <FieldError>
+                                            {errors.id_number}
+                                        </FieldError>
+                                    </Field>
+                                )}
                             </FieldGroup>
 
                             <Button
@@ -123,7 +185,9 @@ export default function ConciergeFind({
                                 {processing && (
                                     <Spinner data-icon="inline-start" />
                                 )}
-                                Find my booking
+                                {askingId
+                                    ? 'Confirm and continue'
+                                    : 'Find my booking'}
                             </Button>
                         </div>
                     )}
