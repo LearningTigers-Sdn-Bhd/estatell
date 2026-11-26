@@ -48,18 +48,18 @@ Loaded from `routes/native-pos.php` under `/p/{property:code}` with `EnsurePrope
 
 ### 2. Finance & Back-Office POS (non-terminal back-office session only — blocked in Terminal Mode)
 
-| Method & URL                                      | Route name                          | Permission        | Purpose                                                                                   |
-| ------------------------------------------------- | ----------------------------------- | ----------------- | ----------------------------------------------------------------------------------------- |
-| `GET /finance/pos-orders`                         | `finance.pos-orders.index`          | `pos.view`        | Paginated settled/voided/refunded receipt index                                           |
-| `GET /finance/pos-orders/{order}`                 | `finance.pos-orders.show`           | `pos.view`        | Receipt detail, tax breakdown, folio/e-invoice links, reprint                             |
-| `POST /finance/pos-orders/{order}/refund`         | `finance.pos-orders.refund`         | `pos.refund`      | Back-office refund (`RefundPosOrder`)                                                     |
-| `POST /finance/pos-orders/{order}/change-payment` | `finance.pos-orders.change-payment` | `pos.refund`      | Back-office open-shift & open-date tender swap (Phase 2)                                  |
-| `POST /finance/pos-orders/{order}/einvoice`       | `finance.pos-orders.einvoice`       | `einvoice.manage` | Phase-1 staff individual LHDN e-Invoice issuance (for >RM 10k or corporate requests)      |
-| `GET /finance/pos-shifts`                         | `finance.pos-shifts.index`          | `pos.reports`     | Shift log with cash variance flags                                                        |
-| `GET /finance/pos-shifts/{shift}`                 | `finance.pos-shifts.show`           | `pos.reports`     | Frozen Z-report, cash movements & audit exceptions                                        |
-| `GET /reports/pos-sales`                          | `reports.pos-sales`                 | `pos.reports`     | Sales by outlet, category, item margin, zero-extra meal audit, void/discount/drawer audit |
+| Method & URL                                      | Route name                          | Permission        | Purpose                                                                                                       |
+| ------------------------------------------------- | ----------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------- |
+| `GET /finance/pos-orders`                         | `finance.pos-orders.index`          | `pos.view`        | Receipt index with summary cards; filters by outlet, status, date range and number                            |
+| `GET /finance/pos-orders/{order}`                 | `finance.pos-orders.show`           | `pos.view`        | Receipt detail, tax breakdown, folio/e-invoice links, reprint                                                 |
+| `POST /finance/pos-orders/{order}/refund`         | `finance.pos-orders.refund`         | `pos.refund`      | Back-office refund (`RefundPosOrder`)                                                                         |
+| `POST /finance/pos-orders/{order}/change-payment` | `finance.pos-orders.change-payment` | `pos.refund`      | Back-office open-shift & open-date tender swap (Phase 2)                                                      |
+| `POST /finance/pos-orders/{order}/einvoice`       | `finance.pos-orders.einvoice`       | `einvoice.manage` | Phase-1 staff individual LHDN e-Invoice issuance (for >RM 10k or corporate requests)                          |
+| `GET /finance/pos-shifts`                         | `finance.pos-shifts.index`          | `pos.reports`     | Shift log with summary cards and cash variance; filters by outlet and opening business date                   |
+| `GET /finance/pos-shifts/{shift}`                 | `finance.pos-shifts.show`           | `pos.reports`     | Cash summary cards, cash movements and the frozen Z-report                                                    |
+| `GET /reports/pos-sales`                          | `reports.pos-sales`                 | `pos.reports`     | Summary cards, daily sales, sales by category and outlet, voids and refunds, included meals, staff time clock |
 
-### 3. Settings (`settings.pos.*` — rendered with `TabLinks` per `DESIGN.md`)
+### 3. Settings pages (`settings.pos.*`, listed in the POS sidebar area, each with its own page header)
 
 | URL                                                  | Permission      | Covers                                                                                                   |
 | ---------------------------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------- |

@@ -3,6 +3,7 @@
 use App\Enums\PosOrderStatus;
 use App\Enums\PosOrderType;
 use App\Models\PosOrder;
+use App\Models\PosOutlet;
 use App\Models\PosShift;
 use App\Models\User;
 
@@ -44,4 +45,19 @@ it('counts open, closed and mismatched shifts of this property only', function (
         ->get(route('finance.pos-shifts.index', $setup['property']->code))
         ->assertOk()
         ->assertInertia(fn ($page) => $page->where('summary', ['open' => 1, 'closed' => 2, 'mismatched' => 1, 'netVariance' => '-5.00']));
+});
+
+it('filters shifts and their cards by outlet and opening business date', function () {
+    $setup = nativePosSetup();
+    $shift = fn (array $attributes) => PosShift::factory()->closed()->create(['property_id' => $setup['property']->id, 'pos_outlet_id' => $setup['outlet']->id, ...$attributes]);
+
+    $shift(['opened_business_date' => '2026-10-14', 'cash_variance' => '-2.00']);
+    $shift(['opened_business_date' => '2026-10-01', 'cash_variance' => '-5.00']);
+    $other = PosOutlet::factory()->create(['property_id' => $setup['property']->id]);
+    PosShift::factory()->closed()->create(['property_id' => $setup['property']->id, 'pos_outlet_id' => $other->id, 'opened_business_date' => '2026-10-14']);
+
+    $this->actingAs($setup['manager'])
+        ->get(route('finance.pos-shifts.index', [$setup['property']->code, 'outlet' => $setup['outlet']->id, 'from' => '2026-10-10', 'to' => '2026-10-14']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page->where('summary.closed', 1)->where('summary.netVariance', '-2.00')->has('shifts.data', 1));
 });

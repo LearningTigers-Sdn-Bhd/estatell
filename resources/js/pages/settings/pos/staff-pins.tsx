@@ -51,6 +51,7 @@ import {
     invite as invitePin,
     revoke as revokePin,
 } from '@/routes/settings/pos/staff-pins';
+import { unlessRefused } from '@/components/pms/pos/pos-unless-refused';
 
 type Props = {
     staff: { id: number; name: string; hasPin: boolean }[];
@@ -703,10 +704,10 @@ export default function PosStaffSettings({
                 onSubmit={() =>
                     deviceForm.post(storeDevice.url(), {
                         preserveScroll: true,
-                        onSuccess: () => {
+                        onSuccess: unlessRefused(() => {
                             setDevice(false);
                             deviceForm.reset();
-                        },
+                        }),
                     })
                 }
             >

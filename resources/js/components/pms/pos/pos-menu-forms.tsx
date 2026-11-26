@@ -20,6 +20,7 @@ import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { POS_CATEGORY_COLORS } from './pos-types';
+import { unlessRefused } from './pos-unless-refused';
 
 export type MenuOutletItem = {
     outletId: number;
@@ -100,7 +101,10 @@ export function PosCategoryForm({
             processing={form.processing}
             submitLabel="Save category"
             onSubmit={() => {
-                const options = { preserveScroll: true, onSuccess: onClose };
+                const options = {
+                    preserveScroll: true,
+                    onSuccess: unlessRefused(onClose),
+                };
 
                 if (row) {
                     form.put(updateCategory.url({ category: row.id }), options);
@@ -283,7 +287,10 @@ export function PosItemForm({
                         active: variant.active,
                     })),
                 }));
-                const options = { preserveScroll: true, onSuccess: onClose };
+                const options = {
+                    preserveScroll: true,
+                    onSuccess: unlessRefused(onClose),
+                };
 
                 if (row) {
                     form.put(updateItem.url({ item: row.id }), options);
@@ -779,7 +786,7 @@ function OutletOverrideForm({
                         outlet: Number(outletId),
                         variant: Number(variantId),
                     }),
-                    { preserveScroll: true, onSuccess: onClose },
+                    { preserveScroll: true, onSuccess: unlessRefused(onClose) },
                 );
             }}
         >

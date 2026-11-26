@@ -62,6 +62,18 @@ it('keeps the launcher open for a PIN actor without pos.sell, so the terminal ca
         ->assertOk();
 });
 
+it('lets a signed-out registered till reach the sign-in page, and keeps the back office locked after signing in', function () {
+    $setup = nativePosSetup();
+    $till = fn () => $this->withCookie(PosTerminalDevice::COOKIE, $setup['token']);
+
+    $till()->get(route('login'))->assertOk();
+    $till()->get('/')->assertSuccessful();
+
+    $till()->actingAs($setup['manager'])->get(route('dashboard', $setup['property']->code))
+        ->assertForbidden()
+        ->assertInertia(fn ($page) => $page->component('errors')->where('leaveTerminalUrl', "/p/{$setup['property']->code}/pos"));
+});
+
 it('lets a user without pos.sell not enter Terminal Mode', function () {
     $setup = nativePosSetup();
     $clerk = User::factory()->for($setup['property'])->withPermissions(['guests.view'])->create();

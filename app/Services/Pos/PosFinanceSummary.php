@@ -46,13 +46,14 @@ class PosFinanceSummary
     }
 
     /**
-     * All shifts of the property. A negative net variance means cash is short.
+     * Figures for the filtered shifts, before pagination. A negative net variance means cash is short.
      *
+     * @param  Builder<PosShift>  $shifts
      * @return array{open: int, closed: int, mismatched: int, netVariance: string}
      */
-    public function shifts(Property $property): array
+    public function shifts(Builder $shifts): array
     {
-        $row = PosShift::query()->where('property_id', $property->id)->toBase()
+        $row = $shifts->toBase()
             ->selectRaw(
                 'count(case when status <> ? then 1 end) as open, '
                 .'count(case when status = ? then 1 end) as closed, '

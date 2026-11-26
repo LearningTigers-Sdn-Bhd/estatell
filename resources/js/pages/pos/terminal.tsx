@@ -81,6 +81,7 @@ import {
     update as updateLine,
     voidMethod as voidLineRoute,
 } from '@/routes/pos/orders/lines';
+import { unlessRefused } from '@/components/pms/pos/pos-unless-refused';
 
 type Order = App.Data.Pos.PosOrderData;
 type Line = App.Data.Pos.PosOrderLineData;
@@ -409,7 +410,7 @@ export default function PosTerminal(props: Props) {
                 preserveScroll: true,
                 onStart: () => setBusyAction('prebill'),
                 onFinish: () => setBusyAction(null),
-                onSuccess: () => setPrebillOpen(true),
+                onSuccess: unlessRefused(() => setPrebillOpen(true)),
             },
         );
     }
@@ -1581,6 +1582,7 @@ export default function PosTerminal(props: Props) {
                     order={receipt}
                     url={refund.url({ order: receipt.id })}
                     staff={staff}
+                    requiresApproval={!can.refund}
                 />
             )}
 

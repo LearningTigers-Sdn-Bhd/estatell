@@ -1,4 +1,4 @@
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { Ban, Receipt, Search, ShoppingBag, Undo2, Wallet } from 'lucide-react';
 import { useMemo } from 'react';
 import { DataTable, dataTableColumns } from '@/components/pms/data-table';
@@ -71,9 +71,13 @@ export default function PosOrdersIndex({
                 header: 'Receipt',
                 enableSorting: false,
                 cell: (info) => (
-                    <span className="font-medium group-hover/row:underline">
+                    <Link
+                        href={show.url({ order: info.row.original.id })}
+                        className="font-medium group-hover/row:underline"
+                        onClick={(event) => event.stopPropagation()}
+                    >
                         {info.getValue() ?? 'No number'}
-                    </span>
+                    </Link>
                 ),
             }),
             column.accessor('businessDate', {

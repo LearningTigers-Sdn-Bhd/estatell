@@ -31,6 +31,7 @@ import {
     store as storeStation,
     update as updateStation,
 } from '@/routes/settings/pos/kitchen-stations';
+import { unlessRefused } from './pos-unless-refused';
 
 export type KitchenStationRow = {
     id: number;
@@ -149,7 +150,10 @@ export function KitchenStationForm({
             processing={form.processing}
             submitLabel={row ? 'Save station' : 'Create station'}
             onSubmit={() => {
-                const options = { preserveScroll: true, onSuccess: onClose };
+                const options = {
+                    preserveScroll: true,
+                    onSuccess: unlessRefused(onClose),
+                };
 
                 if (row) {
                     form.put(updateStation.url({ station: row.id }), options);

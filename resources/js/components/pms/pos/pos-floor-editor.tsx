@@ -33,6 +33,7 @@ import {
     store as storeTable,
     update as updateTable,
 } from '@/routes/settings/pos/tables';
+import { unlessRefused } from './pos-unless-refused';
 
 export type EditorTable = {
     id: number;
@@ -548,7 +549,10 @@ export function FloorFormDialog({
             processing={form.processing}
             submitLabel={floor ? 'Save floor' : 'Add floor'}
             onSubmit={() => {
-                const options = { preserveScroll: true, onSuccess: onClose };
+                const options = {
+                    preserveScroll: true,
+                    onSuccess: unlessRefused(onClose),
+                };
 
                 if (floor) {
                     form.put(updateFloor.url({ floor: floor.id }), options);
@@ -637,7 +641,7 @@ export function BatchTablesDialog({
             onSubmit={() => {
                 form.post(batchTables.url({ floor: floor.id }), {
                     preserveScroll: true,
-                    onSuccess: onClose,
+                    onSuccess: unlessRefused(onClose),
                 });
             }}
         >
@@ -772,7 +776,10 @@ export function TableFormSheet({
                     width: Number(data.width) || 100,
                     height: Number(data.height) || 100,
                 }));
-                const options = { preserveScroll: true, onSuccess: onClose };
+                const options = {
+                    preserveScroll: true,
+                    onSuccess: unlessRefused(onClose),
+                };
 
                 if (table) {
                     form.put(updateTable.url({ table: table.id }), options);

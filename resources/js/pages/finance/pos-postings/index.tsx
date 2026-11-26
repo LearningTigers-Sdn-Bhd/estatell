@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
     CircleCheck,
     EyeOff,
@@ -68,9 +68,13 @@ export default function PosPostingsIndex({
                 header: 'Receipt',
                 enableSorting: false,
                 cell: (info) => (
-                    <span className="font-medium group-hover/row:underline">
+                    <Link
+                        href={show.url({ posting: info.row.original.id })}
+                        className="font-medium group-hover/row:underline"
+                        onClick={(event) => event.stopPropagation()}
+                    >
                         #{info.getValue()}
-                    </span>
+                    </Link>
                 ),
             }),
             column.accessor('outletName', {

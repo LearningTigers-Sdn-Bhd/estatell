@@ -160,9 +160,13 @@ class RefundPosOrder
     {
         $query = PosShift::query()->where('property_id', $property->id)->where('pos_outlet_id', $original->pos_outlet_id)->where('status', PosShiftStatus::Open->value);
 
-        return $shift === null
-            ? $query->orderBy('id')->lockForUpdate()->first()
-            : $query->whereKey($shift->id)->lockForUpdate()->first();
+        if ($shift !== null) {
+            return $query->whereKey($shift->id)->lockForUpdate()->first();
+        }
+
+        // The drawer that took the money gives it back while its shift is open, else the oldest open drawer of the outlet.
+        return (clone $query)->whereKey($original->pos_shift_id)->lockForUpdate()->first()
+            ?? $query->orderBy('id')->lockForUpdate()->first();
     }
 
     /**

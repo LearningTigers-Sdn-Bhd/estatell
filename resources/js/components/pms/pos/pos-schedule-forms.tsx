@@ -14,6 +14,7 @@ import {
     store as storeSchedule,
     update as updateSchedule,
 } from '@/routes/settings/pos/schedules';
+import { unlessRefused } from './pos-unless-refused';
 
 export type ScheduleRow = {
     id: number;
@@ -112,7 +113,7 @@ export function PosScheduleForm({
                 }));
                 const options = {
                     preserveScroll: true,
-                    onSuccess: onClose,
+                    onSuccess: unlessRefused(onClose),
                 };
 
                 if (row === null) {

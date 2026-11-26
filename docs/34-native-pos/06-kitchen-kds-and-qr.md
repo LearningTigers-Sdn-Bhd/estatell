@@ -56,8 +56,8 @@ Deviations and open items:
 - **No shift-close block.** The register does not yet refuse a shift close while sales are waiting. The offline page shows the queue.
 - **No manager approval for old snapshots.** A snapshot older than 7 days is refused (`snapshot_expired`). The planned Manager PIN approval is not built.
 - **No cash offset for closed shifts.** The late cash counts in the open shift. The planned phantom-overage offset is not built.
-- **Totals on sync.** The offline page does not show a tax-inclusive total. The server prices the sale on sync, and the cash tendered must cover it.
-- **No printed offline slip.** The `OFF-` reference shows on screen only.
+- **Estimated totals only.** The offline page and slip show an estimated service charge, total, cash and change. They leave out tax. The server prices the sale on sync, and the cash tendered must cover it.
+- **Provisional slip.** The `OFF-` reference prints on a provisional slip. The official receipt number is given on sync.
 - **Offline page entry.** Reached from the register index, next to an open register.
 
 Deviation: the ODS board sits behind the terminal actor and `pos.kds`, so a pickup monitor needs a signed-in kitchen session. A public board needs its own token, which is not built.

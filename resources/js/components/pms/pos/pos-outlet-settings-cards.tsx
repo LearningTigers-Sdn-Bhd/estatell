@@ -58,6 +58,7 @@ import {
     store as storeRegister,
     update as updateRegister,
 } from '@/routes/settings/pos/registers';
+import { unlessRefused } from './pos-unless-refused';
 
 export type OutletSettingsSection = 'controls' | 'accounting' | 'display';
 
@@ -860,7 +861,9 @@ function CfdQrField({
                                         outlet: outletId,
                                     })}
                                     options={{ preserveScroll: true }}
-                                    onSuccess={() => setRemoveOpen(false)}
+                                    onSuccess={unlessRefused(() =>
+                                        setRemoveOpen(false),
+                                    )}
                                 >
                                     {({ processing }) => (
                                         <AlertDialogFooter>
@@ -1078,7 +1081,7 @@ export function OutletPaymentMethodsCard({
                 onSubmit={() => {
                     const options = {
                         preserveScroll: true,
-                        onSuccess: () => setEditing(null),
+                        onSuccess: unlessRefused(() => setEditing(null)),
                     };
 
                     if (editing?.row) {
@@ -1324,7 +1327,7 @@ export function OutletRegistersCard({
                 onSubmit={() => {
                     const options = {
                         preserveScroll: true,
-                        onSuccess: () => setEditing(null),
+                        onSuccess: unlessRefused(() => setEditing(null)),
                     };
 
                     if (editing?.id) {

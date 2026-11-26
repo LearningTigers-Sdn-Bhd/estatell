@@ -6,6 +6,7 @@ import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { store, update } from '@/routes/settings/pos/dining-options';
+import { unlessRefused } from './pos-unless-refused';
 
 export type DiningOptionRow = {
     id: number;
@@ -52,7 +53,10 @@ export function PosDiningOptionForm({
             processing={form.processing}
             submitLabel="Save option"
             onSubmit={() => {
-                const options = { preserveScroll: true, onSuccess: onClose };
+                const options = {
+                    preserveScroll: true,
+                    onSuccess: unlessRefused(onClose),
+                };
 
                 if (row) {
                     form.put(

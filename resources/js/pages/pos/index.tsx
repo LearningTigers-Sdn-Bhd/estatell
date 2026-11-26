@@ -218,7 +218,7 @@ export default function PosIndex({
                     <div className="mx-auto flex w-full max-w-xl flex-col gap-6">
                         <PageHeader
                             title="Who is selling?"
-                            description="Tap your name, then key your PIN. Not listed? Set your POS PIN under Account."
+                            description="Tap your name, then key your PIN. Not listed? Set your POS PIN under Account in the back office."
                         />
                         {!hasDevice && (
                             <Alert variant="destructive">

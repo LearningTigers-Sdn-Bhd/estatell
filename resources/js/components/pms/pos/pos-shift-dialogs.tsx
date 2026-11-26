@@ -17,6 +17,7 @@ import { beginClose, cancelClose, close, count } from '@/routes/pos/shifts';
 import { store as storeMovement } from '@/routes/pos/shifts/movements';
 import { PosApprovalFields, noApproval } from './pos-approval-fields';
 import type { PosStaff } from './pos-types';
+import { unlessRefused } from './pos-unless-refused';
 
 /** Cash in or out of the drawer. Safe drop / float in pre-select the outlet safe clearing account. */
 export function PosCashMovementDialog({
@@ -84,14 +85,14 @@ export function PosCashMovementDialog({
                 }));
                 form.post(storeMovement.url({ shift: shiftId }), {
                     preserveScroll: true,
-                    onSuccess: () => {
+                    onSuccess: unlessRefused(() => {
                         form.reset();
                         form.setData(
                             'counter_transaction_code_id',
                             defaultSafeCode,
                         );
                         onClose();
-                    },
+                    }),
                 });
             }}
         >
@@ -254,7 +255,7 @@ export function PosCloseShiftDialog({
                                 {},
                                 {
                                     preserveScroll: true,
-                                    onSuccess: () => onClose(),
+                                    onSuccess: unlessRefused(onClose),
                                 },
                             )
                         }
@@ -281,7 +282,7 @@ export function PosCloseShiftDialog({
                 if (!counted) {
                     form.post(count.url({ shift: shift.id }), {
                         preserveScroll: true,
-                        onSuccess: () => setCounted(true),
+                        onSuccess: unlessRefused(() => setCounted(true)),
                     });
 
                     return;

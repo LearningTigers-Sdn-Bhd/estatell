@@ -11,6 +11,7 @@ import {
     store as storeGroup,
     update as updateGroup,
 } from '@/routes/settings/pos/modifier-groups';
+import { unlessRefused } from './pos-unless-refused';
 
 export type ModifierOptionRow = {
     id: number | null;
@@ -90,7 +91,10 @@ export function PosModifierGroupForm({
                         active: option.active,
                     })),
                 }));
-                const options = { preserveScroll: true, onSuccess: onClose };
+                const options = {
+                    preserveScroll: true,
+                    onSuccess: unlessRefused(onClose),
+                };
 
                 if (row) {
                     form.put(updateGroup.url({ group: row.id }), options);

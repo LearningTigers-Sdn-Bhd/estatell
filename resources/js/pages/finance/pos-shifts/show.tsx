@@ -1,8 +1,10 @@
 import { Head } from '@inertiajs/react';
-import { Printer } from 'lucide-react';
+import { Banknote, Calculator, Printer, Scale, Wallet } from 'lucide-react';
 import { MoneyText } from '@/components/pms/money-text';
 import { PageHeader } from '@/components/pms/page-header';
 import { PosZReport } from '@/components/pms/pos/pos-z-report';
+import { StatCard } from '@/components/pms/stat-card';
+import { StatusBadge } from '@/components/pms/status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -27,14 +29,45 @@ type Props = {
     currency: App.Data.Property.CurrencyData | null;
 };
 
+function dateTime(value: string): string {
+    return new Date(value).toLocaleString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+    });
+}
+
 export default function PosShiftsShow({ shift, movements, currency }: Props) {
+    const money = (amount: string | null) =>
+        amount === null ? (
+            '–'
+        ) : (
+            <MoneyText amount={amount} currency={currency} />
+        );
+
     return (
         <>
             <Head title={`Shift ${shift.shiftNumber}`} />
-            <div className="flex flex-1 flex-col gap-6 p-4">
+            <div className="flex flex-1 flex-col gap-4 p-4">
                 <PageHeader
                     title={`Shift ${shift.shiftNumber}`}
-                    description={`${shift.outletName} · ${shift.registerName} · ${shift.statusLabel}`}
+                    description={`${shift.outletName} · ${shift.registerName}`}
+                    badge={
+                        <StatusBadge
+                            status={{
+                                value: shift.status,
+                                label: shift.statusLabel,
+                                tone:
+                                    shift.status === 'open'
+                                        ? 'success'
+                                        : shift.status === 'closed'
+                                          ? 'neutral'
+                                          : 'warning',
+                            }}
+                        />
+                    }
                     back={{ href: index(), label: 'POS shifts' }}
                     actions={
                         shift.zReport && (
@@ -48,60 +81,45 @@ export default function PosShiftsShow({ shift, movements, currency }: Props) {
                         )
                     }
                 />
-                <div className="grid gap-6 lg:grid-cols-2">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Cash</CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex flex-col gap-1 text-sm">
-                            <p>
-                                Opening cash{' '}
-                                <MoneyText
-                                    amount={shift.openingCash}
-                                    currency={currency}
-                                />
-                            </p>
-                            {shift.expectedCash !== null && (
-                                <p>
-                                    Expected{' '}
-                                    <MoneyText
-                                        amount={shift.expectedCash}
-                                        currency={currency}
-                                    />
-                                </p>
-                            )}
-                            {shift.countedCash !== null && (
-                                <p>
-                                    Counted{' '}
-                                    <MoneyText
-                                        amount={shift.countedCash}
-                                        currency={currency}
-                                    />
-                                </p>
-                            )}
-                            {shift.cashVariance !== null && (
-                                <p
-                                    className={
-                                        Number(shift.cashVariance) !== 0
-                                            ? 'font-medium text-destructive'
-                                            : undefined
-                                    }
-                                >
-                                    Variance{' '}
-                                    <MoneyText
-                                        amount={shift.cashVariance}
-                                        currency={currency}
-                                    />
-                                </p>
-                            )}
-                            {shift.zReport === null && (
-                                <p className="text-muted-foreground">
-                                    The Z-report is frozen when the shift
-                                    closes.
-                                </p>
-                            )}
-                        </CardContent>
-                    </Card>
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <StatCard
+                        icon={Wallet}
+                        label="Opening cash"
+                        value={money(shift.openingCash)}
+                        hint={`Opened ${dateTime(shift.openedAt)} by ${shift.openedBy}`}
+                    />
+                    <StatCard
+                        icon={Calculator}
+                        label="Expected cash"
+                        value={money(shift.expectedCash)}
+                        hint="What the drawer should hold"
+                    />
+                    <StatCard
+                        icon={Banknote}
+                        label="Counted cash"
+                        value={money(shift.countedCash)}
+                        hint={
+                            shift.closedAt === null
+                                ? 'Not closed yet'
+                                : `Closed ${dateTime(shift.closedAt)}`
+                        }
+                    />
+                    <StatCard
+                        icon={Scale}
+                        label="Variance"
+                        value={money(shift.cashVariance)}
+                        hint={
+                            shift.cashVariance === null
+                                ? 'Known at close'
+                                : Number(shift.cashVariance) < 0
+                                  ? 'Short'
+                                  : Number(shift.cashVariance) > 0
+                                    ? 'Over'
+                                    : 'Balanced'
+                        }
+                    />
+                </div>
+                <div className="grid items-start gap-4 lg:grid-cols-2">
                     <Card>
                         <CardHeader>
                             <CardTitle>Cash movements</CardTitle>
@@ -149,17 +167,25 @@ export default function PosShiftsShow({ shift, movements, currency }: Props) {
                             </Table>
                         </CardContent>
                     </Card>
-                </div>
-                {shift.zReport && (
                     <Card>
-                        <CardContent className="pt-6">
-                            <PosZReport
-                                report={shift.zReport}
-                                currency={currency}
-                            />
+                        <CardHeader>
+                            <CardTitle>Z-report</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {shift.zReport ? (
+                                <PosZReport
+                                    report={shift.zReport}
+                                    currency={currency}
+                                />
+                            ) : (
+                                <p className="text-sm text-muted-foreground">
+                                    The Z-report is frozen when the shift
+                                    closes.
+                                </p>
+                            )}
                         </CardContent>
                     </Card>
-                )}
+                </div>
             </div>
         </>
     );

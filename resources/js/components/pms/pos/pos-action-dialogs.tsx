@@ -14,6 +14,7 @@ import {
 import { voidMethod as voidLine } from '@/routes/pos/orders/lines';
 import { PosApprovalFields, noApproval } from './pos-approval-fields';
 import type { PosStaff, PosVoidReason } from './pos-types';
+import { unlessRefused } from './pos-unless-refused';
 
 type Props = {
     open: boolean;
@@ -65,10 +66,10 @@ export function PosVoidDialog({
                         : voidLine.url({ order: orderId, line: line.id }),
                     {
                         preserveScroll: true,
-                        onSuccess: () => {
+                        onSuccess: unlessRefused(() => {
                             form.reset();
                             onClose();
-                        },
+                        }),
                     },
                 )
             }
@@ -167,10 +168,10 @@ export function PosDiscountDialog({
         }));
         form.post(discount.url({ order: orderId }), {
             preserveScroll: true,
-            onSuccess: () => {
+            onSuccess: unlessRefused(() => {
                 form.reset();
                 onClose();
-            },
+            }),
         });
     }
 
@@ -312,10 +313,10 @@ export function PosManagerOverrideDialog({
                 form.transform((data) => ({ ...payload, ...data }));
                 form.post(url, {
                     preserveScroll: true,
-                    onSuccess: () => {
+                    onSuccess: unlessRefused(() => {
                         form.reset();
                         onClose();
-                    },
+                    }),
                 });
             }}
         >
@@ -370,7 +371,7 @@ export function PosTransferRegisterDialog({
                 }));
                 form.post(transferRegister.url({ order: orderId }), {
                     preserveScroll: true,
-                    onSuccess: () => onClose(),
+                    onSuccess: unlessRefused(onClose),
                 });
             }}
         >

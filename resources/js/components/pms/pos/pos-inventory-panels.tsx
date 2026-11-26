@@ -50,6 +50,7 @@ import {
 } from '@/routes/settings/pos/stocktakes';
 import { store as storeTransfer } from '@/routes/settings/pos/transfers';
 import { store as storeWaste } from '@/routes/settings/pos/waste';
+import { unlessRefused } from './pos-unless-refused';
 
 export type IngredientRow = {
     id: number;
@@ -549,7 +550,7 @@ export function PosReceiveForm({
                 event.preventDefault();
                 form.post(storePurchase.url({ outlet: outletId }), {
                     preserveScroll: true,
-                    onSuccess: () => form.reset(),
+                    onSuccess: unlessRefused(() => form.reset()),
                 });
             }}
         >
@@ -704,7 +705,7 @@ export function PosWasteForm({
                 event.preventDefault();
                 form.post(storeWaste.url({ outlet: outletId }), {
                     preserveScroll: true,
-                    onSuccess: () => form.reset(),
+                    onSuccess: unlessRefused(() => form.reset()),
                 });
             }}
         >
@@ -852,7 +853,7 @@ export function PosTransferForm({
                 }));
                 form.post(storeTransfer.url(), {
                     preserveScroll: true,
-                    onSuccess: () => form.reset(),
+                    onSuccess: unlessRefused(() => form.reset()),
                 });
             }}
         >
@@ -1303,7 +1304,10 @@ export function PosIngredientForm({
             processing={form.processing}
             submitLabel={row ? 'Save ingredient' : 'Create ingredient'}
             onSubmit={() => {
-                const options = { preserveScroll: true, onSuccess: onClose };
+                const options = {
+                    preserveScroll: true,
+                    onSuccess: unlessRefused(onClose),
+                };
 
                 if (row) {
                     form.put(

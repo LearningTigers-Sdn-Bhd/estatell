@@ -7,6 +7,7 @@ import {
     store as storeReason,
     update as updateReason,
 } from '@/routes/settings/pos/void-reasons';
+import { unlessRefused } from './pos-unless-refused';
 
 export type VoidReasonRow = {
     id: number;
@@ -42,7 +43,10 @@ export function PosVoidReasonForm({
             processing={form.processing}
             submitLabel={row ? 'Save reason' : 'Create reason'}
             onSubmit={() => {
-                const options = { preserveScroll: true, onSuccess: onClose };
+                const options = {
+                    preserveScroll: true,
+                    onSuccess: unlessRefused(onClose),
+                };
 
                 if (row) {
                     form.put(updateReason.url({ reason: row.id }), options);
