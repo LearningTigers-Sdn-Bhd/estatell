@@ -38,6 +38,7 @@ use App\Http\Middleware\TrackOnboardingActivity;
 use App\Http\Middleware\TrackSignInActivity;
 use App\Http\Responses\ApiError;
 use App\Models\Property;
+use App\Services\Pos\PosTerminal;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -54,7 +55,6 @@ use Illuminate\Validation\ValidationException;
 use Inertia\ExceptionResponse;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -208,7 +208,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
             $props = ['status' => $status, 'recoveryUrl' => $recoveryUrl];
 
-            if ($exception->exception instanceof HttpException && $exception->exception->getMessage() === 'terminal_mode_locked') {
+            // Any refusal on a locked browser (back office, unregistered till, PIN actor without permission) needs a way out.
+            if ($status === 403 && app(PosTerminal::class)->isLocked($request)) {
                 // `/`, `/dashboard` and `/account/*` carry no property, so fall back to the signed-in user's own.
                 $property = $request->route('property') ?? $request->user()?->property;
 

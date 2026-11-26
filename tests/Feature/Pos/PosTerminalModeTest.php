@@ -42,6 +42,26 @@ it('links the locked error page to the POS, with or without a property in the UR
     }
 });
 
+it('offers the way out when a locked browser without a registered till submits a PIN', function () {
+    $setup = nativePosSetup();
+    $code = $setup['property']->code;
+
+    $this->actingAs($setup['manager'])->withSession(posTerminalSession())
+        ->post(route('pos.pin.switch', $code), ['user_id' => $setup['cashier']->id, 'pin' => '1234'])
+        ->assertForbidden()
+        ->assertInertia(fn ($page) => $page->component('errors')->where('leaveTerminalUrl', "/p/{$code}/pos"));
+});
+
+it('keeps the launcher open for a PIN actor without pos.sell, so the terminal can still be left', function () {
+    $setup = nativePosSetup();
+    $kitchen = User::factory()->for($setup['property'])->withPermissions(['pos.kds'])->create();
+    PosStaffPin::factory()->withPin('123456')->create(['property_id' => $setup['property']->id, 'user_id' => $kitchen->id]);
+
+    $this->actingAs($setup['manager'])->withSession(posTerminalSession(['pos_active_actor_id' => $kitchen->id]))
+        ->get(route('pos.index', $setup['property']->code))
+        ->assertOk();
+});
+
 it('lets a user without pos.sell not enter Terminal Mode', function () {
     $setup = nativePosSetup();
     $clerk = User::factory()->for($setup['property'])->withPermissions(['guests.view'])->create();

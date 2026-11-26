@@ -72,7 +72,7 @@ export default function PosOrdersIndex({
                 enableSorting: false,
                 cell: (info) => (
                     <span className="font-medium group-hover/row:underline">
-                        {info.getValue()}
+                        {info.getValue() ?? 'No number'}
                     </span>
                 ),
             }),
@@ -248,7 +248,7 @@ export default function PosOrdersIndex({
                         <InputGroupInput
                             type="search"
                             aria-label="Receipt number"
-                            placeholder="Receipt number, then Enter"
+                            placeholder="Receipt no. + Enter"
                             defaultValue={filters.q ?? ''}
                             onKeyDown={(event) =>
                                 event.key === 'Enter' &&

@@ -52,7 +52,8 @@ class PosRegisterController extends Controller
         $actor = $request->attributes->get('pos_actor');
         $locked = $terminal->isLocked($request, $property);
 
-        abort_if($actor instanceof User && ! $actor->checkPermissionTo(PermissionEnum::PosSell->value), 403);
+        // A locked terminal keeps its launcher open to any PIN actor: Switch user and Leave Terminal Mode live here.
+        abort_if(! $locked && $actor instanceof User && ! $actor->checkPermissionTo(PermissionEnum::PosSell->value), 403);
 
         $outlets = PosOutlet::query()->where('property_id', $property->id)->where('pos_enabled', true)->where('active', true)->orderBy('name')->get();
         $registers = PosRegister::query()->where('property_id', $property->id)->where('active', true)->orderBy('name')->get()->groupBy('pos_outlet_id');

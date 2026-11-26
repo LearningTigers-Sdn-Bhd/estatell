@@ -233,7 +233,7 @@ export default function PosIndex({
                                 </AlertDescription>
                             </Alert>
                         )}
-                        {staff.length === 0 ? (
+                        {!hasDevice ? null : staff.length === 0 ? (
                             <EmptyState
                                 icon={UserRound}
                                 title="No staff have a PIN yet"
