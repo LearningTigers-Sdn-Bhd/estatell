@@ -27,7 +27,8 @@ Tax, Non-national guests, Daily charges and the Folio ledger have no chart: they
 - **Below zero.** Revenue counts on its posting date, so a correction can take a day or a code below zero. That bar hangs from the zero line in `warning`, never clamped, and a note under the chart explains it.
 - **Missing days.** Occupancy has no row for a closed date without a night audit, so that day has no bar. Revenue fills every day or month of the range, 0.00 where there were no lines.
 - **Basis.** `RoomStatsChartPointData.basis` is a `ForecastBasis`: Actual for a closed date, Today for the open date (and for a month that holds it, or mixes actual and forecast days), Forecast for a later date. Occupancy has no forecast. The tooltip names the basis.
-- **Hover.** Every bar has a tooltip with the full date (or the code's name) and the figure in the property currency. The chart is `role="img"` with a label; the table below is its accessible table view.
+- **Figures on the bars** (2026-11-26). Each bar has its figure written on it (`components/pms/chart-value-label.tsx`): above an upright bar, below one under zero, past the end of a bar on its side, short ("87%", "12.5K"; the axis carries the currency). Figures always read level (2026-11-26, owners found sideways figures hard to read): more than 16 upright bars write them smaller, and a figure wider than its bar's slot is left to the tooltip so neighbours never overlap. The group forecast and revenue split charts do the same.
+- **Hover.** Every bar also has a tooltip with the full date (or the code's name) and the figure in the property currency. The chart is `role="img"` with a label; the table below is its accessible table view.
 
 ## Build shape
 

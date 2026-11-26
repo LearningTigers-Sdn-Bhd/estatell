@@ -36,11 +36,6 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { useInitials } from '@/hooks/use-initials';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import {
@@ -207,25 +202,29 @@ function NightBars({
     nights: App.Data.Dashboard.TonightNightData[];
 }) {
     return (
-        <div
-            className="flex h-8 items-end gap-1"
+        <ul
+            className="flex items-end gap-1"
             aria-label={`Occupancy for the next ${nights.length} nights`}
-            role="list"
         >
             {nights.map((night, index) => (
-                <Tooltip key={night.date}>
-                    <TooltipTrigger
-                        render={
-                            <span
-                                role="listitem"
-                                tabIndex={0}
-                                aria-label={`${formatDate(night.date)}: ${night.occupancy}%, ${night.sold} of ${night.total} sold`}
-                                className="flex h-full w-2.5 items-end rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            />
-                        }
+                <li
+                    key={night.date}
+                    aria-label={`${formatDate(night.date)}${index === 0 ? ' (tonight)' : ''}: ${night.occupancy}%, ${night.sold} of ${night.total} sold`}
+                    className="flex w-7 flex-col items-center gap-0.5"
+                >
+                    <span
+                        aria-hidden
+                        className={cn(
+                            'text-xs tabular-nums',
+                            index === 0
+                                ? 'font-medium'
+                                : 'text-muted-foreground',
+                        )}
                     >
+                        {night.occupancy}
+                    </span>
+                    <span aria-hidden className="flex h-6 w-2.5 items-end">
                         <span
-                            aria-hidden
                             className={cn(
                                 'w-full rounded-sm',
                                 index === 0 ? 'bg-primary' : 'bg-primary/40',
@@ -234,15 +233,15 @@ function NightBars({
                                 height: `${Math.max(night.occupancy, 4)}%`,
                             }}
                         />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        {formatDate(night.date)}
-                        {index === 0 ? ' (tonight)' : ''}: {night.occupancy}% ·{' '}
-                        {night.sold} of {night.total} sold
-                    </TooltipContent>
-                </Tooltip>
+                    </span>
+                    <span aria-hidden className="text-xs text-muted-foreground">
+                        {new Date(`${night.date}T00:00:00`)
+                            .toLocaleDateString('en-GB', { weekday: 'short' })
+                            .slice(0, 2)}
+                    </span>
+                </li>
             ))}
-        </div>
+        </ul>
     );
 }
 
@@ -299,7 +298,7 @@ function PropertyComparison({ blocks }: { blocks: Block[] }) {
                                 </span>
                             </TableHead>
                             <TableHead>Tonight</TableHead>
-                            <TableHead>Next 7 nights</TableHead>
+                            <TableHead>Next 7 nights (%)</TableHead>
                             <TableHead className="text-right">
                                 New today
                             </TableHead>

@@ -3,13 +3,19 @@ import {
     Bar,
     BarChart,
     CartesianGrid,
+    LabelList,
     ReferenceLine,
     XAxis,
     YAxis,
 } from 'recharts';
 import type { BarShapeProps } from 'recharts';
+import {
+    valueLabel,
+    VALUE_LABEL_TOP,
+} from '@/components/pms/chart-value-label';
 import { ChartBar } from '@/components/pms/reports/chart-bar';
 import {
+    amountLabel,
     axisDate,
     moneyText,
     moneyTick,
@@ -119,7 +125,12 @@ export function RoomStatsChart({
                     <BarChart
                         accessibilityLayer
                         data={data}
-                        margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+                        margin={{
+                            top: VALUE_LABEL_TOP,
+                            right: 8,
+                            left: 0,
+                            bottom: 0,
+                        }}
                     >
                         <CartesianGrid vertical={false} />
                         <XAxis
@@ -198,7 +209,18 @@ export function RoomStatsChart({
                                     faded={props.payload?.basis === 'forecast'}
                                 />
                             )}
-                        />
+                        >
+                            <LabelList
+                                dataKey="value"
+                                content={valueLabel(
+                                    (amount) =>
+                                        isMoney
+                                            ? amountLabel(amount)
+                                            : `${Math.round(amount)}%`,
+                                    { bars: data.length },
+                                )}
+                            />
+                        </Bar>
                         <ReferenceLine
                             y={0}
                             stroke="var(--foreground)"

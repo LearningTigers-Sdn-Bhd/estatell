@@ -1,4 +1,13 @@
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+import {
+    Bar,
+    BarChart,
+    CartesianGrid,
+    LabelList,
+    XAxis,
+    YAxis,
+} from 'recharts';
+import type { LabelProps } from 'recharts';
+import { valueLabel } from '@/components/pms/chart-value-label';
 import {
     ChartContainer,
     ChartLegend,
@@ -7,6 +16,31 @@ import {
     ChartTooltipContent,
 } from '@/components/ui/chart';
 import type { ChartConfig } from '@/components/ui/chart';
+
+/** A segment's own figure, written inside it when it is wide enough to hold one. */
+function segmentLabel(format: (value: number) => string) {
+    return function SegmentLabel(props: LabelProps) {
+        const width = Number(props.width ?? 0);
+        const value = Number(props.value);
+
+        if (width < 44 || !Number.isFinite(value) || value === 0) {
+            return null;
+        }
+
+        return (
+            <text
+                x={Number(props.x ?? 0) + width / 2}
+                y={Number(props.y ?? 0) + Number(props.height ?? 0) / 2}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fontSize={11}
+                className="fill-background tabular-nums"
+            >
+                {format(value)}
+            </text>
+        );
+    };
+}
 
 const config = {
     room: { label: 'Rooms', color: 'var(--chart-2)' },
@@ -42,7 +76,7 @@ export function RevenueSplitChart({
                 accessibilityLayer
                 data={rows}
                 layout="vertical"
-                margin={{ top: 0, right: 12, left: 0, bottom: 0 }}
+                margin={{ top: 0, right: 56, left: 0, bottom: 0 }}
             >
                 <CartesianGrid horizontal={false} />
                 <XAxis
@@ -74,13 +108,32 @@ export function RevenueSplitChart({
                     stackId="revenue"
                     fill="var(--color-room)"
                     radius={[4, 0, 0, 4]}
-                />
+                >
+                    <LabelList dataKey="room" content={segmentLabel(format)} />
+                </Bar>
                 <Bar
                     dataKey="extra"
                     stackId="revenue"
                     fill="var(--color-extra)"
                     radius={[0, 4, 4, 0]}
-                />
+                >
+                    <LabelList dataKey="extra" content={segmentLabel(format)} />
+                    {/* The property's total at the end of its bar. */}
+                    <LabelList
+                        valueAccessor={(entry) => {
+                            const row = entry.payload as {
+                                room: number;
+                                extra: number;
+                            };
+
+                            return row.room + row.extra;
+                        }}
+                        content={valueLabel(format, {
+                            bars: rows.length,
+                            horizontal: true,
+                        })}
+                    />
+                </Bar>
             </BarChart>
         </ChartContainer>
     );

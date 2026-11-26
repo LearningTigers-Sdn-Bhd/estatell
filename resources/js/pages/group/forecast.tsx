@@ -1,7 +1,18 @@
 import { Head, router } from '@inertiajs/react';
 import { ChevronLeft, ChevronRight, TrendingUp } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+import {
+    Bar,
+    BarChart,
+    CartesianGrid,
+    LabelList,
+    XAxis,
+    YAxis,
+} from 'recharts';
+import {
+    valueLabel,
+    VALUE_LABEL_TOP,
+} from '@/components/pms/chart-value-label';
 import { EmptyState } from '@/components/pms/empty-state';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { MoneyText } from '@/components/pms/money-text';
@@ -45,8 +56,8 @@ const HORIZONS = [3, 6, 12, 18, 24];
 const CUSTOM = 'custom';
 
 const chartConfig = {
-    occupancy: { label: 'On the books', color: 'var(--chart-1)' },
-    lastYear: { label: 'Last year', color: 'var(--chart-4)' },
+    lastYear: { label: 'Last year', color: 'var(--chart-1)' },
+    occupancy: { label: 'On the books', color: 'var(--chart-4)' },
 } satisfies ChartConfig;
 
 /** `2026-12` as "Dec 2026", or "Dec" when short. */
@@ -347,7 +358,7 @@ export default function GroupForecast({
                                     accessibilityLayer
                                     data={chartData}
                                     margin={{
-                                        top: 8,
+                                        top: VALUE_LABEL_TOP,
                                         right: 8,
                                         left: 0,
                                         bottom: 0,
@@ -384,15 +395,33 @@ export default function GroupForecast({
                                         content={<ChartLegendContent />}
                                     />
                                     <Bar
-                                        dataKey="occupancy"
-                                        fill="var(--color-occupancy)"
-                                        radius={4}
-                                    />
-                                    <Bar
                                         dataKey="lastYear"
                                         fill="var(--color-lastYear)"
                                         radius={4}
-                                    />
+                                    >
+                                        <LabelList
+                                            dataKey="lastYear"
+                                            content={valueLabel(
+                                                (value) =>
+                                                    `${Math.round(value)}%`,
+                                                { bars: chartData.length * 2 },
+                                            )}
+                                        />
+                                    </Bar>
+                                    <Bar
+                                        dataKey="occupancy"
+                                        fill="var(--color-occupancy)"
+                                        radius={4}
+                                    >
+                                        <LabelList
+                                            dataKey="occupancy"
+                                            content={valueLabel(
+                                                (value) =>
+                                                    `${Math.round(value)}%`,
+                                                { bars: chartData.length * 2 },
+                                            )}
+                                        />
+                                    </Bar>
                                 </BarChart>
                             </ChartContainer>
                         </div>

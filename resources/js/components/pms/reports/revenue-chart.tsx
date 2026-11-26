@@ -2,13 +2,19 @@ import {
     Bar,
     BarChart,
     CartesianGrid,
+    LabelList,
     ReferenceLine,
     XAxis,
     YAxis,
 } from 'recharts';
 import type { BarShapeProps } from 'recharts';
+import {
+    valueLabel,
+    VALUE_LABEL_TOP,
+} from '@/components/pms/chart-value-label';
 import { ChartBar } from '@/components/pms/reports/chart-bar';
 import {
+    amountLabel,
     axisDate,
     moneyText,
     moneyTick,
@@ -93,7 +99,7 @@ export function RevenueChart({
                             accessibilityLayer
                             layout="vertical"
                             data={codes}
-                            margin={{ top: 0, right: 8, left: 0, bottom: 0 }}
+                            margin={{ top: 0, right: 48, left: 0, bottom: 0 }}
                         >
                             <CartesianGrid horizontal={false} />
                             <XAxis
@@ -140,7 +146,15 @@ export function RevenueChart({
                                 activeBar={(props: BarShapeProps) => (
                                     <ChartBar {...props} horizontal />
                                 )}
-                            />
+                            >
+                                <LabelList
+                                    dataKey="value"
+                                    content={valueLabel(amountLabel, {
+                                        bars: codes.length,
+                                        horizontal: true,
+                                    })}
+                                />
+                            </Bar>
                             <ReferenceLine
                                 x={0}
                                 stroke="var(--foreground)"
@@ -164,7 +178,12 @@ export function RevenueChart({
                         <BarChart
                             accessibilityLayer
                             data={periods}
-                            margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+                            margin={{
+                                top: VALUE_LABEL_TOP,
+                                right: 8,
+                                left: 0,
+                                bottom: 0,
+                            }}
                         >
                             <CartesianGrid vertical={false} />
                             <XAxis
@@ -211,7 +230,14 @@ export function RevenueChart({
                                 activeBar={(props: BarShapeProps) => (
                                     <ChartBar {...props} />
                                 )}
-                            />
+                            >
+                                <LabelList
+                                    dataKey="value"
+                                    content={valueLabel(amountLabel, {
+                                        bars: periods.length,
+                                    })}
+                                />
+                            </Bar>
                             <ReferenceLine
                                 y={0}
                                 stroke="var(--foreground)"

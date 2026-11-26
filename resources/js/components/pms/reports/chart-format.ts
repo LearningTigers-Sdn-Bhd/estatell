@@ -46,6 +46,11 @@ export function moneyTick(value: number, currency: Currency): string {
     return `${currency?.code ?? ''} ${compact.format(value)}`.trim();
 }
 
+/** A figure written on a bar, without the currency the axis already shows: "12.5K". */
+export function amountLabel(value: number): string {
+    return compact.format(value);
+}
+
 /** A tooltip amount with the currency's decimals: "MYR 12,500.00". */
 export function moneyText(value: number, currency: Currency): string {
     const decimals = currency?.decimals ?? 2;
