@@ -27,7 +27,7 @@ class CheckRoomsAndPrices implements Tool
 
     public function description(): Stringable|string
     {
-        return 'Find the rooms free for a stay and their prices. Use it before you name any room or price. Adults only: if the guest gives only a total ("4 people", "my family"), first ask how many are adults and whether any children are coming; never assume everyone is an adult. When the guest gives a number of adults, take it that no children are coming unless they say so, and do not ask again. If children are coming, hand over. Then offer the guest the rooms it returns. To book one, use SendQuoteLink with its room_type_id and rate_plan_id.';
+        return 'Find the rooms free for a stay and their prices. Use it before you name any room or price, and again when the guest changes the dates or adults. It needs the number of adults: if the guest gave none, or only a total ("4 people", "my family"), ask how many adults and whether any children are coming. When the guest gives a number of adults, take it that no children are coming unless they say so. If children are coming, hand over. Then offer the guest the rooms it returns. To book one, use SendQuoteLink with its room_type_id and rate_plan_id.';
     }
 
     public function handle(Request $request): Stringable|string

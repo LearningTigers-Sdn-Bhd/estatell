@@ -3,6 +3,9 @@
 namespace App\Ai\Tools;
 
 use App\Actions\Concierge\CreateConciergeQuote;
+use App\Actions\Concierge\ReplaceConciergeQuotes;
+use App\Models\AiThread;
+use App\Models\AiTurn;
 use App\Models\Property;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -13,13 +16,16 @@ use Stringable;
 /**
  * Make a quote link for a room the guest chose from `CheckRoomsAndPrices`. Nothing is booked: the guest books on the
  * link's page. The chat draws the link as a card from this result, and `RecordAiTurn` links the quote to the turn by its
- * `quote_id`. A chat API thread has no cards, so there the model writes the url in its reply. See docs/35-ai-assistant/03-places-and-routes.md#quote-links.
+ * `quote_id`. A chat API thread has no cards, so there the model writes the url in its reply. A new link ends the
+ * thread's earlier open links, so the guest cannot book old dates. See docs/35-ai-assistant/03-places-and-routes.md#quote-links.
  */
 class SendQuoteLink implements Tool
 {
     public function __construct(
         private readonly Property $property,
         private readonly CreateConciergeQuote $create,
+        private readonly ReplaceConciergeQuotes $replace,
+        private readonly ?AiThread $thread = null,
         private readonly bool $linkInReply = false,
     ) {}
 
@@ -29,7 +35,7 @@ class SendQuoteLink implements Tool
             ? 'This chat shows no cards, so write the url from the result in your reply.'
             : 'The guest sees the link as a card, so do not repeat the link in your reply.';
 
-        return 'Make a booking link for one room the guest chose from CheckRoomsAndPrices, with the same dates and adults. Nothing is booked until the guest books on the link, which lasts 24 hours. '.$link;
+        return 'Make a booking link for one room the guest chose from CheckRoomsAndPrices, with the same dates and adults. Nothing is booked until the guest books on the link, which lasts 24 hours. A new link replaces the earlier links in this chat, which stop working. '.$link;
     }
 
     public function handle(Request $request): Stringable|string
@@ -59,6 +65,11 @@ class SendQuoteLink implements Tool
         }
 
         $quote = $result->quote->load(['roomType', 'ratePlan']);
+        $replaced = $this->thread === null ? 0 : ($this->replace)(
+            $this->property->id,
+            array_values(AiTurn::query()->where('ai_thread_id', $this->thread->id)->pluck('id')->map(fn (mixed $id): int => (int) $id)->all()),
+            $quote->id,
+        );
 
         return (string) json_encode([
             'sent' => true,
@@ -72,6 +83,7 @@ class SendQuoteLink implements Tool
             'total' => (string) $quote->quoted_total,
             'currency' => $this->property->settings->currency,
             'expires_at' => $quote->expires_at->toIso8601String(),
+            'earlier_link_replaced' => $replaced > 0,
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 

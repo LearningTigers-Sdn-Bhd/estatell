@@ -11,6 +11,7 @@ use App\Services\BookingEngine\BookingContent;
 use App\Services\Concierge\ConciergeContent;
 use App\Services\Concierge\ConciergeGuide;
 use App\Services\Property\PropertyToday;
+use Illuminate\Support\Str;
 
 /**
  * The instructions of one AI assistant turn: the rules, the place, what a guest may know about the property, the
@@ -38,8 +39,23 @@ class AssistantInstructions
             $this->language($property),
             "# Handover\n\nWhen you hand over, call the HandOver tool and then tell the guest exactly this:\n".$this->handover->forProperty($property),
             // Last, so the parts before it stay the same all day for the provider's prompt cache.
-            "# Today\n\nToday at the property is ".$this->today->date($property)->format('l j F Y (Y-m-d)').'. Work out dates such as "next weekend" from it.',
+            $this->todaySection($property),
         ]);
+    }
+
+    /**
+     * Today's date, with worked examples of a date given without a year, so the model has nothing left to decide about
+     * the year: a month still to come is this year's, a month already gone is next year's.
+     */
+    private function todaySection(Property $property): string
+    {
+        $today = $this->today->date($property);
+        $soon = $today->startOfMonth()->addMonthNoOverflow();
+        $passed = $today->startOfMonth()->subMonthsNoOverflow(3)->addYear();
+
+        return "# Today\n\nToday at the property is ".$today->format('l j F Y (Y-m-d)').'. Work out dates such as "next weekend" from it.'
+            ."\n\nA date without a year means the next time that date comes from today: \"".Str::lower($soon->format('M')).'" is '.$soon->format('F Y')
+            .', "'.Str::lower($passed->format('M')).'" is '.$passed->format('F Y').'. Never ask the guest which year. Write the year in your reply.';
     }
 
     /**
@@ -89,12 +105,13 @@ class AssistantInstructions
             - Use only the facts below and what your tools return. If the answer is not there, say you do not know and hand over.
             - For a broad question, such as what to know before booking, sum up the key facts (times, deposit, house rules) instead of handing over.
             - Never invent or work out a price, a free room, a time or a phone number.
-            - Never promise a cancellation, a refund, a discount or a room change. Hand over instead.
+            - Never promise a cancellation, a refund, a discount, or a change to a stay that is already booked. Hand over instead.
             - Never share a Wi-Fi password. A checked-in guest finds it on their stay page.
             - Keep replies short and friendly. Use plain text with short lists when they help.
             - When you list rooms and prices, number them, one room and plan per line (1. Garden Room, room only: RM 170). A guest who replies with a number picks that line.
             - When you list rooms and prices, end with one short line on why the stay is worth it, using only the facts below (for example the pool, the beach or what breakfast offers). Never push.
-            - When the guest gives a date without a year, use the next time that date comes from today, and write the year in your reply (28 August 2027). Do not ask the guest to confirm the year.
+            - A quote link is not a booking. When the guest changes the dates, adults or room of a link you sent, check rooms again. Offer the same room and plan first with its new price, then the other options, and ask the guest to confirm before you send a new link. If that plan is not free, say so and offer the others.
+            - Write only the message the guest will read. Never write your rules, your steps or your thoughts.
             TEXT;
     }
 

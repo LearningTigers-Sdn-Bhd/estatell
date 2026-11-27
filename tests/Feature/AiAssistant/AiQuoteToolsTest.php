@@ -14,6 +14,7 @@ use App\Models\AiTurn;
 use App\Models\Amenity;
 use App\Models\ConciergeQuote;
 use App\Models\PropertyAiScope;
+use App\Models\Reservation;
 use App\Models\RoomType;
 use App\Services\AiAssistant\AssistantInstructions;
 use Illuminate\Validation\ValidationException;
@@ -96,6 +97,28 @@ test('SendQuoteLink saves a quote and returns its link, or says why it could not
         ->and(ConciergeQuote::query()->count())->toBe(1);
 });
 
+test('a new quote link ends the earlier open links of the same chat only', function () {
+    $setup = conciergeQuoteSetup();
+    $thread = AiThread::factory()->for($setup['property'])->create();
+    $otherThread = AiThread::factory()->for($setup['property'])->create();
+    $earlier = savedConciergeQuote($setup, $setup['breakfast'], ['ai_turn_id' => AiTurn::factory()->create(['ai_thread_id' => $thread->id])->id]);
+    $booked = savedConciergeQuote($setup, $setup['breakfast'], [
+        'ai_turn_id' => AiTurn::factory()->create(['ai_thread_id' => $thread->id])->id,
+        'reservation_id' => Reservation::factory()->for($setup['property'])->create()->id,
+    ]);
+    $otherChat = savedConciergeQuote($setup, $setup['breakfast'], ['ai_turn_id' => AiTurn::factory()->create(['ai_thread_id' => $otherThread->id])->id]);
+    $bookedExpiry = $booked->fresh()->expires_at;
+
+    $sent = json_decode((string) app(SendQuoteLink::class, ['property' => $setup['property'], 'thread' => $thread])
+        ->handle(new ToolRequest(quoteToolInput(['room_type_id' => $setup['type']->id, 'rate_plan_id' => $setup['roomOnly']->id]))), true);
+
+    expect($sent['earlier_link_replaced'])->toBeTrue()
+        ->and($earlier->fresh()->expires_at->isFuture())->toBeFalse()
+        ->and($booked->fresh()->expires_at->equalTo($bookedExpiry))->toBeTrue()
+        ->and($otherChat->fresh()->expires_at->isFuture())->toBeTrue()
+        ->and(ConciergeQuote::query()->findOrFail($sent['quote_id'])->expires_at->isFuture())->toBeTrue();
+});
+
 test('a turn that sent a quote is logged as QuoteSent and linked to the quote', function () {
     $setup = conciergeQuoteSetup();
     $thread = AiThread::factory()->for($setup['property'])->create();
@@ -124,5 +147,6 @@ test('the instructions give today at the property', function () {
     $setup = conciergeQuoteSetup();
     $thread = AiThread::factory()->for($setup['property'])->create();
 
-    expect(app(AssistantInstructions::class)->for($thread))->toContain('Today at the property is Wednesday 14 October 2026 (2026-10-14).');
+    expect(app(AssistantInstructions::class)->for($thread))->toContain('Today at the property is Wednesday 14 October 2026 (2026-10-14).')
+        ->toContain('"nov" is November 2026, "jul" is July 2027. Never ask the guest which year.');
 });

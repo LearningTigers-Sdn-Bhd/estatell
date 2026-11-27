@@ -24,7 +24,7 @@ class HandOver implements Tool
 
     public function description(): Stringable|string
     {
-        return 'Pass the conversation to the front desk. Use it when you cannot answer, are unsure, the guest asks for a person, or asks to cancel, change or refund.';
+        return 'Pass the conversation to the front desk. Use it when you cannot answer, are unsure, the guest asks for a person, or asks to cancel, change or refund a stay that is already booked. New dates for a quote link you sent are not a change to a booking: check rooms again instead.';
     }
 
     public function handle(Request $request): Stringable|string

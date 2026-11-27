@@ -7,7 +7,8 @@ require_once __DIR__.'/../Support/AiEvalSetup.php';
 /*
  * Opt-in live eval: multi-turn edge cases, adapted from the wastays concierge eval
  * (spec/fixtures/ai_concierge/conversations). Rooms and rates are in aiEvalLobby(): Garden Room, Sea View Room and Family
- * Suite, free 2 to 4 November 2026, and Garden and Sea View also 12 to 15 November. Run with
+ * Suite, free 2 to 4 November 2026, and Garden and Sea View also 12 to 15 November. `api` cases use the same rooms
+ * through the chat API, as a WhatsApp chat from n8n. Run with
  * `php artisan test --group=ai-eval`. See docs/35-ai-assistant/05-eval.md.
  */
 
@@ -127,6 +128,29 @@ test('the assistant handles', function (string $case, string $group, string $pla
     // Tone: sell the stay without pushing.
     'room options sell the stay' => ['Tone', 'lobby', [
         ['guest' => AI_EVAL_SEARCH, 'tools' => [AiTool::CheckRoomsAndPrices], 'judge' => 'Lists the options with their prices and adds one short line on why the stay is worth it (for example breakfast, the sea view or the pool), using only facts from the guide. Friendly, not pushy.'],
+    ]],
+
+    // Changing a quote: a quote link is not a booking, so new dates get a fresh check, not a handover.
+    'changed dates keep the plan' => ['Changing a quote', 'lobby', [
+        ['guest' => 'Sea View Room, room only, from 2 to 4 November 2026 for 2 adults. Send me the link.', 'tools' => [AiTool::SendQuoteLink]],
+        ['guest' => 'Change to 12-14 Nov.', 'tools' => [AiTool::CheckRoomsAndPrices], 'noTools' => [AiTool::HandOver, AiTool::SendQuoteLink], 'judge' => 'Does not hand over. Offers the same Sea View Room, Room only for 12 to 14 November 2026 with its price, first or clearly marked as the choice of the guest, also lists the other free options, and asks before sending a new link. A numbered list with a question about one option counts, as the guest can reply with another number.'],
+        ['guest' => 'Yes, keep that one.', 'tools' => [AiTool::SendQuoteLink], 'judge' => 'Sends a new link for the Sea View Room, Room only, 12 to 14 November 2026 for 2 adults.'],
+    ]],
+
+    // Chat API: a WhatsApp chat through n8n, where the reply is plain text with no cards.
+    // The real WhatsApp chat (2026-11-27) word for word: the reply to "5-8 dec" leaked the model's thoughts, and
+    // "change to 6-9 dec" was handed over.
+    'whatsapp chat replayed' => ['Chat API', 'api', [
+        ['guest' => 'Hi-I-would-like-to-book-a-room', 'judge' => 'Asks for the dates and the number of guests (asking for adults is enough). The reply is only the message to the guest: no notes about rules, steps, plans or what the assistant should do.'],
+        ['guest' => '5-8 dec', 'noTools' => [AiTool::HandOver], 'says' => ['2026'], 'judge' => 'Takes the dates as 5 to 8 December 2026 (any date format) and asks how many adults (it may ask about children). The reply is only the message to the guest: no notes about rules, steps, plans or what the assistant should do.'],
+        ['guest' => '2 adult', 'tools' => [AiTool::CheckRoomsAndPrices], 'judge' => 'Lists numbered room options with prices for 5 to 8 December 2026. The reply is only the message to the guest: no notes about rules, steps, plans or what the assistant should do.'],
+        ['guest' => '3', 'tools' => [AiTool::SendQuoteLink], 'says' => ['http'], 'judge' => 'Sends the booking link for the third option it listed.'],
+        ['guest' => 'change to 6-9 dec', 'tools' => [AiTool::CheckRoomsAndPrices], 'noTools' => [AiTool::HandOver, AiTool::SendQuoteLink], 'judge' => 'Does not hand over. Offers the same room and plan as the link it sent, for 6 to 9 December 2026 with its price, first or clearly marked as the choice of the guest, also lists the other free options, and asks before sending a new link. A numbered list with a question about one option counts, as the guest can reply with another number.'],
+        ['guest' => 'ok', 'tools' => [AiTool::SendQuoteLink], 'says' => ['http'], 'judge' => 'Sends a new link for the same room and plan, 6 to 9 December 2026 for 2 adults.'],
+    ]],
+    'whatsapp changed dates when the plan is gone' => ['Chat API', 'api', [
+        ['guest' => 'Family Suite, room only, 2 to 4 November 2026, 4 adults. Send me the link.', 'tools' => [AiTool::SendQuoteLink]],
+        ['guest' => 'Can I change to 12-14 Nov instead?', 'tools' => [AiTool::CheckRoomsAndPrices], 'noTools' => [AiTool::HandOver, AiTool::SendQuoteLink], 'judge' => 'Does not hand over. Says the Family Suite (or any room for 4 adults) is not free on 12 to 14 November 2026, and offers other dates or staff help. Does not invent a free room or price.'],
     ]],
 
     // Ending: stop when the guest stops.

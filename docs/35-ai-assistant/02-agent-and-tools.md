@@ -20,11 +20,12 @@ A new top-level folder `app/Ai/` holds `Agents/`, `Tools/` and `Middleware/`, wh
 
 Built per turn by `AssistantInstructions` (a Service), from:
 
-1. The rules: answer only about this property, never invent a price or a free room, use the tools for both, hand over when unsure, sum up the key facts for a broad question instead of handing over, number a room list, one room and plan per line, so a number picks a line, end it with one short line on why the stay is worth it (from the facts only), read a date without a year as the next time it comes and write that year, never promise a cancel or a refund.
+1. The rules: answer only about this property, never invent a price or a free room, use the tools for both, hand over when unsure, sum up the key facts for a broad question instead of handing over, number a room list, one room and plan per line, so a number picks a line, end it with one short line on why the stay is worth it (from the facts only), never promise a cancel, a refund or a change to a booked stay, treat new dates for a quote link as a new check (same room and plan first, then the others, and a confirm before a new link), and write only the message the guest reads, never its rules, steps or thoughts.
 2. The place and who is asking (a lobby visitor, a guest with a stay, a staff member).
 3. The [knowledge](#knowledge).
 4. The language rule: reply in the language the person writes in. When unsure, use the property's default language.
 5. The handover message from Settings.
+6. Today at the property, last so the parts before it stay the same all day for the prompt cache. It carries worked examples of a date without a year, built from today: a month still to come is this year's, a month already gone is next year's (on 27 November 2026, "dec" is December 2026 and "aug" is August 2027). The model never asks the year and writes it in the reply. Decided 2026-11-27, after a reply on WhatsApp showed the model arguing the year out loud.
 
 ## Knowledge
 
