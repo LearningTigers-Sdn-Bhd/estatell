@@ -75,6 +75,10 @@ export function PrintGeneralForm({
                             htmlFor={`font-${font.value}`}
                         >
                             <Field orientation="horizontal">
+                                <RadioGroupItem
+                                    id={`font-${font.value}`}
+                                    value={font.value}
+                                />
                                 <FieldContent className="min-w-0">
                                     <FieldTitle>{font.label}</FieldTitle>
                                     <p
@@ -92,10 +96,6 @@ export function PrintGeneralForm({
                                         Tan Wei Ming · 陈美玲 · RM 1,250.00
                                     </p>
                                 </FieldContent>
-                                <RadioGroupItem
-                                    id={`font-${font.value}`}
-                                    value={font.value}
-                                />
                             </Field>
                         </FieldLabel>
                     ))}
@@ -122,6 +122,10 @@ export function PrintGeneralForm({
                                 htmlFor={`font-size-${option.value}`}
                             >
                                 <Field orientation="horizontal">
+                                    <RadioGroupItem
+                                        id={`font-size-${option.value}`}
+                                        value={option.value}
+                                    />
                                     <Icon className="mt-0.5 size-4 text-muted-foreground" />
                                     <FieldContent>
                                         <FieldTitle>{option.label}</FieldTitle>
@@ -129,10 +133,6 @@ export function PrintGeneralForm({
                                             {option.description}
                                         </FieldDescription>
                                     </FieldContent>
-                                    <RadioGroupItem
-                                        id={`font-size-${option.value}`}
-                                        value={option.value}
-                                    />
                                 </Field>
                             </FieldLabel>
                         );
@@ -160,6 +160,10 @@ export function PrintGeneralForm({
                             htmlFor={`table-style-${option.value}`}
                         >
                             <Field orientation="horizontal">
+                                <RadioGroupItem
+                                    id={`table-style-${option.value}`}
+                                    value={option.value}
+                                />
                                 <FieldContent className="min-w-0">
                                     <FieldTitle>{option.label}</FieldTitle>
                                     <FieldDescription>
@@ -202,10 +206,6 @@ export function PrintGeneralForm({
                                         }}
                                     />
                                 </FieldContent>
-                                <RadioGroupItem
-                                    id={`table-style-${option.value}`}
-                                    value={option.value}
-                                />
                             </Field>
                         </FieldLabel>
                     ))}
