@@ -373,16 +373,18 @@ test('a room type can use a terms document of its own property only', function (
     expect($roomType->refresh()->terms_document_id)->toBeNull();
 });
 
-test('the room types page lists documents only when there is a second one', function () {
+test('the room type page lists documents only when there is a second one', function () {
     [$owner, $property] = termsProperty();
+    $roomType = RoomType::factory()->for($property)->create();
+    $url = route('settings.room-types.edit', [$property->code, $roomType->id]);
 
     $this->actingAs($owner)
-        ->get(route('settings.room-types.index', $property->code))
+        ->get($url)
         ->assertInertia(fn (Assert $page) => $page->where('termsDocuments', []));
 
     app(CreateTermsDocument::class)($property, $owner, 'Long stay');
 
-    $this->get(route('settings.room-types.index', $property->code))
+    $this->get($url)
         ->assertInertia(fn (Assert $page) => $page->has('termsDocuments', 2));
 });
 
