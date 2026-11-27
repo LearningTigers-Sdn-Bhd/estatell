@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Mail } from 'lucide-react';
 import { Fragment } from 'react';
 import { PageHeader } from '@/components/pms/page-header';
 import { Badge } from '@/components/ui/badge';
@@ -51,8 +51,7 @@ export default function GuestEmailsIndex({ emails }: { emails: GuestEmail[] }) {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Email</TableHead>
-                                <TableHead>Sent when</TableHead>
-                                <TableHead>Wording</TableHead>
+                                <TableHead className="w-40">Wording</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -60,7 +59,7 @@ export default function GuestEmailsIndex({ emails }: { emails: GuestEmail[] }) {
                                 <Fragment key={module}>
                                     <TableRow className="hover:bg-transparent">
                                         <TableCell
-                                            colSpan={3}
+                                            colSpan={2}
                                             className="bg-muted/40 text-xs font-medium text-muted-foreground"
                                         >
                                             {module}
@@ -71,18 +70,29 @@ export default function GuestEmailsIndex({ emails }: { emails: GuestEmail[] }) {
                                             key={email.value}
                                             className="relative"
                                         >
-                                            <TableCell>
-                                                <Link
-                                                    href={edit({
-                                                        email: email.value,
-                                                    })}
-                                                    className="rounded-sm font-medium outline-none after:absolute after:inset-0 focus-visible:ring-2 focus-visible:ring-ring"
-                                                >
-                                                    {email.label}
-                                                </Link>
-                                            </TableCell>
-                                            <TableCell className="whitespace-normal text-muted-foreground">
-                                                {email.sent_when}
+                                            <TableCell className="whitespace-normal">
+                                                <span className="flex items-start gap-3">
+                                                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                                                        <Mail
+                                                            aria-hidden
+                                                            className="size-4"
+                                                        />
+                                                    </span>
+                                                    <span className="flex min-w-0 flex-col gap-0.5">
+                                                        <Link
+                                                            href={edit({
+                                                                email: email.value,
+                                                            })}
+                                                            className="self-start rounded-sm font-medium outline-none after:absolute after:inset-0 focus-visible:ring-2 focus-visible:ring-ring"
+                                                        >
+                                                            {email.label}
+                                                        </Link>
+                                                        <span className="text-muted-foreground">
+                                                            Sent when:{' '}
+                                                            {email.sent_when}
+                                                        </span>
+                                                    </span>
+                                                </span>
                                             </TableCell>
                                             <TableCell>
                                                 <span className="flex items-center justify-between gap-2">
