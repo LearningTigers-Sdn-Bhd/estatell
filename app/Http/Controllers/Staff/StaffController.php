@@ -12,12 +12,15 @@ use App\Models\Property;
 use App\Models\StaffInvitation;
 use App\Models\User;
 use App\Services\Staff\AssignableRoles;
+use App\Services\Staff\StaffProperties;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class StaffController extends Controller
 {
+    public function __construct(private StaffProperties $staffProperties) {}
+
     /**
      * Staff page, Active tab.
      */
@@ -26,8 +29,8 @@ class StaffController extends Controller
         $viewer = $request->user();
 
         return $this->renderTab($request, $property, $assignableRoles, 'active', [
-            'staff' => $property->users()->whereNull('deactivated_at')->with('roles')->orderBy('name')->get()
-                ->map(fn (User $user): StaffMemberData => StaffMemberData::fromModel($user, $viewer)),
+            'staff' => $property->users()->wherePivotNull('deactivated_at')->with('roles', 'property')->orderBy('name')->get()
+                ->map(fn (User $user): StaffMemberData => StaffMemberData::fromModel($user, $viewer, $property->id)),
         ]);
     }
 
@@ -39,8 +42,8 @@ class StaffController extends Controller
         $viewer = $request->user();
 
         return $this->renderTab($request, $property, $assignableRoles, 'deactivated', [
-            'staff' => $property->users()->whereNotNull('deactivated_at')->with('roles')->latest('deactivated_at')->get()
-                ->map(fn (User $user): StaffMemberData => StaffMemberData::fromModel($user, $viewer)),
+            'staff' => $property->users()->wherePivotNotNull('deactivated_at')->with('roles', 'property')->orderByPivot('deactivated_at', 'desc')->get()
+                ->map(fn (User $user): StaffMemberData => StaffMemberData::fromModel($user, $viewer, $property->id)),
         ]);
     }
 
@@ -56,7 +59,8 @@ class StaffController extends Controller
     }
 
     /**
-     * Each tab has its own URL. Counts and the invite form's roles come on every tab; rows only for the open tab.
+     * Each tab has its own URL. Counts, the invite form's roles and the group colleagues that can be added come on
+     * every tab; rows only for the open tab.
      *
      * @param  'active'|'invited'|'deactivated'  $tab
      * @param  array<string, mixed>  $tabProps
@@ -68,15 +72,16 @@ class StaffController extends Controller
         return Inertia::render('settings/staff/index', [
             'tab' => $tab,
             'counts' => [
-                'active' => $property->users()->whereNull('deactivated_at')->count(),
+                'active' => $property->users()->wherePivotNull('deactivated_at')->count(),
                 'invited' => $property->staffInvitations()->open()->count(),
-                'deactivated' => $property->users()->whereNotNull('deactivated_at')->count(),
+                'deactivated' => $property->users()->wherePivotNotNull('deactivated_at')->count(),
             ],
             'canManage' => $canManage,
             'exportFormats' => $canManage ? TemporaryPasswordExportFormat::options() : [],
             'roles' => $canManage
                 ? $assignableRoles->for($property, $request->user())->map(fn ($role): RoleOptionData => RoleOptionData::fromModel($role))
                 : [],
+            'colleagues' => $canManage ? $this->staffProperties->colleaguesFor($property) : [],
             ...$tabProps,
         ]);
     }

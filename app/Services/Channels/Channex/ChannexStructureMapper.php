@@ -54,11 +54,11 @@ class ChannexStructureMapper
         return [
             'title' => Str::limit($roomType->name, 255, ''),
             'count_of_rooms' => $activeRooms,
-            'occ_adults' => $roomType->max_adults,
-            'occ_children' => $roomType->max_children,
+            'occ_adults' => $this->capability->channelAdults($roomType),
+            'occ_children' => $this->capability->channelChildren($roomType),
             'occ_infants' => 0,
-            'default_occupancy' => min($roomType->base_occupancy, $roomType->max_adults),
-            'room_kind' => 'room',
+            'default_occupancy' => min($roomType->base_occupancy, $this->capability->channelAdults($roomType)),
+            'room_kind' => $this->capability->roomKind($roomType),
             'content' => ['description' => $roomType->description],
         ];
     }
@@ -105,8 +105,8 @@ class ChannexStructureMapper
     private function options(RoomType $roomType, ChannelSellMode $sellMode): array
     {
         return array_map(
-            fn (int $occupancy): array => ['occupancy' => $occupancy, 'is_primary' => $occupancy === $roomType->max_adults, 'rate' => 0],
-            $sellMode->occupancies($roomType),
+            fn (int $occupancy): array => ['occupancy' => $occupancy, 'is_primary' => $occupancy === $this->capability->channelAdults($roomType), 'rate' => 0],
+            $sellMode->occupancies($this->capability->channelAdults($roomType)),
         );
     }
 

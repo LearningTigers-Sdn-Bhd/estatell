@@ -3,8 +3,13 @@
 namespace App\Data\Reports;
 
 use App\Data\Shared\BadgeData;
+use App\Enums\RemarkKind;
+use App\Models\ReservationRemark;
 use App\Models\ReservationUnit;
+use App\Services\Meals\MealPlanLabel;
 use App\Services\Reservations\StayLabel;
+use Brick\Math\BigDecimal;
+use Brick\Math\RoundingMode;
 use Carbon\CarbonImmutable;
 use Spatie\LaravelData\Data;
 
@@ -35,6 +40,21 @@ class ArrivalRow extends Data implements ReportRow
         public string $total,
         public string $paid,
         public string $balance,
+        public string $departure,
+        public string $departure_time,
+        public string $rate,
+        public string $rate_plan,
+        public ?string $meal_plan,
+        public string $source,
+        public ?string $market_segment,
+        public ?string $sales_person,
+        public ?string $booked_by,
+        public ?string $housekeeping_remarks,
+        public ?string $dietary_remarks,
+        public ?string $package_remarks,
+        public ?string $payment_remarks,
+        public ?string $pick_up = null,
+        public ?string $drop_off = null,
     ) {}
 
     /**
@@ -61,6 +81,10 @@ class ArrivalRow extends Data implements ReportRow
             'total' => number_format((float) $this->total, 2),
             'paid' => number_format((float) $this->paid, 2),
             'balance' => number_format((float) $this->balance, 2),
+            'departure' => CarbonImmutable::parse($this->departure)->format('j M Y'),
+            'departure_time' => $this->departure_time,
+            'rate' => number_format((float) $this->rate, 2),
+            ...$this->textCells(),
         ];
     }
 
@@ -88,17 +112,53 @@ class ArrivalRow extends Data implements ReportRow
             'total' => round((float) $this->total, 2),
             'paid' => round((float) $this->paid, 2),
             'balance' => round((float) $this->balance, 2),
+            'departure' => $this->departure,
+            'departure_time' => $this->departure_time,
+            'rate' => round((float) $this->rate, 2),
+            ...$this->textCells(),
         ];
     }
 
     /**
+     * The columns that are the same plain text on screen, in the PDF and in the spreadsheet.
+     *
+     * @return array<string, string>
+     */
+    private function textCells(): array
+    {
+        return [
+            'rate_plan' => $this->rate_plan,
+            'meal_plan' => $this->meal_plan ?? '',
+            'source' => $this->source,
+            'market_segment' => $this->market_segment ?? '',
+            'sales_person' => $this->sales_person ?? '',
+            'booked_by' => $this->booked_by ?? '',
+            'housekeeping_remarks' => $this->housekeeping_remarks ?? '',
+            'dietary_remarks' => $this->dietary_remarks ?? '',
+            'package_remarks' => $this->package_remarks ?? '',
+            'payment_remarks' => $this->payment_remarks ?? '',
+            'pick_up' => $this->pick_up ?? '',
+            'drop_off' => $this->drop_off ?? '',
+        ];
+    }
+
+    /**
+     * Expects the unit's `nights_sum_amount` and `nights_count` (`withSum` / `withCount` of `nights`), its
+     * `ratePlan.inclusions.mealPeriod`, and the reservation's `bookingSource`, `creator`, `salesPerson`, `marketSegment`
+     * and `remarks`. **Rate** is the average room price per night (`unit_nights.amount`, before tax).
+     *
      * @param  string|null  $boat  The boat text, or null while the Boats feature is off.
+     * @param  string|null  $pickUp  The road transfer in (`TransferLabel`), null without one or while Transfers is off.
+     * @param  string|null  $dropOff  The road transfer out, likewise.
      * @param  string|null  $room  The room number or bed label of the first night, when one is assigned.
      * @param  array{total: string, paid: string, balance: string}  $money  The total, paid and balance of the reservation.
      */
-    public static function fromModel(ReservationUnit $unit, ?string $room, array $money, ?string $boat = null): self
+    public static function fromModel(ReservationUnit $unit, ?string $room, array $money, ?string $boat = null, ?string $pickUp = null, ?string $dropOff = null): self
     {
         $reservation = $unit->reservation;
+        $remarks = $reservation->remarks->mapWithKeys(fn (ReservationRemark $remark): array => [$remark->kind->value => $remark->body]);
+        $nightCount = (int) $unit->getAttribute('nights_count');
+        $nightsAmount = BigDecimal::of((string) ($unit->getAttribute('nights_sum_amount') ?? '0'));
         $occupant = ($unit->guests->firstWhere('is_primary', true) ?? $unit->guests->first())->guest ?? $reservation->booker;
 
         return new self(
@@ -122,6 +182,21 @@ class ArrivalRow extends Data implements ReportRow
             total: $money['total'],
             paid: $money['paid'],
             balance: $money['balance'],
+            departure: $unit->departure_date->toDateString(),
+            departure_time: substr($unit->departure_time, 0, 5),
+            rate: (string) ($nightCount === 0 ? $nightsAmount->toScale(2, RoundingMode::HalfUp) : $nightsAmount->dividedBy($nightCount, 2, RoundingMode::HalfUp)),
+            rate_plan: $unit->ratePlan->name,
+            meal_plan: app(MealPlanLabel::class)->forRatePlan($unit->ratePlan),
+            source: $reservation->bookingSource->name,
+            market_segment: $reservation->marketSegment?->name,
+            sales_person: $reservation->salesPerson?->name,
+            booked_by: $reservation->creator?->name,
+            housekeeping_remarks: $remarks->get(RemarkKind::Housekeeping->value),
+            dietary_remarks: $remarks->get(RemarkKind::Dietary->value),
+            package_remarks: $remarks->get(RemarkKind::Package->value),
+            payment_remarks: $remarks->get(RemarkKind::Payment->value),
+            pick_up: $pickUp,
+            drop_off: $dropOff,
         );
     }
 }

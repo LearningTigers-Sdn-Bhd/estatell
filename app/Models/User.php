@@ -7,6 +7,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,7 +19,9 @@ use Spatie\Permission\Traits\HasRoles;
 
 /**
  * @property int $id
- * @property int|null $property_id
+ * @property int|null $property_id The home property: where a staff user was invited. Null for admins, partner and company users.
+ * @property int|null $last_property_id The property the staff user opened last, where sign-in lands.
+ * @property int|null $last_property_group_id The group the staff user last worked in (group mode); sign-in lands there while set.
  * @property int|null $partner_id
  * @property string $name
  * @property string $email
@@ -31,7 +34,7 @@ use Spatie\Permission\Traits\HasRoles;
  * @property bool $email_device_check
  * @property bool $is_admin
  * @property bool $is_company_user
- * @property CarbonImmutable|null $deactivated_at
+ * @property CarbonImmutable|null $deactivated_at Set when the user may sign in nowhere; for staff, when no membership is active.
  * @property string|null $two_factor_secret
  * @property string|null $two_factor_recovery_codes
  * @property CarbonImmutable|null $two_factor_confirmed_at
@@ -77,6 +80,46 @@ class User extends Authenticatable implements MustVerifyEmail
     public function property(): BelongsTo
     {
         return $this->belongsTo(Property::class);
+    }
+
+    /**
+     * The property the staff user opened last.
+     *
+     * @return BelongsTo<Property, $this>
+     */
+    public function lastProperty(): BelongsTo
+    {
+        return $this->belongsTo(Property::class, 'last_property_id');
+    }
+
+    /**
+     * The properties the staff user may open (active) or was turned off at (deactivated).
+     *
+     * @return HasMany<PropertyMembership, $this>
+     */
+    public function memberships(): HasMany
+    {
+        return $this->hasMany(PropertyMembership::class);
+    }
+
+    /**
+     * Staff who have a membership at the property, active or not. See docs/03-staff/04-property-groups.md.
+     *
+     * @param  Builder<User>  $query
+     */
+    public function scopeMemberOf(Builder $query, Property|int $property): void
+    {
+        $query->whereHas('memberships', fn (Builder $memberships) => $memberships->where('property_id', $property instanceof Property ? $property->id : $property));
+    }
+
+    /**
+     * Staff who may open the property now: their membership there is not deactivated, nor their account.
+     *
+     * @param  Builder<User>  $query
+     */
+    public function scopeActiveMemberOf(Builder $query, Property|int $property): void
+    {
+        $query->whereNull('users.deactivated_at')->whereHas('memberships', fn (Builder $memberships) => $memberships->where('property_id', $property instanceof Property ? $property->id : $property)->whereNull('deactivated_at'));
     }
 
     /**

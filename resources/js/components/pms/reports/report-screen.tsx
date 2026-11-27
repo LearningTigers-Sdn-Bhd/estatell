@@ -121,6 +121,8 @@ type Props<TRow extends { key: number | string }> = {
     layoutLabel?: string;
     /** Content between the header and the filters, such as the Boats and crew panel of the Boat manifest. */
     aside?: ReactNode;
+    /** A chart of the whole range, between the filters and the table, such as the Occupancy chart. */
+    chart?: ReactNode;
     /** Screen headings that replace the layout label of a column, such as the open tab's name on a grouped column. */
     columnLabels?: Record<string, string>;
 };
@@ -181,6 +183,7 @@ export function ReportScreen<TRow extends { key: number | string }>({
     embedded = false,
     layoutLabel,
     aside = null,
+    chart = null,
     columnLabels,
 }: Props<TRow>) {
     const column = useMemo(() => dataTableColumns<TRow>(), []);
@@ -724,6 +727,8 @@ export function ReportScreen<TRow extends { key: number | string }>({
                         />
                     </div>
                 </div>
+
+                {chart}
 
                 <DataTable
                     columns={tableColumns}

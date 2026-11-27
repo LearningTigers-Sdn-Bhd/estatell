@@ -12,6 +12,7 @@ use App\Http\Requests\Reports\ReportFiltersRequest;
 use App\Models\Property;
 use App\Services\Reports\ReportLayoutResolver;
 use App\Services\Reports\ReportPage;
+use App\Services\Reports\RoomStatsChart;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\LaravelData\PaginatedDataCollection;
@@ -21,7 +22,7 @@ class OccupancyReportController extends Controller
     /**
      * The Occupancy report page: one row for each business date from `?from` to `?to`, sorted and paged on the server.
      */
-    public function __invoke(ReportFiltersRequest $request, Property $property, ReportPage $reportPage, ReportLayoutResolver $layoutResolver): Response
+    public function __invoke(ReportFiltersRequest $request, Property $property, ReportPage $reportPage, ReportLayoutResolver $layoutResolver, RoomStatsChart $roomStatsChart): Response
     {
         $key = ReportKey::Occupancy;
         $filters = $request->filters();
@@ -40,6 +41,7 @@ class OccupancyReportController extends Controller
         return Inertia::render('reports/occupancy', [
             'rows' => OccupancyRow::collect($rows->withQueryString(), PaginatedDataCollection::class),
             'totals' => $key->totals($allRows),
+            'chart' => $roomStatsChart->occupancy($allRows, $filters),
             'sort' => $sort,
             'layout' => $layout,
             'orientationOptions' => PageOrientation::options(),

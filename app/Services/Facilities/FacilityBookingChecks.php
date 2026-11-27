@@ -5,6 +5,7 @@ namespace App\Services\Facilities;
 use App\Actions\Facilities\FacilityBookingResult;
 use App\Data\Facilities\FacilityBookingInputData;
 use App\Enums\EventStatus;
+use App\Enums\FacilityBookedBy;
 use App\Enums\UnitStatus;
 use App\Models\Event;
 use App\Models\Facility;
@@ -66,11 +67,23 @@ class FacilityBookingChecks
      */
     private function fits(Facility $facility, FacilityBookingInputData $data, ?int $ignoreBookingId, iterable $pending = []): ?string
     {
+        if ($data->private && ! self::offersPrivate($facility)) {
+            return FacilityBookingResult::REFUSAL_PRIVATE_NOT_OFFERED;
+        }
+
         if ($facility->sessions()->exists()
             && ! $facility->sessions()->where('starts_at', $data->startsAt)->where('ends_at', $data->endsAt)->exists()) {
             return FacilityBookingResult::REFUSAL_SESSION_NOT_FOUND;
         }
 
-        return $this->availability->refusalFor($facility, $data->bookingDate, $data->startsAt, $data->endsAt, $data->quantity, $ignoreBookingId, $pending);
+        return $this->availability->refusalFor($facility, $data->bookingDate, $data->startsAt, $data->endsAt, $data->quantity, $ignoreBookingId, $pending, $data->private);
+    }
+
+    /**
+     * Whether the facility can be booked privately (a charter): a Person facility with a private price.
+     */
+    public static function offersPrivate(Facility $facility): bool
+    {
+        return $facility->booked_by === FacilityBookedBy::Person && $facility->private_amount !== null;
     }
 }

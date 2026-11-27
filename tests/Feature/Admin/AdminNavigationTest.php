@@ -11,7 +11,9 @@ test('admin pages share the admin navigation in groups', function () {
             ->where('adminNavigation.0.label', 'Overview')
             ->where('adminNavigation.0.items.0.title', 'Dashboard')
             ->where('adminNavigation.1.label', 'Business')
-            ->has('adminNavigation.1.items', 4)
+            ->has('adminNavigation.1.items', 5)
+            ->where('adminNavigation.1.items.4.title', 'Property groups')
+            ->where('adminNavigation.1.items.4.href', '/admin/property-groups')
             ->where('adminNavigation.1.items.0', [
                 'title' => 'Properties',
                 'href' => '/admin/properties',

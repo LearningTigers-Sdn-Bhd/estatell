@@ -12,6 +12,7 @@ enum TabbedReport: string
     case GuestList = 'guest-list';
     case DailyReport = 'daily-report';
     case Housekeeping = 'housekeeping';
+    case RoomsOnBooks = 'rooms-on-books';
 
     public function label(): string
     {
@@ -19,6 +20,7 @@ enum TabbedReport: string
             self::GuestList => __('Guest list'),
             self::DailyReport => __('Daily report'),
             self::Housekeeping => __('Housekeeping'),
+            self::RoomsOnBooks => __('Rooms on books'),
         };
     }
 
@@ -26,7 +28,7 @@ enum TabbedReport: string
     {
         return match ($this) {
             self::GuestList, self::Housekeeping => ReportCategory::FrontDesk,
-            self::DailyReport => ReportCategory::Revenue,
+            self::DailyReport, self::RoomsOnBooks => ReportCategory::Revenue,
         };
     }
 
@@ -39,12 +41,14 @@ enum TabbedReport: string
             self::GuestList => 'users',
             self::DailyReport => 'calculator',
             self::Housekeeping => 'spray-can',
+            self::RoomsOnBooks => 'calendar-range',
         };
     }
 
     /**
      * The tabs in the order shown, each `?tab` value with the report whose dates, filters, layout and exports it uses.
-     * The first tab is the default. Daily report › Overview has no table and uses the Daily revenue dates.
+     * The first tab is the default. Daily report › Overview has no table and uses the Daily revenue dates; Rooms on books ›
+     * Overview uses the Booking changes dates.
      *
      * @return array<string, ReportKey>
      */
@@ -66,6 +70,11 @@ enum TabbedReport: string
             self::Housekeeping => [
                 'items' => ReportKey::HousekeepingItems,
                 'log' => ReportKey::HousekeepingLog,
+            ],
+            self::RoomsOnBooks => [
+                'overview' => ReportKey::BookingChanges,
+                'on-the-books' => ReportKey::OnTheBooks,
+                'changes' => ReportKey::BookingChanges,
             ],
         };
     }

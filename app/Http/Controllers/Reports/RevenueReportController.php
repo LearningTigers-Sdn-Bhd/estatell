@@ -13,6 +13,7 @@ use App\Http\Requests\Reports\ReportFiltersRequest;
 use App\Models\Property;
 use App\Services\Reports\ReportLayoutResolver;
 use App\Services\Reports\ReportPage;
+use App\Services\Reports\RevenueChart;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\LaravelData\PaginatedDataCollection;
@@ -22,7 +23,7 @@ class RevenueReportController extends Controller
     /**
      * The Revenue report page: one row for each date or month and transaction code from `?from` to `?to` by `?group`, sorted and paged on the server.
      */
-    public function __invoke(ReportFiltersRequest $request, Property $property, ReportPage $reportPage, ReportLayoutResolver $layoutResolver): Response
+    public function __invoke(ReportFiltersRequest $request, Property $property, ReportPage $reportPage, ReportLayoutResolver $layoutResolver, RevenueChart $revenueChart): Response
     {
         $key = ReportKey::Revenue;
         $filters = $request->filters();
@@ -41,6 +42,7 @@ class RevenueReportController extends Controller
         return Inertia::render('reports/revenue', [
             'rows' => RevenueRow::collect($rows->withQueryString(), PaginatedDataCollection::class),
             'totals' => $key->totals($allRows),
+            'chart' => $revenueChart->forRows($allRows, $filters),
             'sort' => $sort,
             'layout' => $layout,
             'orientationOptions' => PageOrientation::options(),

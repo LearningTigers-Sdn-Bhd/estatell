@@ -24,7 +24,8 @@ use LogicException;
 
 /**
  * The dates of a report page: `from` and `to` in the URL, both included. A missing date falls back to the other
- * date, and with none the report opens on the open business date, or on the days up to it that `ReportKey::defaultDays()` gives. The range may not be longer than the report allows.
+ * date, and with none the report opens on the open business date, or on the days up to it that `ReportKey::defaultDays()` gives
+ * (the month with `opensOnMonth()`, the days from it with `opensForwardDays()`). The range may not be longer than the report allows.
  * A report of one date (`maxRangeDays()` is null) takes a single `date` instead and uses it as both ends.
  * A report that groups its rows (`ReportKey::groups()`) also takes `group`, which must be one of its groups and falls
  * back to the first. Other reports ignore `group`.
@@ -66,7 +67,7 @@ class ReportFiltersRequest extends FormRequest
                 : ['from' => ['nullable', 'date_format:Y-m-d'], 'to' => ['nullable', 'date_format:Y-m-d']]),
             ...($this->reportKey()->hasCodeFilter() ? ['code' => ['nullable', 'string', Rule::exists('transaction_codes', 'code')->where('property_id', $this->property()->id)]] : []),
             ...($this->reportKey()->hasPaymentFilters() ? [
-                'staff' => ['nullable', 'integer', Rule::exists('users', 'id')->where('property_id', $this->property()->id)],
+                'staff' => ['nullable', 'integer', Rule::exists('property_memberships', 'user_id')->where('property_id', $this->property()->id)],
                 'refunds' => ['nullable', 'boolean'],
                 'dates' => ['nullable', Rule::enum(PaymentDateBasis::class)],
             ] : []),
@@ -166,6 +167,18 @@ class ReportFiltersRequest extends FormRequest
         $to = is_string($to) && $to !== '' ? $to : null;
         $default = $this->businessDate();
         $defaultFrom = Date::parse($default)->subDays($this->reportKey()->defaultDays() - 1)->toDateString();
+
+        if ($this->reportKey()->opensOnMonth() && $from === null && $to === null) {
+            $defaultFrom = Date::parse($default)->startOfMonth()->toDateString();
+            $default = Date::parse($default)->endOfMonth()->toDateString();
+        }
+
+        $forwardDays = $this->reportKey()->opensForwardDays();
+
+        if ($forwardDays !== null && $from === null && $to === null) {
+            $defaultFrom = $default;
+            $default = Date::parse($default)->addDays($forwardDays - 1)->toDateString();
+        }
 
         return new ReportFilters(from: $from ?? $to ?? $defaultFrom, to: $to ?? $from ?? $default, group: $this->group(), code: $this->code(), staff: $this->staff(), refundsOnly: $this->refundsOnly(), dateBasis: $this->dateBasis(), foreignOnly: $this->foreignOnly(), direction: $this->direction(), bucket: $this->bucket(), search: $this->search(), bothDirections: $this->bothDirections(), boatNotSet: $this->boatNotSet(), boatGroup: $this->boatGroup(), facilityIds: $this->facilityIds(), facilityStatuses: $this->facilityStatuses());
     }

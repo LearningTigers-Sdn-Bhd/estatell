@@ -14,6 +14,8 @@ use App\Models\ChannelRatePlanMapping;
  */
 class ChannelMappingRows
 {
+    public function __construct(private ChannelCapability $capability) {}
+
     /**
      * @return list<ChannelMapRowData>
      */
@@ -91,7 +93,7 @@ class ChannelMappingRows
                 'value' => (string) $mapping->id,
                 'roomTypeId' => $mapping->room_type_id,
                 'perRoom' => $mapping->sell_mode === ChannelSellMode::PerRoom,
-                'occupancies' => $mapping->sell_mode->occupancies($mapping->roomType),
+                'occupancies' => $mapping->sell_mode->occupancies($this->capability->channelAdults($mapping->roomType)),
                 'roomType' => $mapping->roomType->name,
                 'ratePlan' => $mapping->ratePlan->name,
             ];

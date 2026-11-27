@@ -122,7 +122,7 @@ test('free units lists the rooms free on every night and takes an assigned room 
     $this->actingAs($setup['user'])
         ->getJson(previewUrl($setup, 'reservations.free-units', $query))
         ->assertOk()
-        ->assertExactJson(['units' => [['id' => $setup['rooms'][1]->id, 'label' => '102', 'reason' => null]]]);
+        ->assertExactJson(['units' => [['id' => $setup['rooms'][1]->id, 'label' => '102', 'reason' => null]], 'wholeRooms' => []]);
 
     $this->getJson(previewUrl($setup, 'reservations.free-units', [...$query, 'arrival_date' => '2026-10-24', 'departure_date' => '2026-10-25']))
         ->assertJsonCount(2, 'units');
@@ -139,7 +139,7 @@ test('free units lists the beds of a dorm and nothing for a room type of another
 
     $this->getJson(previewUrl($setup, 'reservations.free-units', ['room_type_id' => RoomType::factory()->create()->id, 'arrival_date' => '2026-10-20', 'departure_date' => '2026-10-22']))
         ->assertOk()
-        ->assertExactJson(['units' => []]);
+        ->assertExactJson(['units' => [], 'wholeRooms' => []]);
 });
 
 test('free units checks its query and the preview routes stay in their property', function () {

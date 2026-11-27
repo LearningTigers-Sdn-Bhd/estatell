@@ -15,6 +15,7 @@ use App\Enums\WebhookEvent;
 use App\Events\StayCheckedOut;
 use App\Jobs\SendStayCheckOutEmailJob;
 use App\Models\Bed;
+use App\Models\BedStatus;
 use App\Models\Folio;
 use App\Models\ReservationUnit;
 use App\Models\RoomStatus;
@@ -145,10 +146,10 @@ class CheckOutUnit
                 }
             }
 
-            $roomId = $this->roomOf($locked, $today);
+            [$roomId, $bedId] = $this->placeOf($locked, $today);
 
             if (! $skipBalanceCheck) {
-                $this->markRoomAfterCheckOut($actor, $roomId, $today, $locked->property->settings?->auto_clean_on_check_out === true);
+                $this->markRoomAfterCheckOut($actor, $roomId, $bedId, $today, $locked->property->settings?->auto_clean_on_check_out === true);
             }
 
             activity()
@@ -194,8 +195,10 @@ class CheckOutUnit
     /**
      * Dirty after a check-out, or Clean when the property turned on `auto_clean_on_check_out` and no other guest still sleeps in the
      * room tonight (a shared room or a dorm bed). The unit is already CheckedOut here, so it does not count as that other guest.
+     * In a dorm the guest's bed follows too (Clean with auto clean, else Dirty); the other bunks keep their status
+     * (docs/19-housekeeping/04-dorm-beds.md).
      */
-    private function markRoomAfterCheckOut(?User $actor, ?int $roomId, string $today, bool $autoClean): void
+    private function markRoomAfterCheckOut(?User $actor, ?int $roomId, ?int $bedId, string $today, bool $autoClean): void
     {
         if ($roomId === null) {
             return;
@@ -212,6 +215,14 @@ class CheckOutUnit
             'last_changed_by' => $actor?->id,
             'last_changed_at' => now(),
         ]);
+
+        if ($bedId !== null) {
+            BedStatus::query()->where('bed_id', $bedId)->update([
+                'status' => $autoClean ? HousekeepingStatus::Clean : HousekeepingStatus::Dirty,
+                'last_changed_by' => $actor?->id,
+                'last_changed_at' => now(),
+            ]);
+        }
     }
 
     /**
@@ -250,18 +261,23 @@ class CheckOutUnit
     /**
      * The room of the unit's last night up to the business date, or of its day use block. A bed gives its room.
      */
-    private function roomOf(ReservationUnit $unit, string $today): ?int
+    /**
+     * The room the unit last slept in, and its bed when it is a dorm bed.
+     *
+     * @return array{0: ?int, 1: ?int}
+     */
+    private function placeOf(ReservationUnit $unit, string $today): array
     {
         if ($unit->stay_type === StayType::DayUse) {
-            return $unit->dayUse()->value('room_id');
+            return [$unit->dayUse()->value('room_id'), null];
         }
 
         $night = $unit->nights()->whereDate('date', '<=', $today)->where(fn ($query) => $query->whereNotNull('room_id')->orWhereNotNull('bed_id'))->orderByDesc('date')->first();
 
         if ($night === null) {
-            return null;
+            return [null, null];
         }
 
-        return $night->room_id ?? Bed::query()->whereKey($night->bed_id)->value('room_id');
+        return $night->room_id !== null ? [$night->room_id, null] : [Bed::query()->whereKey($night->bed_id)->value('room_id'), $night->bed_id];
     }
 }

@@ -15,6 +15,7 @@ import {
     MessageSquarePlus,
     Monitor,
     MoreHorizontal,
+    NotebookPen,
     Pencil,
     Printer,
     Settings2,
@@ -64,6 +65,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { DormBeds } from '@/components/pms/housekeeping/dorm-beds';
 import { bulk, index, pdf, spreadsheet } from '@/routes/housekeeping';
 import {
     assignee,
@@ -124,6 +126,15 @@ function matchesMovement(room: Room, movement: Movement): boolean {
         case 'stayovers':
             return room.isStayOver;
     }
+}
+
+/** A dorm's arrivals or departures today in words ("2 from 15:00", "1 left"); every bed's date is today. */
+function DormMovement({ text }: { text: string | null }) {
+    return text === null ? (
+        <span className="text-muted-foreground">—</span>
+    ) : (
+        <span className="text-sm tabular-nums">{text}</span>
+    );
 }
 
 /** No movement picked shows every room; otherwise a room shows when it matches any picked movement. */
@@ -1180,6 +1191,11 @@ function GroupRows({
                                         size="lg"
                                     />
                                 )}
+                                {room.beds.length > 0 && (
+                                    <div>
+                                        <DormBeds room={room} />
+                                    </div>
+                                )}
                                 {room.outOfService && (
                                     <div className="mt-1 text-xs text-muted-foreground">
                                         {room.outOfService.reasonLabel} until{' '}
@@ -1222,16 +1238,39 @@ function GroupRows({
                         ),
                         guest: (
                             <TableCell>
-                                {room.guest ?? (
-                                    <span className="text-muted-foreground">
-                                        —
+                                {room.dorm ? (
+                                    <span className="text-sm tabular-nums">
+                                        {room.dorm.occupancy}
                                     </span>
+                                ) : (
+                                    (room.guest ?? (
+                                        <span className="text-muted-foreground">
+                                            —
+                                        </span>
+                                    ))
                                 )}
                             </TableCell>
                         ),
                         stay: (
                             <TableCell>
-                                {room.stay ? (
+                                {room.dorm ? (
+                                    room.dorm.movements.length > 0 ? (
+                                        <div className="flex flex-wrap gap-1">
+                                            {room.dorm.movements.map(
+                                                (movement) => (
+                                                    <StatusBadge
+                                                        key={movement.value}
+                                                        status={movement}
+                                                    />
+                                                ),
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <span className="text-muted-foreground">
+                                            —
+                                        </span>
+                                    )
+                                ) : room.stay ? (
                                     <StatusBadge status={room.stay} />
                                 ) : (
                                     <span className="text-muted-foreground">
@@ -1280,18 +1319,26 @@ function GroupRows({
                         ),
                         arrival: (
                             <TableCell>
-                                <StayCell
-                                    date={room.arrivalDate}
-                                    time={room.arrivalTime}
-                                />
+                                {room.dorm ? (
+                                    <DormMovement text={room.dorm.arrivals} />
+                                ) : (
+                                    <StayCell
+                                        date={room.arrivalDate}
+                                        time={room.arrivalTime}
+                                    />
+                                )}
                             </TableCell>
                         ),
                         departure: (
                             <TableCell>
-                                <StayCell
-                                    date={room.departureDate}
-                                    time={room.departureTime}
-                                />
+                                {room.dorm ? (
+                                    <DormMovement text={room.dorm.departures} />
+                                ) : (
+                                    <StayCell
+                                        date={room.departureDate}
+                                        time={room.departureTime}
+                                    />
+                                )}
                             </TableCell>
                         ),
                         assigned: (
@@ -1392,6 +1439,20 @@ function GroupRows({
                                         room.remark && (
                                             <span>{room.remark}</span>
                                         )
+                                    )}
+                                    {room.guestRemark && (
+                                        <span className="inline-flex items-start gap-1 text-muted-foreground">
+                                            <NotebookPen
+                                                aria-hidden
+                                                className="mt-0.5 size-3.5 shrink-0"
+                                            />
+                                            <span>
+                                                <span className="sr-only">
+                                                    From the booking:{' '}
+                                                </span>
+                                                {room.guestRemark}
+                                            </span>
+                                        </span>
                                     )}
                                     {room.outOfService?.notes && (
                                         <span className="text-muted-foreground">

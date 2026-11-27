@@ -126,7 +126,7 @@ class IngestChannelBooking
             $lines = $this->mapper->units($revision->channelProperty, $payload, $channelName);
             $reservation = $existing === null
                 ? $this->create($actor, $property, $payload, $lines, $channel, $otaName)
-                : $this->modify($actor, $existing, $lines, $payload['rooms'] ?? [], $channelName);
+                : $this->modify($actor, $existing, $lines, $this->mapper->rooms($revision->channelProperty, $payload), $channelName);
             ($this->postOtaCollectedPayment)($actor, $reservation, $revision);
         }
 

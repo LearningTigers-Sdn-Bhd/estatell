@@ -8,6 +8,9 @@ import {
     Printer,
     ReceiptText,
     Ship,
+    UserRound,
+    ChartPie,
+    MessageSquareText,
     XCircle,
 } from 'lucide-react';
 import { Link } from '@inertiajs/react';
@@ -17,6 +20,9 @@ import { AddUnitSheet } from '@/components/pms/reservations/add-unit-sheet';
 import { CheckInAllDialog } from '@/components/pms/reservations/check-in-all-dialog';
 import { CancelReservationDialog } from '@/components/pms/reservations/cancel-reservation-dialog';
 import { ChangeCompanyDialog } from '@/components/pms/reservations/change-company-dialog';
+import { ChangeMarketSegmentDialog } from '@/components/pms/reservations/change-market-segment-dialog';
+import { ChangeSalesPersonDialog } from '@/components/pms/reservations/change-sales-person-dialog';
+import { EditRemarksDialog } from '@/components/pms/reservations/edit-remarks-dialog';
 import { SetBoatsDialog } from '@/components/pms/reservations/set-boats-dialog';
 import { UnitActionDialogs } from '@/components/pms/reservations/unit-actions-menu';
 import {
@@ -35,7 +41,7 @@ import { bookingSummary, checkOut } from '@/routes/reservations';
 import { receipts } from '@/routes/reservations/check-out';
 
 /**
- * The page header buttons: Add unit (hidden once the reservation is closed) and More, which holds Edit group, Change company, for a group Check in all and Check out all (the group check-out page), the booking summary prints (the second one without prices, for a reservation with a company) and Check in and Check out of the one unit of a single-unit reservation (the unit menu's own Dialogs), Taxes paid elsewhere (`folio.waive-tax`, for the rooms chosen), Cancel reservation (one Dialog for several units, with `reservations.manage` while a unit is Confirmed) and Print receipts (one PDF with every receipt of the reservation; the server sends the payment ids only with payment.record). The prints show on closed reservations too.
+ * The page header buttons: Add unit (hidden once the reservation is closed) and More, which holds Edit group, Change company, Change sales person, Change market segment (when the property has segments) and Edit remarks (closed reservations too), for a group Check in all and Check out all (the group check-out page), the booking summary prints (the second one without prices, for a reservation with a company) and Check in and Check out of the one unit of a single-unit reservation (the unit menu's own Dialogs), Taxes paid elsewhere (`folio.waive-tax`, for the rooms chosen), Cancel reservation (one Dialog for several units, with `reservations.manage` while a unit is Confirmed) and Print receipts (one PDF with every receipt of the reservation; the server sends the payment ids only with payment.record). The prints show on closed reservations too.
  */
 export function ReservationActions({
     canManage,
@@ -55,6 +61,10 @@ export function ReservationActions({
     receiptPaymentIds,
     canOverrideCredit,
     companies,
+    salesPeople,
+    marketSegments,
+    hasMarketSegments,
+    remarkKinds,
     currency,
     hasBoats,
     boatSetup,
@@ -80,6 +90,11 @@ export function ReservationActions({
     receiptPaymentIds: number[];
     canOverrideCredit: boolean;
     companies?: App.Data.CityLedger.CompanyOptionData[];
+    salesPeople?: App.Data.Reservations.SalesPersonOptionData[];
+    marketSegments?: App.Data.Reservations.MarketSegmentData[];
+    /** True when the property has any market segment, so Change market segment shows. */
+    hasMarketSegments: boolean;
+    remarkKinds: EnumOption[];
     currency: App.Data.Property.CurrencyData | null;
     hasBoats: boolean;
     boatSetup?: App.Data.Boats.BoatSetupUnitData[];
@@ -91,6 +106,9 @@ export function ReservationActions({
     const [addingUnit, setAddingUnit] = useState(false);
     const [editingGroup, setEditingGroup] = useState(false);
     const [changingCompany, setChangingCompany] = useState(false);
+    const [changingSalesPerson, setChangingSalesPerson] = useState(false);
+    const [changingSegment, setChangingSegment] = useState(false);
+    const [editingRemarks, setEditingRemarks] = useState(false);
     const [checkingInAll, setCheckingInAll] = useState(false);
     const [cancelling, setCancelling] = useState(false);
     const [settingBoats, setSettingBoats] = useState(false);
@@ -196,6 +214,32 @@ export function ReservationActions({
                         >
                             <Building2 />
                             Change company
+                        </DropdownMenuItem>
+                    )}
+                    {canManage && (
+                        <DropdownMenuItem
+                            onClick={() => setChangingSalesPerson(true)}
+                        >
+                            <UserRound />
+                            Change sales person
+                        </DropdownMenuItem>
+                    )}
+                    {canManage &&
+                        (hasMarketSegments ||
+                            reservation.marketSegmentId !== null) && (
+                            <DropdownMenuItem
+                                onClick={() => setChangingSegment(true)}
+                            >
+                                <ChartPie />
+                                Change market segment
+                            </DropdownMenuItem>
+                        )}
+                    {canManage && (
+                        <DropdownMenuItem
+                            onClick={() => setEditingRemarks(true)}
+                        >
+                            <MessageSquareText />
+                            Edit remarks
                         </DropdownMenuItem>
                     )}
                     {canWaiveTax && hasWaivableRoom(units) && (
@@ -361,6 +405,30 @@ export function ReservationActions({
                     reservationId={reservation.id}
                     units={boatSetup}
                     departures={boatDepartures}
+                />
+            )}
+            {canManage && (
+                <ChangeMarketSegmentDialog
+                    open={changingSegment}
+                    onOpenChange={setChangingSegment}
+                    reservation={reservation}
+                    marketSegments={marketSegments}
+                />
+            )}
+            {canManage && (
+                <EditRemarksDialog
+                    open={editingRemarks}
+                    onOpenChange={setEditingRemarks}
+                    reservation={reservation}
+                    remarkKinds={remarkKinds}
+                />
+            )}
+            {canManage && (
+                <ChangeSalesPersonDialog
+                    open={changingSalesPerson}
+                    onOpenChange={setChangingSalesPerson}
+                    reservation={reservation}
+                    salesPeople={salesPeople}
                 />
             )}
             {canManage && canViewCompany && (

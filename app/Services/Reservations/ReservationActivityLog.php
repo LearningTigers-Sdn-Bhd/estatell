@@ -7,10 +7,13 @@ use App\Enums\BillingMode;
 use App\Enums\BoatDirection;
 use App\Enums\BoatMode;
 use App\Enums\CollectedTaxesPayer;
+use App\Enums\RemarkKind;
 use App\Models\ChargeItem;
 use App\Models\Guest;
+use App\Models\MarketSegment;
 use App\Models\Reservation;
 use App\Models\RoomType;
+use App\Models\User;
 use App\Services\Platform\HotelFacingCauser;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -19,7 +22,7 @@ use Spatie\Activitylog\Models\Activity;
 
 /**
  * The activity log of one reservation in readable form, newest first. The names the entries refer to (room types,
- * charge items, guests) are read for the whole page in three queries, so a page costs the same however many entries it has.
+ * charge items, guests, sales people, market segments) are read for the whole page in five queries at most, so a page costs the same however many entries it has.
  */
 class ReservationActivityLog
 {
@@ -45,6 +48,8 @@ class ReservationActivityLog
             'room_type_id' => $this->names(RoomType::class, $reservation, $page->getCollection(), ['room_type_id']),
             'charge_item_id' => $this->names(ChargeItem::class, $reservation, $page->getCollection(), ['charge_item_id']),
             'guest_id' => $this->names(Guest::class, $reservation, $page->getCollection(), ['guest_id'], 'full_name'),
+            'sales_person_id' => $this->names(User::class, $reservation, $page->getCollection(), ['old.sales_person_id', 'new.sales_person_id']),
+            'market_segment_id' => $this->names(MarketSegment::class, $reservation, $page->getCollection(), ['old.market_segment_id', 'new.market_segment_id']),
         ];
 
         $timeZone = $reservation->property->settings->time_zone ?? config('app.timezone');
@@ -115,6 +120,12 @@ class ReservationActivityLog
             'reservation.auto_add_on_declined' => __(':item was not added (removed on the booking form)', [
                 'item' => $name('charge_item_id'),
             ]),
+            'reservation.sales_person_updated' => $this->changeText(__('Sales person'), 'sales_person_id', $properties->get('old', []), $properties->get('new', []), $names['sales_person_id']),
+            'reservation.market_segment_updated' => $this->changeText(__('Market segment'), 'market_segment_id', $properties->get('old', []), $properties->get('new', []), $names['market_segment_id']),
+            'reservation.remarks_updated' => __(':kinds updated', ['kinds' => implode(', ', array_map(
+                fn (string $kind): string => RemarkKind::tryFrom($kind)?->label() ?? $kind,
+                $properties->get('kinds', []),
+            ))]),
             'reservation.group_updated' => $this->groupText($properties->get('old', []), $properties->get('new', [])),
             'reservation.guest_attached' => __(':guest added to a unit', ['guest' => $name('guest_id')]),
             'reservation.night_price_changed' => trans_choice('Price of :count night changed to :amount|Price of :count nights changed to :amount', count($properties->get('nights', [])), [
@@ -216,9 +227,24 @@ class ReservationActivityLog
     }
 
     /**
-     * Names of the records the page's entries refer to, read with one query and limited to the reservation's property.
+     * "Sales person: Melissa Tan → Adrian Wong", with "None" for an empty side.
      *
-     * @param  class-string<RoomType|ChargeItem|Guest>  $model
+     * @param  array<string, mixed>  $old
+     * @param  array<string, mixed>  $new
+     * @param  array<int, string>  $names
+     */
+    private function changeText(string $field, string $key, array $old, array $new, array $names): string
+    {
+        $label = fn (mixed $id): string => $id === null ? __('None') : ($names[(int) $id] ?? __('unknown'));
+
+        return __(':field: :old → :new', ['field' => $field, 'old' => $label($old[$key] ?? null), 'new' => $label($new[$key] ?? null)]);
+    }
+
+    /**
+     * Names of the records the page's entries refer to, read with one query and limited to the reservation's property.
+     * A key may be a dot path into the properties (`old.sales_person_id`).
+     *
+     * @param  class-string<RoomType|ChargeItem|Guest|User|MarketSegment>  $model
      * @param  Collection<int, Activity>  $activities
      * @param  list<string>  $keys
      * @return array<int, string>
@@ -226,7 +252,7 @@ class ReservationActivityLog
     private function names(string $model, Reservation $reservation, Collection $activities, array $keys, string $column = 'name'): array
     {
         $ids = $activities
-            ->flatMap(fn (Activity $activity): array => array_map(fn (string $key) => $activity->properties->get($key), $keys))
+            ->flatMap(fn (Activity $activity): array => array_map(fn (string $key) => data_get($activity->properties, $key), $keys))
             ->filter()
             ->unique()
             ->values()

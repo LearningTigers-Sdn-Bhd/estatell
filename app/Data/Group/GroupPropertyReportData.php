@@ -1,0 +1,46 @@
+<?php
+
+namespace App\Data\Group;
+
+use App\Data\Property\CurrencyData;
+use App\Data\Reports\ReportLayoutColumnData;
+use App\Data\Reports\RevenueChartData;
+use App\Data\Reports\RoomStatsChartData;
+use Spatie\LaravelData\Data;
+
+/**
+ * A property report run for every property of the group: the columns (every property's visible columns, in the
+ * report's order), the rows of all properties (one page of `PER_PAGE` on screen, `page` of `pages`; the CSV and the PDF
+ * have them all), a total per
+ * property and for all of them when the report has totals, and who was left out. `currency` is set when every
+ * property uses one; money totals across properties need it, and so do the charts: `roomStatsChart` on Occupancy and
+ * `revenueChart` on Revenue, over every row of every property shown.
+ */
+class GroupPropertyReportData extends Data
+{
+    public const int PER_PAGE = 50;
+
+    /**
+     * @param  list<ReportLayoutColumnData>  $columns
+     * @param  list<GroupReportRowData>  $rows
+     * @param  list<GroupReportRowData>  $totals
+     * @param  list<string>  $leftOut  No reports permission there.
+     * @param  list<string>  $notOffered  The report needs a feature the property does not use.
+     */
+    public function __construct(
+        public string $report,
+        public string $label,
+        public array $columns,
+        public array $rows,
+        public int $rowCount,
+        public array $totals,
+        public ?CurrencyData $currency,
+        public array $leftOut,
+        public array $notOffered,
+        public int $page = 1,
+        public int $pages = 1,
+        public int $perPage = self::PER_PAGE,
+        public ?RoomStatsChartData $roomStatsChart = null,
+        public ?RevenueChartData $revenueChart = null,
+    ) {}
+}

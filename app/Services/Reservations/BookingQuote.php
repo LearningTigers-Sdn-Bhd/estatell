@@ -29,12 +29,14 @@ use App\Services\Rates\RateQuoteService;
 use App\Services\Rates\RestrictionCheck;
 use Brick\Math\RoundingMode;
 use Brick\Money\Money;
+use Brick\Money\SplitMode;
 use Carbon\CarbonImmutable;
 
 /**
  * Prices one booking line for the booking form, with the same services `AddUnit` and `AddUnitAddOn` use, so the form
  * shows what the save will charge. It reads only. A Bed room type is priced for one bed, and the totals are that times
- * `$beds`. A price override replaces the quote. The catalogue discount is not part of the preview. An add-on that
+ * `$beds`. A price override replaces the quote: the stay total of one unit, or of the whole line for a whole dorm
+ * (`$wholeRoom`), which is split over the beds as `CreateReservation` does. The catalogue discount is not part of the preview. An add-on that
  * cannot be priced (an unknown item, or no amount) is left out of the total, and the save refuses it.
  */
 class BookingQuote
@@ -57,7 +59,7 @@ class BookingQuote
      * @param  list<int>  $childAges
      * @param  list<NewAddOnData>  $addOns
      */
-    public function line(Property $property, int $roomTypeId, int $ratePlanId, CarbonImmutable $arrival, CarbonImmutable $departure, int $adults, array $childAges, int $beds, array $addOns = [], ?string $overrideTotal = null): BookingQuoteData
+    public function line(Property $property, int $roomTypeId, int $ratePlanId, CarbonImmutable $arrival, CarbonImmutable $departure, int $adults, array $childAges, int $beds, array $addOns = [], ?string $overrideTotal = null, bool $wholeRoom = false): BookingQuoteData
     {
         $beds = max(1, $beds);
         $roomType = RoomType::query()->where('property_id', $property->id)->active()->find($roomTypeId);
@@ -84,7 +86,12 @@ class BookingQuote
             return BookingQuoteData::refused($this->refusals->errors((string) $quote->refusal, $quote->refusalDate), $beds);
         }
 
-        $unitTotal = $overrideTotal === null ? $quote->total : Money::of($overrideTotal, $quote->total->getCurrency());
+        $lineOverride = $wholeRoom && $overrideTotal !== null ? Money::of($overrideTotal, $quote->total->getCurrency()) : null;
+        $unitTotal = match (true) {
+            $lineOverride !== null => $lineOverride->split($beds, SplitMode::ToFirst)[0],
+            $overrideTotal === null => $quote->total,
+            default => Money::of($overrideTotal, $quote->total->getCurrency()),
+        };
 
         $overrides = null;
 
@@ -106,7 +113,7 @@ class BookingQuote
                 amount: (string) ($overrides[$index] ?? $night->net())->getAmount(),
             ), $quote->nights, array_keys($quote->nights)),
             unitTotal: (string) $unitTotal->getAmount(),
-            lineTotal: (string) $unitTotal->multipliedBy($beds)->getAmount(),
+            lineTotal: (string) ($lineOverride ?? $unitTotal->multipliedBy($beds))->getAmount(),
             addOnsTotal: (string) $this->addOnsTotal($property, $addOns, $arrival, $departure, $adults, $childAges, $quote->total->getCurrency())->multipliedBy($beds)->getAmount(),
             isOverridden: $overrideTotal !== null,
             beds: $beds,

@@ -15,6 +15,7 @@ class RoomFactory extends Factory
 {
     /**
      * Define the model's default state.
+     * The number has five digits, so it never matches the three- and four-digit numbers tests set by hand.
      *
      * @return array<string, mixed>
      */
@@ -23,7 +24,7 @@ class RoomFactory extends Factory
         return [
             'property_id' => Property::factory(),
             'room_type_id' => fn (array $attributes) => RoomType::factory()->create(['property_id' => $attributes['property_id']])->id,
-            'number' => (string) fake()->unique()->numberBetween(100, 9999),
+            'number' => (string) fake()->unique()->numberBetween(10000, 99999),
         ];
     }
 

@@ -14,7 +14,9 @@ use Spatie\LaravelData\Data;
  * `overrideTotal` is a decimal string, the stay total of one unit. `arrivalTime` and `departureTime` are `H:i`; when null,
  * `AddUnit` copies the first unit of the reservation, then the property times. A day use line has `stayType` DayUse and
  * `arrivalDate` equal to `departureDate`. It also has `startTime` (`H:i`), `hours` and `roomId`; the times of the unit come
- * from them, and `beds`, `overrideTotal` and `discountId` stay empty. See docs/12-reservations/02-group-bookings.md.
+ * from them, and `beds`, `overrideTotal` and `discountId` stay empty. A whole-dorm line has `wholeRoomId`: `beds` is that
+ * dorm's active bed count and `overrideTotal` is the stay total of the whole dorm, split over its beds. See
+ * docs/12-reservations/02-group-bookings.md and docs/12-reservations/03-bed-bookings.md.
  */
 class NewUnitData extends Data
 {
@@ -48,5 +50,6 @@ class NewUnitData extends Data
         public ?int $roomId = null,
         public array $declinedAutoAddOns = [],
         public array $boatTrips = [],
+        public ?int $wholeRoomId = null,
     ) {}
 }

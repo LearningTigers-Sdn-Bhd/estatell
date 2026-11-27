@@ -27,6 +27,7 @@ class PendingSignInUsers
                 ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
                 ->whereColumn('model_has_roles.model_id', 'users.id')
                 ->where('model_has_roles.model_type', (new User)->getMorphClass())
+                ->where('model_has_roles.property_id', $property->id)
                 ->where('roles.default_role', DefaultRoleEnum::Owner->value));
     }
 

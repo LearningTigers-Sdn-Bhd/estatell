@@ -54,9 +54,21 @@ import { lockToVerticalAxis, useTimelineDrag } from './use-timeline-drag';
 
 type Filters = App.Data.StayView.StayViewFiltersData;
 
-const ROW_HEIGHT = 48;
-const LABEL_WIDTH = 288;
-const COLUMN_WIDTH = 88;
+/** The grid sizes: default for the property's own Timeline View, compact to fit a month on screen (group mode). */
+const SIZES = {
+    default: {
+        rowHeight: 48,
+        labelWidth: 288,
+        columnWidth: 88,
+        groupHeight: 56,
+    },
+    compact: {
+        rowHeight: 36,
+        labelWidth: 176,
+        columnWidth: 44,
+        groupHeight: 28,
+    },
+} as const;
 
 /**
  * The Timeline View grid: rooms and beds by night, with stay and block bars drawn over the cells. Filtering, grouping,
@@ -89,6 +101,8 @@ export function StayViewTimeline({
     onOpenStay,
     onBlockRoom,
     corner,
+    density = 'default',
+    columnWidth,
 }: {
     gridRef: Ref<DateGridHandle>;
     window: App.Data.StayView.StayViewWindowData;
@@ -120,7 +134,17 @@ export function StayViewTimeline({
     onBlockRoom: (cell: BlockCell) => void;
     /** The control in the top-left corner of the date header. */
     corner?: ReactNode;
+    /** Compact rows and narrow nights, to see a month at once. */
+    density?: keyof typeof SIZES;
+    /** A night's width in pixels in place of the density's, for a view fitted to the screen (the group 2 weeks). */
+    columnWidth?: number;
 }) {
+    const {
+        rowHeight: ROW_HEIGHT,
+        labelWidth: LABEL_WIDTH,
+        groupHeight: GROUP_HEIGHT,
+    } = SIZES[density];
+    const COLUMN_WIDTH = columnWidth ?? SIZES[density].columnWidth;
     const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
     const [hoveredReservation, setHoveredReservation] = useState<number | null>(
         null,
@@ -377,7 +401,7 @@ export function StayViewTimeline({
                 labelWidth={LABEL_WIDTH}
                 columnWidth={COLUMN_WIDTH}
                 renderCorner={() => corner}
-                groupHeight={56}
+                groupHeight={GROUP_HEIGHT}
                 footerHeight={64}
                 rows={rows}
                 columns={columns}

@@ -11,6 +11,7 @@ use App\Enums\AiThreadStatus;
 use App\Enums\ArInvoiceStatus;
 use App\Enums\ArrivalImportOutcome;
 use App\Enums\AuditStatus;
+use App\Enums\BookingChangeKind;
 use App\Enums\BookingEngineMode;
 use App\Enums\ChannelAlertEvent;
 use App\Enums\ChannelConnectionStatus;
@@ -24,7 +25,9 @@ use App\Enums\EventStatus;
 use App\Enums\FacilityBookingStatus;
 use App\Enums\FolioRowTag;
 use App\Enums\FolioStatus;
+use App\Enums\ForecastBasis;
 use App\Enums\GatewayRefundStatus;
+use App\Enums\HousekeepingStatus;
 use App\Enums\MailStatus;
 use App\Enums\OtaCredentialStatus;
 use App\Enums\PartnerStatus;
@@ -96,6 +99,21 @@ class BadgeData extends Data
     public static function fromWebhookDeliveryStatus(WebhookDeliveryStatus $status): self
     {
         return new self($status->value, $status->label(), $status->tone());
+    }
+
+    public static function fromForecastBasis(ForecastBasis $basis): self
+    {
+        return new self($basis->value, $basis->label(), $basis->tone());
+    }
+
+    public static function fromHousekeepingStatus(HousekeepingStatus $status): self
+    {
+        return new self($status->value, $status->label(), $status->tone());
+    }
+
+    public static function fromBookingChangeKind(BookingChangeKind $kind): self
+    {
+        return new self($kind->value, $kind->label(), $kind->tone());
     }
 
     public static function fromAuditStatus(AuditStatus $status): self

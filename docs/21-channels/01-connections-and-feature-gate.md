@@ -6,13 +6,13 @@ Let properties sell on Agoda, Booking.com and other OTAs through Channex. The es
 
 ## Scope
 
-| Now                                               | Later                                                           |
-| ------------------------------------------------- | --------------------------------------------------------------- |
-| Room and Guest room types                         | Dorm beds (WIP, see [Dorm strategies](03-dorm-strategies.md))   |
-| Booking.com, Agoda, Hostelworld, Expedia          | Airbnb (OAuth, listing mapping, many properties per connection) |
-| Admins do the whole setup through the Channel API | Owner self-serve behind `channel.manage`                        |
-| Owners: read-only Channels page and help requests | –                                                               |
-| Bookings without card details                     | Cards through Channex's PCI service                             |
+| Now                                               | Later                                                                             |
+| ------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Room and Guest room types                         | Native dorms (pending verification, see [Dorm strategies](03-dorm-strategies.md)) |
+| Booking.com, Agoda, Hostelworld, Expedia          | Airbnb (OAuth, listing mapping, many properties per connection)                   |
+| Admins do the whole setup through the Channel API | Owner self-serve behind `channel.manage`                                          |
+| Owners: read-only Channels page and help requests | –                                                                                 |
+| Bookings without card details                     | Cards through Channex's PCI service                                               |
 
 The Channel IFrame is not used. Admins do not sign in to Channex by hand for the OTAs above.
 

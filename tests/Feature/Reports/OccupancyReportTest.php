@@ -166,3 +166,33 @@ test('the PDF and CSV end with the total row, and the selection totals only the 
         ->and($rows[2][2])->toBe('10')
         ->and($rows[2][3])->toBe('100');
 });
+
+test('the chart has a bar per day of the whole range, and per month past 62 days with the month\'s totals', function () {
+    [$user, $property] = reportSetup();
+    occupancySnapshot($property, '2026-08-20', ['rooms_available' => 10, 'rooms_sold' => 2, 'occupancy' => '20.00']);
+    occupancySnapshot($property, '2026-10-08', ['rooms_available' => 10, 'rooms_sold' => 10, 'occupancy' => '100.00']);
+    occupancySnapshot($property, '2026-10-09', ['rooms_available' => 10, 'rooms_sold' => 0, 'occupancy' => '0.00']);
+
+    $this->actingAs($user)->get(occupancyUrl($property, '?from=2026-10-08&to=2026-10-10'))->assertInertia(fn (Assert $page) => $page
+        ->where('chart.step', 'day')
+        ->where('chart.points', fn ($points) => collect($points)->map(fn ($point) => [$point['date'], $point['basis'], $point['occupancy']])->all() === [
+            ['2026-10-08', 'actual', '100.00'],
+            ['2026-10-09', 'actual', '0.00'],
+            ['2026-10-10', 'today', '0.00'],
+        ]));
+
+    $october = null;
+    $this->actingAs($user)->get(occupancyUrl($property, '?from=2026-10-01&to=2026-10-10'))->assertInertia(function (Assert $page) use (&$october) {
+        $october = $page->toArray()['props']['totals']['figures'];
+    });
+
+    $this->actingAs($user)->get(occupancyUrl($property, '?from=2026-08-01&to=2026-10-10'))->assertInertia(fn (Assert $page) => $page
+        ->where('chart.step', 'month')
+        ->has('chart.points', 2)
+        ->where('chart.points.0', ['date' => '2026-08', 'basis' => 'actual', 'occupancy' => '20.00', 'adr' => '0.00', 'revpar' => '0.00', 'revenue' => '0.00'])
+        ->where('chart.points.1.date', '2026-10')
+        ->where('chart.points.1.basis', 'today')
+        ->where('chart.points.1.occupancy', $october['occupancy'])
+        ->where('chart.points.1.adr', $october['adr'])
+        ->where('chart.points.1.revenue', $october['revenue']));
+});

@@ -39,6 +39,7 @@ class FacilityBookingRowData extends Data
         public bool $canPostNow = false,
         public ?string $chargeTo = null,
         public ?string $chargeToLabel = null,
+        public bool $private = false,
     ) {}
 
     /**
@@ -49,7 +50,7 @@ class FacilityBookingRowData extends Data
     {
         $facility = $booking->facility;
         $live = $booking->status !== FacilityBookingStatus::Cancelled;
-        $units = $facility->rate_basis->quantity($booking->starts_at, $booking->ends_at, $booking->quantity, $facility->booked_by);
+        $units = $facility->rate_basis->quantity($booking->starts_at, $booking->ends_at, $booking->quantity, $facility->booked_by, $booking->private);
 
         return new self(
             id: $booking->id,
@@ -62,7 +63,7 @@ class FacilityBookingRowData extends Data
             capacityUnitLabel: $facility->booked_by->unit($booking->quantity),
             unitAmount: $booking->unit_amount,
             amount: $booking->unit_amount === null ? null : (string) BigDecimal::of($booking->unit_amount)->multipliedBy($units)->toScale(2),
-            rateBasisLabel: $facility->rate_basis->label($facility->booked_by),
+            rateBasisLabel: $booking->private ? __('Private') : $facility->rate_basis->label($facility->booked_by),
             notes: $booking->notes,
             status: BadgeData::fromFacilityBookingStatus($booking->status),
             canEdit: $canChange && $live && ! $posted,
@@ -71,6 +72,7 @@ class FacilityBookingRowData extends Data
             canPostNow: $canChange && $canPost && ! $posted && $booking->status === FacilityBookingStatus::Confirmed && $booking->unit_amount !== null,
             chargeTo: $booking->reservation_id === null ? null : 'f'.$booking->folio_id,
             chargeToLabel: $chargeToLabel,
+            private: $booking->private,
         );
     }
 }

@@ -6,6 +6,7 @@ use App\Actions\Reservations\AddOnResult;
 use App\Actions\Reservations\AttachGuestResult;
 use App\Actions\Reservations\BookingResult;
 use App\Actions\Reservations\ReservationResult;
+use App\Services\Transfers\TransferRefusals;
 
 /**
  * Turns the refusal of `CreateBooking` into form errors keyed by position, for the booking form: `lines.1.room_type_id`,
@@ -15,12 +16,12 @@ use App\Actions\Reservations\ReservationResult;
 class BookingErrorKeys
 {
     /** The fields that belong to a line, and are keyed by it. */
-    private const array LINE_FIELDS = ['room_type_id', 'rate_plan_id', 'adults', 'child_ages', 'discount_id', 'override_total', 'override_reason', 'restriction_override_reason', 'start_time', 'hours', 'room_id'];
+    private const array LINE_FIELDS = ['room_type_id', 'rate_plan_id', 'adults', 'child_ages', 'discount_id', 'override_total', 'override_reason', 'restriction_override_reason', 'start_time', 'hours', 'room_id', 'whole_room_id'];
 
     /** The add-on fields: a refusal inside a line does not say which add-on, so they key the line's add-ons. */
     private const array ADD_ON_FIELDS = ['charge_item_id', 'quantity', 'unit_amount', 'service_date'];
 
-    public function __construct(private ReservationRefusals $refusals) {}
+    public function __construct(private ReservationRefusals $refusals, private TransferRefusals $transferRefusals) {}
 
     /**
      * @param  list<int>  $unitsPerLine  How many units each line adds, in line order.
@@ -32,11 +33,15 @@ class BookingErrorKeys
             return ['boat_'.$result->boatDirection => (string) current($this->refusals->boatTripErrors((string) $result->refusal))];
         }
 
+        if ($result->transferDirection !== null) {
+            return ['transfer_'.$result->transferDirection => (string) current($this->transferRefusals->errors((string) $result->refusal))];
+        }
+
         $errors = $this->refusals->errors((string) $result->refusal, $result->date, $canOverrideRestrictions);
         $field = (string) array_key_first($errors);
         $message = $errors[$field];
 
-        if (in_array($field, ['arrival_date', 'departure_date', 'company_id', 'credit_override_reason', 'reason', 'opening_amount'], true)) {
+        if (in_array($field, ['arrival_date', 'departure_date', 'company_id', 'sales_person_id', 'market_segment_id', 'credit_override_reason', 'reason', 'opening_amount'], true)) {
             return [$field => $message];
         }
 

@@ -2,6 +2,7 @@
 
 namespace App\Actions\Rooms;
 
+use App\Actions\Housekeeping\CreateBedStatus;
 use App\Enums\SellUnit;
 use App\Models\Bed;
 use App\Models\Property;
@@ -12,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 
 class GenerateBeds
 {
-    public function __construct(private BedLabelGenerator $labels) {}
+    public function __construct(private BedLabelGenerator $labels, private CreateBedStatus $createBedStatus) {}
 
     /**
      * Add `$count` beds to each room. The prefix defaults to the room's letter, which is its place among the
@@ -46,6 +47,7 @@ class GenerateBeds
                     $bed = new Bed(['label' => $label, 'position' => ++$position]);
                     $bed->room_id = $room->id;
                     $bed->save();
+                    ($this->createBedStatus)($bed, $room);
                     $created++;
                 }
             }

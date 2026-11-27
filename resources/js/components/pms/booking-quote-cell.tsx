@@ -43,6 +43,7 @@ export function BookingQuoteCell({
     canOverride = true,
     goLiveDate = null,
     enteredPrice = false,
+    overrideLabel = 'Stay total of one unit',
 }: {
     quote: Quote | null;
     loading: boolean;
@@ -57,6 +58,8 @@ export function BookingQuoteCell({
     index: number;
     /** Company portal lines never offer a price override. */
     canOverride?: boolean;
+    /** What the override is the total of: one unit, or a whole dorm. */
+    overrideLabel?: string;
     /** Migrated stay only: a night before this date shows "before go-live" and no price. */
     goLiveDate?: string | null;
     /** A day use line with no plan: staff type the price, so the cell is the Price field and the optional reason. */
@@ -215,7 +218,7 @@ export function BookingQuoteCell({
                                 }
                             >
                                 <FieldLabel htmlFor={`override-total-${index}`}>
-                                    Stay total of one unit
+                                    {overrideLabel}
                                 </FieldLabel>
                                 <MoneyInput
                                     id={`override-total-${index}`}

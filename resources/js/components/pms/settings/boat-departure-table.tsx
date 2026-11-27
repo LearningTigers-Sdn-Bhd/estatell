@@ -200,9 +200,10 @@ export function BoatDepartureTable({
                                     </span>
                                 )}
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="whitespace-normal">
                                 {(() => {
-                                    // "Awang (in charge), Daus": the one in charge first, then the assistants.
+                                    // The boat on one line, then "Awang (in charge), Daus": the one in charge first,
+                                    // then the assistants. The cell wraps so a long crew stays inside its column.
                                     const [first, ...others] =
                                         departure.crewNames;
                                     const crewText = [
@@ -214,19 +215,25 @@ export function BoatDepartureTable({
                                     ]
                                         .filter(Boolean)
                                         .join(', ');
-                                    const text = [
-                                        departure.defaultBoatName,
-                                        crewText,
-                                    ]
-                                        .filter(Boolean)
-                                        .join(' · ');
 
-                                    return text === '' ? (
+                                    return departure.defaultBoatName === null &&
+                                        crewText === '' ? (
                                         <span className="text-muted-foreground">
                                             —
                                         </span>
                                     ) : (
-                                        <span>{text}</span>
+                                        <div className="flex flex-col">
+                                            {departure.defaultBoatName && (
+                                                <span>
+                                                    {departure.defaultBoatName}
+                                                </span>
+                                            )}
+                                            {crewText !== '' && (
+                                                <span className="text-xs text-muted-foreground">
+                                                    {crewText}
+                                                </span>
+                                            )}
+                                        </div>
                                     );
                                 })()}
                             </TableCell>

@@ -20,4 +20,7 @@ enum ReportDatePreset: string
     case LastMonth = 'last-month';
     case ThisYear = 'this-year';
     case Last30Days = 'last-30-days';
+    case Next3Months = 'next-3-months';
+    case Next6Months = 'next-6-months';
+    case Next12Months = 'next-12-months';
 }

@@ -30,6 +30,7 @@ use App\Enums\PaymentMode;
 use App\Enums\PaymentProofStatus;
 use App\Enums\PermissionEnum;
 use App\Enums\PosQrSessionKind;
+use App\Enums\RemarkKind;
 use App\Enums\ReservationStatus;
 use App\Enums\SellUnit;
 use App\Enums\StayType;
@@ -41,6 +42,7 @@ use App\Features\Boats;
 use App\Features\DoorLocks;
 use App\Features\Facilities;
 use App\Features\Pos;
+use App\Features\Transfers;
 use App\Http\Controllers\Controller;
 use App\Models\ArInvoice;
 use App\Models\FolioLine;
@@ -80,6 +82,7 @@ use App\Services\Property\MigrationWindow;
 use App\Services\Reservations\AgentBill;
 use App\Services\Reservations\BookingSourceOptions;
 use App\Services\Reservations\BookingSummary;
+use App\Services\Reservations\MarketSegments;
 use App\Services\Reservations\ReservationActivityLog;
 use App\Services\Reservations\ReservationBoatSetup;
 use App\Services\Reservations\ReservationDirectory;
@@ -88,7 +91,9 @@ use App\Services\Reservations\ReservationGuestRows;
 use App\Services\Reservations\ReservationOverview;
 use App\Services\Reservations\ReservationRoomBox;
 use App\Services\Reservations\ReservationUnitRows;
+use App\Services\Reservations\SalesPeople;
 use App\Services\Reservations\UnitActionMenu;
+use App\Services\Transfers\ReservationTransfers;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -310,6 +315,19 @@ class ReservationController extends Controller
     }
 
     /**
+     * Reservation page, Transfers tab: a row per unit and direction, and the routes for the transfer Dialog.
+     * See docs/35-transfers/01-land-transfers.md#reservation-transfers-tab.
+     */
+    public function transfers(Request $request, Property $property, Reservation $reservation, ReservationTransfers $reservationTransfers): Response
+    {
+        return $this->renderTab($request->user(), $property, $reservation, 'transfers', function (array $units, EloquentCollection $models) use ($request, $property, $reservationTransfers): array {
+            $labels = collect($units)->mapWithKeys(fn (ReservationUnitOptionData $unit): array => [$unit->id => $unit->label])->all();
+
+            return $reservationTransfers->tabProps($request->user(), $property, $models, $labels);
+        });
+    }
+
+    /**
      * Reservation page, Folio tab. `?folio=` picks the folio (an id, or `u{unit id}` for a unit with no folio yet).
      * `routingRules` is an optional prop for the Routing rules Sheet, sent only to a user with `folio.transfer`. `creditInvoice` is an optional prop with the AR invoice page data of a settled folio, read when its credit note Dialog or void Dialog opens and null without the credit note permission or the void and reopen permissions.
      */
@@ -493,13 +511,13 @@ class ReservationController extends Controller
      * list. Only the open tab's own data is read and sent. The form option lists are optional props, read when an
      * overlay opens.
      *
-     * @param  'units'|'guests'|'add-ons'|'facilities'|'folio'|'activity'  $tab
+     * @param  'units'|'guests'|'add-ons'|'facilities'|'transfers'|'folio'|'activity'  $tab
      * @param  callable(list<ReservationUnitOptionData>, EloquentCollection<int, ReservationUnit>): array<string, mixed>  $tabProps
      */
     private function renderTab(User $user, Property $property, Reservation $reservation, string $tab, callable $tabProps): Response
     {
         $canViewGuest = $user->can(PermissionEnum::GuestsView->value);
-        $reservation->load(['booker', 'creator', 'company', 'bookingSource']);
+        $reservation->load(['booker', 'creator', 'salesPerson', 'marketSegment', 'remarks', 'company', 'bookingSource']);
         $overview = app(ReservationOverview::class)->build($reservation, $canViewGuest);
         $options = app(ReservationFormOptions::class);
         $hasBoats = Feature::for($property)->active(Boats::class);
@@ -526,6 +544,7 @@ class ReservationController extends Controller
             'singleUnit' => $tab === 'units' ? null : $this->singleUnitData($user, $property, $reservation, $overview['models']),
             'hasBoats' => $hasBoats,
             'hasFacilities' => Feature::for($property)->active(Facilities::class),
+            'hasTransfers' => Feature::for($property)->active(Transfers::class),
             'hasUnitToCheckIn' => $overview['models']->contains(fn ($unit): bool => $unit->status === UnitStatus::Confirmed),
             'canCancelReservation' => $user->can(PermissionEnum::ReservationsManage->value) && $overview['models']->contains(fn ($unit): bool => $unit->status === UnitStatus::Confirmed),
             'canWaiveFees' => $user->can(PermissionEnum::FrontDeskWaiveFees->value),
@@ -540,6 +559,10 @@ class ReservationController extends Controller
             'canViewCompany' => $user->can(PermissionEnum::CompanyView->value),
             'canOverrideCredit' => $user->can(PermissionEnum::CompanyCreditOverride->value),
             'companies' => Inertia::optional(fn () => $user->can(PermissionEnum::CompanyView->value) ? app(CompanyOptions::class)->active($property) : []),
+            'salesPeople' => Inertia::optional(fn () => $canManage ? app(SalesPeople::class)->options($property) : []),
+            'marketSegments' => Inertia::optional(fn () => $canManage ? app(MarketSegments::class)->options($property) : []),
+            'hasMarketSegments' => $property->marketSegments()->exists(),
+            'remarkKinds' => RemarkKind::options(),
             'addUnitOptions' => Inertia::optional(fn () => $options->addUnit($property)),
             'chargeItems' => Inertia::optional(fn () => $options->chargeItems($property)),
             'chargeCodes' => Inertia::optional(fn () => $options->chargeCodes($property)),

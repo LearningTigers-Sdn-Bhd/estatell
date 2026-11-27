@@ -25,13 +25,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $capacity How many items or people at one time. Always the limit.
  * @property int $charge_item_id
  * @property FacilityRateBasis $rate_basis
+ * @property string|null $private_amount The price of one private booking (a charter) of a Person facility; null when it cannot be booked privately.
  * @property int $position
  * @property bool $active
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  * @property-read int|null $sessions_count
  */
-#[Fillable(['name', 'description', 'booked_by', 'capacity', 'rate_basis', 'active'])]
+#[Fillable(['name', 'description', 'booked_by', 'capacity', 'rate_basis', 'private_amount', 'active'])]
 class Facility extends Model
 {
     /** @use HasFactory<FacilityFactory> */
@@ -44,6 +45,7 @@ class Facility extends Model
             'booked_by' => FacilityBookedBy::class,
             'capacity' => 'integer',
             'rate_basis' => FacilityRateBasis::class,
+            'private_amount' => 'decimal:2',
             'position' => 'integer',
             'active' => 'boolean',
         ];

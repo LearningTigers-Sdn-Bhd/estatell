@@ -37,7 +37,7 @@ class StartRoomCleaningRequest extends FormRequest
         $property = $this->route('property');
 
         return [
-            'housekeeper_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('property_id', $property->id)->whereNull('deactivated_at')],
+            'housekeeper_id' => ['nullable', 'integer', Rule::exists('property_memberships', 'user_id')->where('property_id', $property->id)->whereNull('deactivated_at')],
         ];
     }
 

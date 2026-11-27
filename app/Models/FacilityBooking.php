@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $starts_at HH:MM:SS
  * @property string $ends_at HH:MM:SS
  * @property int $quantity
+ * @property bool $private A private booking (a charter) of a Person facility: it takes the whole facility at its time, at one price.
  * @property string|null $unit_amount Null when the facility is charged by hand.
  * @property FacilityBookingStatus $status
  * @property string|null $notes
@@ -34,7 +35,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable|null $created_at
  * @property CarbonImmutable|null $updated_at
  */
-#[Fillable(['facility_id', 'event_id', 'reservation_id', 'folio_id', 'booking_date', 'starts_at', 'ends_at', 'quantity', 'unit_amount', 'status', 'notes', 'created_by', 'cancelled_at', 'cancelled_by'])]
+#[Fillable(['facility_id', 'event_id', 'reservation_id', 'folio_id', 'booking_date', 'starts_at', 'ends_at', 'quantity', 'private', 'unit_amount', 'status', 'notes', 'created_by', 'cancelled_at', 'cancelled_by'])]
 class FacilityBooking extends Model
 {
     /** @use HasFactory<FacilityBookingFactory> */
@@ -46,6 +47,7 @@ class FacilityBooking extends Model
         return [
             'booking_date' => 'immutable_date',
             'quantity' => 'integer',
+            'private' => 'boolean',
             'unit_amount' => 'decimal:2',
             'status' => FacilityBookingStatus::class,
             'cancelled_at' => 'immutable_datetime',

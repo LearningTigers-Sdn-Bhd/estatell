@@ -8,11 +8,14 @@ use App\Notifications\PortalBookingCancelled;
 use App\Notifications\PortalBookingCreated;
 use App\Notifications\PortalCancellationRequested;
 use App\Notifications\PortalReservationNotification;
+use App\Services\Staff\PropertyStaff;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Notification;
 
 class NotifyReservationStaff
 {
+    public function __construct(private PropertyStaff $propertyStaff) {}
+
     /**
      * Tell the property's reservation staff about a company portal event. The recipients are the active staff of the
      * property who hold the permission of the notification type, and the notification applies the property and user
@@ -41,18 +44,6 @@ class NotifyReservationStaff
      */
     private function recipients(Reservation $reservation, PortalReservationNotification $message): Collection
     {
-        $previousTeamId = getPermissionsTeamId();
-        setPermissionsTeamId($reservation->property_id);
-
-        try {
-            return User::query()
-                ->where('property_id', $reservation->property_id)
-                ->where('is_admin', false)
-                ->whereNull('deactivated_at')
-                ->permission((string) $message->type->recipientPermission())
-                ->get();
-        } finally {
-            setPermissionsTeamId($previousTeamId);
-        }
+        return $this->propertyStaff->withPermission($reservation->property_id, (string) $message->type->recipientPermission());
     }
 }

@@ -17,6 +17,7 @@ use App\Http\Middleware\EnsureDoorLocksAreActive;
 use App\Http\Middleware\EnsureEInvoicingIsActive;
 use App\Http\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\EnsureFacilitiesAreActive;
+use App\Http\Middleware\EnsureGroupAccess;
 use App\Http\Middleware\EnsureKeyportVersion;
 use App\Http\Middleware\EnsureKiosksAreActive;
 use App\Http\Middleware\EnsureOnboarding;
@@ -27,6 +28,7 @@ use App\Http\Middleware\EnsurePosActorCan;
 use App\Http\Middleware\EnsurePosIsActive;
 use App\Http\Middleware\EnsurePropertyAccess;
 use App\Http\Middleware\EnsurePropertyIsLive;
+use App\Http\Middleware\EnsureTransfersAreActive;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\LogoutDeactivatedUsers;
@@ -83,6 +85,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'boats' => EnsureBoatsIsActive::class,
             'facilities' => EnsureFacilitiesAreActive::class,
             'ai-assistant' => EnsureAiAssistantIsActive::class,
+            'transfers' => EnsureTransfersAreActive::class,
             'accounting' => EnsureAccountingIsActive::class,
             'door-locks' => EnsureDoorLocksAreActive::class,
             'einvoicing' => EnsureEInvoicingIsActive::class,
@@ -107,6 +110,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->prependToPriorityList([ThrottleRequests::class, ThrottleRequestsWithRedis::class], AuthenticateApiToken::class);
         $middleware->appendToPriorityList(SubstituteBindings::class, EnsurePropertyAccess::class);
+        $middleware->appendToPriorityList(SubstituteBindings::class, EnsureGroupAccess::class);
         $middleware->appendToPriorityList(SubstituteBindings::class, EnsurePortalAccess::class);
         $middleware->appendToPriorityList(SubstituteBindings::class, EnsureConciergeIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsurePropertyIsLive::class);
@@ -116,6 +120,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureBoatsIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureFacilitiesAreActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureAiAssistantIsActive::class);
+        $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureTransfersAreActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureAccountingIsActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureDoorLocksAreActive::class);
         $middleware->appendToPriorityList(EnsurePropertyAccess::class, EnsureEInvoicingIsActive::class);

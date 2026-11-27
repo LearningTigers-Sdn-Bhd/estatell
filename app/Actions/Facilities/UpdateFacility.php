@@ -4,6 +4,7 @@ namespace App\Actions\Facilities;
 
 use App\Actions\Catalogues\UpdateChargeItem;
 use App\Enums\ChargingUnit;
+use App\Enums\FacilityBookedBy;
 use App\Enums\TransactionCategory;
 use App\Models\ChargeItem;
 use App\Models\Facility;
@@ -27,7 +28,7 @@ class UpdateFacility
      * Returns null, and saves nothing, when `booked_by` changes while the facility has a booking from the business
      * date on that is not Cancelled (`booked_by_locked`): its quantity would then count something else.
      *
-     * @param  array{name: string, booked_by: string, capacity: int, default_amount: ?string, rate_basis: string, active: bool, tax_ids?: ?list<int>}  $attributes
+     * @param  array{name: string, booked_by: string, capacity: int, default_amount: ?string, rate_basis: string, active: bool, tax_ids?: ?list<int>, private_amount?: ?string}  $attributes
      */
     public function __invoke(User $actor, Facility $facility, array $attributes): ?Facility
     {
@@ -48,6 +49,7 @@ class UpdateFacility
                 'booked_by' => $attributes['booked_by'],
                 'capacity' => $attributes['capacity'],
                 'rate_basis' => $attributes['rate_basis'],
+                'private_amount' => $attributes['booked_by'] !== FacilityBookedBy::Person->value ? null : (array_key_exists('private_amount', $attributes) ? $attributes['private_amount'] : $facility->private_amount),
                 'active' => $attributes['active'],
             ]);
             $changes = array_keys($facility->getDirty());

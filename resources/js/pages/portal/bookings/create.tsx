@@ -20,6 +20,7 @@ export default function PortalBookingCreate({
     locales,
     autoAddOns,
     boatDepartures,
+    transferRoutes,
     currency,
 }: {
     propertyName: string;
@@ -36,6 +37,7 @@ export default function PortalBookingCreate({
     locales: EnumOption[];
     autoAddOns: string[];
     boatDepartures: App.Data.Boats.BoatDepartureOptionData[];
+    transferRoutes: App.Data.Transfers.TransferRouteData[];
     currency: App.Data.Property.CurrencyData | null;
 }) {
     return (
@@ -79,6 +81,7 @@ export default function PortalBookingCreate({
                         cancelCutoffDays={cancelCutoffDays}
                         autoAddOns={autoAddOns}
                         boatDepartures={boatDepartures}
+                        transferRoutes={transferRoutes}
                         companyName={companyName}
                         currency={currency}
                     />

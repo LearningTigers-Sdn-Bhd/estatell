@@ -5,6 +5,11 @@ import {
     NOT_SET,
     type BoatChoice,
 } from '@/components/pms/reservations/boat-trips';
+import {
+    NO_TRANSFER,
+    transferPayload,
+    type TransferChoice,
+} from '@/components/pms/transfer-picks';
 
 /** One booking line of the form: a room type and rate plan, the party, and what is picked for it. */
 export type BookingAddOn = {
@@ -38,6 +43,8 @@ export type BookingLine = {
     declined_auto_add_ons: string[];
     room_id: string;
     bed_ids: string[];
+    /** A dorm line that buys out one whole dorm: its room id, or '' for beds only. `beds` then holds its bed count. */
+    whole_room_id?: string;
     /** Day use only: the number of hours, as text. */
     hours: string;
 };
@@ -56,6 +63,12 @@ export type BookingForm = {
     departure_time: string;
     group_name: string;
     company_id: string;
+    /** The staff member who sold the booking, as text, or "" for none. */
+    sales_person_id?: string;
+    /** The market segment, as text, or "" for none. */
+    market_segment_id?: string;
+    /** The text of each remark kind; empty ones are not saved. */
+    remarks?: Partial<Record<App.Enums.RemarkKind, string>>;
     credit_override_reason: string;
     billing_mode: string;
     /** A `CollectedTaxesPayer` value, or "" for the company's default. */
@@ -80,6 +93,9 @@ export type BookingForm = {
     /** Overnight only: the Boat in and Boat out picks, applied to every line. A day use block takes none. */
     boat_in: BoatChoice;
     boat_out: BoatChoice;
+    /** Overnight only, with the Transfers feature: the road transfers, set on every room. */
+    transfer_in?: TransferChoice;
+    transfer_out?: TransferChoice;
     /** Walk-in only, with `payment.record`: the Payment section. The server answers every amount; `expected_total` is the total the rail showed. */
     collect_room_charges?: boolean;
     collect_deposit?: boolean;
@@ -404,6 +420,7 @@ export function quotePayload(
         adults: isBed ? 1 : line.adults,
         child_ages: isBed ? [] : line.child_ages.map(Number),
         beds: isBed ? line.beds : 1,
+        whole_room: isBed && (line.whole_room_id ?? '') !== '' ? 1 : 0,
         override_total: MONEY.test(line.override_total)
             ? line.override_total
             : '',
@@ -453,6 +470,8 @@ export function bookingPayload(data: BookingForm, roomTypes: RoomTypeOption[]) {
             departure_date: data.arrival_date,
             boat_in: null,
             boat_out: null,
+            transfer_in: null,
+            transfer_out: null,
             guests: guestsPayload(data.guests),
             lines: data.lines.map((line) => {
                 const { key: _key, ...rest } = line;
@@ -477,6 +496,8 @@ export function bookingPayload(data: BookingForm, roomTypes: RoomTypeOption[]) {
             data.boat_out ?? NOT_SET,
             data.departure_time,
         ),
+        transfer_in: transferPayload(data.transfer_in ?? NO_TRANSFER),
+        transfer_out: transferPayload(data.transfer_out ?? NO_TRANSFER),
         guests: guestsPayload(data.guests),
         lines: data.lines.map((line) => {
             const isBed = roomTypeOf(line, roomTypes)?.isBed === true;
@@ -488,7 +509,11 @@ export function bookingPayload(data: BookingForm, roomTypes: RoomTypeOption[]) {
                 child_ages: isBed ? [] : line.child_ages.map(Number),
                 beds: isBed ? line.beds : '1',
                 room_id: isBed ? '' : line.room_id,
-                bed_ids: isBed ? line.bed_ids : [],
+                whole_room_id: isBed ? (line.whole_room_id ?? '') : '',
+                bed_ids:
+                    isBed && (line.whole_room_id ?? '') === ''
+                        ? line.bed_ids
+                        : [],
                 hours: '',
                 add_ons: sendableAddOns(line.add_ons),
             };

@@ -123,6 +123,17 @@ For a guest who is checked in (the `home` step, and under the door code on the `
 3. **Property services:** Wi-Fi, Contact us, Nearby places, the Property guide and Hotel facilities.
 4. **More actions** (collapsed): My requests, My bill, and the stay's documents.
 
+### Your plans
+
+Added 2026-11-26 (Tanini). Under every step except Desk, Hold expired and Checked out, the page lists what is booked for the stay besides the room, by date and time (`ConciergePlans`, `ConciergeStayData.plans`, `stay-plans.tsx`):
+
+| Kind     | Shown when                                                                                                    | Line                                                                |
+| -------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Transfer | The unit's road transfers, while [Transfers](../35-transfers/01-land-transfers.md) is on                      | "Pick-up at Sandakan Airport", 10:30, "Flight AK 6231 · Shared van" |
+| Activity | The reservation's Tentative and Confirmed facility bookings from the property's today, while Facilities is on | "River Safari", 06:00–08:00, "2 people" (or "Private")              |
+
+It never names a guest or another booking. A guest before arrival sees it too, because the pick-up time matters most then. "To change a plan, contact the front desk": the guest cannot change it here.
+
 ## In-stay pages
 
 They open from the stay menu once the guest is checked in. Each works only for a stay that is CheckedIn: any other stay is sent back to the stay page.

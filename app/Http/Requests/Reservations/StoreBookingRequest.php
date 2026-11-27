@@ -9,6 +9,7 @@ use App\Data\Reservations\NewBookingData;
 use App\Data\Reservations\NewBookingGuestData;
 use App\Data\Reservations\NewUnitData;
 use App\Data\Reservations\UnitPickData;
+use App\Data\Transfers\UnitTransferInputData;
 use App\Enums\BillingMode;
 use App\Enums\BoatDirection;
 use App\Enums\BoatMode;
@@ -17,7 +18,11 @@ use App\Enums\IdentityDocumentType;
 use App\Enums\PermissionEnum;
 use App\Enums\SellUnit;
 use App\Enums\StayType;
+use App\Features\Transfers;
+use App\Http\Requests\Concerns\ValidatesRemarks;
 use App\Http\Requests\Guests\GuestProfileRules;
+use App\Http\Requests\Transfers\TransferPickRules;
+use App\Models\Bed;
 use App\Models\BookingSource;
 use App\Models\Guest;
 use App\Models\Property;
@@ -29,10 +34,13 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
+use Laravel\Pennant\Feature;
 use LogicException;
 
 class StoreBookingRequest extends FormRequest
 {
+    use ValidatesRemarks;
+
     /**
      * The `can:reservations.manage` route middleware authorizes this request.
      */
@@ -88,8 +96,12 @@ class StoreBookingRequest extends FormRequest
             'boat_out.boat_departure_id' => ['required_if:boat_out.mode,'.BoatMode::Scheduled->value, 'nullable', 'integer'],
             'boat_out.time' => ['nullable', 'date_format:H:i'],
             'boat_out.note' => ['nullable', 'string', 'max:255'],
+            ...TransferPickRules::rules(),
             'group_name' => ['nullable', 'string', 'max:150'],
             'company_id' => ['nullable', 'integer'],
+            'sales_person_id' => ['nullable', 'integer'],
+            'market_segment_id' => ['nullable', 'integer'],
+            ...$this->remarkRules(),
             'credit_override_reason' => ['nullable', 'string', 'max:500'],
             'billing_mode' => ['nullable', Rule::enum(BillingMode::class)],
             'collected_taxes_payer' => ['nullable', Rule::enum(CollectedTaxesPayer::class)],
@@ -124,6 +136,7 @@ class StoreBookingRequest extends FormRequest
             'lines.*.room_id' => ['nullable', 'integer'],
             'lines.*.bed_ids' => ['nullable', 'array', 'max:99'],
             'lines.*.bed_ids.*' => ['nullable', 'integer'],
+            'lines.*.whole_room_id' => ['nullable', 'integer'],
         ];
     }
 
@@ -137,6 +150,7 @@ class StoreBookingRequest extends FormRequest
             'booking_source_id.integer' => __('This booking source is not available. Pick another.'),
             'booking_source_id.exists' => __('This booking source is not available. Pick another.'),
             'lines.*.override_total.regex' => __('Enter an amount such as 840.00.'),
+            ...TransferPickRules::messages(),
             'lines.*.add_ons.*.unit_amount.regex' => __('Enter an amount such as 25.00.'),
             'lines.*.child_ages.*.required' => __('Enter the age of every child.'),
             'lines.*.child_ages.*.integer' => __('Enter the age of every child.'),
@@ -159,6 +173,10 @@ class StoreBookingRequest extends FormRequest
             }
 
             foreach ($this->input('lines', []) as $index => $line) {
+                if ($this->isBedLine((int) $line['room_type_id']) && ! empty($line['whole_room_id'])) {
+                    continue;
+                }
+
                 if ($this->isBedLine((int) $line['room_type_id'])) {
                     foreach (range(0, max(1, (int) ($line['beds'] ?? 1)) - 1) as $bed) {
                         if (empty($line['bed_ids'][$bed])) {
@@ -212,7 +230,12 @@ class StoreBookingRequest extends FormRequest
 
         foreach ($this->validated('lines') as $line) {
             $isBed = $this->isBedLine((int) $line['room_type_id']);
-            $beds = $isBed ? max(1, (int) ($line['beds'] ?? 1)) : 1;
+            $wholeRoomId = $isBed && ! $isDayUse && ! empty($line['whole_room_id']) ? (int) $line['whole_room_id'] : null;
+            $beds = match (true) {
+                $wholeRoomId !== null => max(1, $this->activeBeds($wholeRoomId)),
+                $isBed => max(1, (int) ($line['beds'] ?? 1)),
+                default => 1,
+            };
 
             $units[] = new NewUnitData(
                 roomTypeId: (int) $line['room_type_id'],
@@ -240,10 +263,11 @@ class StoreBookingRequest extends FormRequest
                 ), $line['add_ons'] ?? [])),
                 declinedAutoAddOns: array_values(array_map(intval(...), $line['declined_auto_add_ons'] ?? [])),
                 boatTrips: $boatTrips,
+                wholeRoomId: $wholeRoomId,
             );
 
             foreach (range(0, $beds - 1) as $bed) {
-                if (! $isDayUse) {
+                if (! $isDayUse && $wholeRoomId === null) {
                     $picks[] = $isBed
                         ? new UnitPickData($unitIndex, bedId: isset($line['bed_ids'][$bed]) ? (int) $line['bed_ids'][$bed] : null)
                         : new UnitPickData($unitIndex, roomId: isset($line['room_id']) ? (int) $line['room_id'] : null);
@@ -265,7 +289,20 @@ class StoreBookingRequest extends FormRequest
             companyId: $this->user()->can(PermissionEnum::CompanyView->value) && $this->filled('company_id') ? $this->integer('company_id') : null,
             creditOverrideReason: $this->user()->can(PermissionEnum::CompanyCreditOverride->value) ? $this->validated('credit_override_reason') : null,
             notes: $this->validated('notes'),
+            salesPersonId: $this->filled('sales_person_id') ? $this->integer('sales_person_id') : null,
+            marketSegmentId: $this->filled('market_segment_id') ? $this->integer('market_segment_id') : null,
+            remarks: $this->remarks(),
+            transfers: $isDayUse ? [] : $this->transfers(),
         );
+    }
+
+    /**
+     * The active beds of a room of the property: a whole-dorm line books one unit for each. `CreateReservation` refuses a
+     * room that is not a dorm of the line's room type.
+     */
+    private function activeBeds(int $roomId): int
+    {
+        return Bed::query()->active()->where('room_id', $roomId)->whereHas('room', fn ($rooms) => $rooms->where('property_id', $this->property()->id))->count();
     }
 
     /**
@@ -346,6 +383,20 @@ class StoreBookingRequest extends FormRequest
         }
 
         return $trips;
+    }
+
+    /**
+     * The Transfer in and Transfer out of the form, for every overnight unit. Empty while the Transfers feature is off.
+     *
+     * @return list<UnitTransferInputData>
+     */
+    private function transfers(): array
+    {
+        if (! Feature::for($this->property())->active(Transfers::class)) {
+            return [];
+        }
+
+        return TransferPickRules::inputs($this->validated());
     }
 
     /**

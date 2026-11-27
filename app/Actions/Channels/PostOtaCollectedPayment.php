@@ -43,7 +43,7 @@ class PostOtaCollectedPayment
      */
     public function __invoke(User $actor, Reservation $reservation, ChannelBookingRevision $revision): void
     {
-        $otaPayment = $this->mapper->otaPayment($revision->payload);
+        $otaPayment = $this->mapper->otaPayment($revision->payload, $revision->channelProperty);
 
         if ($otaPayment === null) {
             return;

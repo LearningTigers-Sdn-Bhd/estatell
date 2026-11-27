@@ -101,16 +101,17 @@ class FacilityBookingQuote
         ]);
         $refusalMessage = $refusal === null ? null : $this->refusals->message(FacilityBookingResult::refused($refusal, $facility->name));
 
-        $listPrice = $facility->chargeItem->default_amount;
-        $unitAmount = $listPrice === null ? null : ($data->unitAmount ?? $booking->unit_amount ?? (string) $listPrice);
+        $listPrice = $data->private ? $facility->private_amount : $facility->chargeItem->default_amount;
+        $keptAmount = $booking !== null && $booking->private === $data->private ? $booking->unit_amount : null;
+        $unitAmount = $listPrice === null ? null : ($data->unitAmount ?? $keptAmount ?? (string) $listPrice);
 
         if ($unitAmount === null || preg_match('/^\d+(\.\d{1,2})?$/', $unitAmount) !== 1) {
             return new FacilityBookingQuoteData(null, [], null, $refusalMessage, $warning, $sessions);
         }
 
         $property = $facility->property()->with('settings')->firstOrFail();
-        $units = $facility->rate_basis->quantity($data->startsAt, $data->endsAt, $data->quantity, $facility->booked_by);
-        $breakdown = $facility->rate_basis->breakdown($data->startsAt, $data->endsAt, $data->quantity, $facility->booked_by);
+        $units = $facility->rate_basis->quantity($data->startsAt, $data->endsAt, $data->quantity, $facility->booked_by, $data->private);
+        $breakdown = $facility->rate_basis->breakdown($data->startsAt, $data->endsAt, $data->quantity, $facility->booked_by, $data->private);
         $amount = Money::of($unitAmount, $property->settings->currency->getCurrencyCode())->multipliedBy($units);
         $tax = $this->taxCalculator->calculate($property, $facility->chargeItem->transactionCode, $amount, (string) $units, $nationality);
 

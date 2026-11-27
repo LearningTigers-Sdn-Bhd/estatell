@@ -63,6 +63,12 @@ export function reportDatePresets(
 
         return { from: date, to: date };
     };
+    /** From today to the end of the month `count - 1` months on, so every month is whole after this one. */
+    const nextMonths = (count: number) => ({
+        label: `Next ${count} months`,
+        from: format(today),
+        to: format(new Date(Date.UTC(year, month + count, 0))),
+    });
     const week = (start: Date) => ({
         from: format(start),
         to: format(addDays(start, 6)),
@@ -103,6 +109,9 @@ export function reportDatePresets(
             from: format(addDays(today, -29)),
             to: format(today),
         },
+        'next-3-months': nextMonths(3),
+        'next-6-months': nextMonths(6),
+        'next-12-months': nextMonths(12),
     };
 
     return (keys ?? defaultReportPresets).map((key) => ranges[key]);

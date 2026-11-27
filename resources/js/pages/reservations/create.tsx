@@ -76,6 +76,8 @@ import type { BookingTab } from '@/components/pms/reservations/booking-tabs';
 import { announceFormError, FormError } from '@/components/pms/form-error';
 import { StayDateTime } from '@/components/pms/reservations/stay-date-time';
 import { BookingBoatSelect } from '@/components/pms/reservations/booking-boat-select';
+import { TransferPickField } from '@/components/pms/transfer-pick-field';
+import { NO_TRANSFER } from '@/components/pms/transfer-picks';
 import {
     departuresFor,
     isScheduled,
@@ -117,6 +119,8 @@ import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { cn } from '@/lib/utils';
 import { CreditOverrideField } from '@/components/pms/city-ledger/credit-override-field';
 import { CompanySelect } from '@/components/pms/company-select';
+import { RemarksFields } from '@/components/pms/reservations/remarks-fields';
+import { RecordSelectField } from '@/components/pms/reservations/record-select-field';
 import {
     index,
     migrated,
@@ -196,6 +200,10 @@ type Props = {
     /** The names of the property's taxes with Collect at check-in on. */
     collectedTaxNames: string[];
     companies: App.Data.CityLedger.CompanyOptionData[];
+    salesPeople: App.Data.Reservations.SalesPersonOptionData[];
+    /** The active segments; empty hides the field. */
+    marketSegments: App.Data.Reservations.MarketSegmentData[];
+    remarkKinds: EnumOption[];
     canOverrideCredit: boolean;
     autoAssignRooms: boolean;
     currency: App.Data.Property.CurrencyData | null;
@@ -218,6 +226,8 @@ type Props = {
     hasBoats: boolean;
     /** The available boat departures, both directions. Each pick filters them by direction. */
     boatDepartures: App.Data.Boats.BoatDepartureOptionData[];
+    /** The available road transfer routes, both directions; empty while the Transfers feature is off. */
+    transferRoutes: App.Data.Transfers.TransferRouteData[];
     countries: EnumOption[];
     /** The property's country code: the nationality a new guest starts with. */
     defaultNationalityCode: string;
@@ -275,6 +285,9 @@ export default function ReservationCreate({
     collectedTaxesPayers,
     collectedTaxNames,
     companies,
+    salesPeople,
+    marketSegments,
+    remarkKinds,
     canOverrideCredit,
     autoAssignRooms,
     currency,
@@ -289,6 +302,7 @@ export default function ReservationCreate({
     hasDayUse,
     hasBoats,
     boatDepartures,
+    transferRoutes,
     countries,
     defaultNationalityCode,
     genders,
@@ -339,6 +353,9 @@ export default function ReservationCreate({
         departure_time: checkOutTime,
         group_name: '',
         company_id: '',
+        sales_person_id: '',
+        market_segment_id: '',
+        remarks: {},
         credit_override_reason: '',
         billing_mode: billingModes[0]?.value ?? 'master_pays',
         collected_taxes_payer: '',
@@ -347,6 +364,8 @@ export default function ReservationCreate({
         lines: [prefilledLine()],
         boat_in: NOT_SET,
         boat_out: NOT_SET,
+        transfer_in: NO_TRANSFER,
+        transfer_out: NO_TRANSFER,
         without_card: false,
         collect_room_charges: true,
         collect_deposit: true,
@@ -1558,6 +1577,52 @@ export default function ReservationCreate({
                                             />
                                         </div>
                                     )}
+                                    {!isDayUse &&
+                                        transferRoutes.length > 0 &&
+                                        !isPastStay && (
+                                            <div className="grid gap-4 sm:grid-cols-2">
+                                                <TransferPickField
+                                                    id="booking-transfer-in"
+                                                    direction="in"
+                                                    value={
+                                                        data.transfer_in ??
+                                                        NO_TRANSFER
+                                                    }
+                                                    onChange={(choice) =>
+                                                        form.setData(
+                                                            'transfer_in',
+                                                            choice,
+                                                        )
+                                                    }
+                                                    routes={transferRoutes}
+                                                    currency={currency}
+                                                    stayTime={data.arrival_time}
+                                                    rooms={units}
+                                                    errors={errors}
+                                                />
+                                                <TransferPickField
+                                                    id="booking-transfer-out"
+                                                    direction="out"
+                                                    value={
+                                                        data.transfer_out ??
+                                                        NO_TRANSFER
+                                                    }
+                                                    onChange={(choice) =>
+                                                        form.setData(
+                                                            'transfer_out',
+                                                            choice,
+                                                        )
+                                                    }
+                                                    routes={transferRoutes}
+                                                    currency={currency}
+                                                    stayTime={
+                                                        data.departure_time
+                                                    }
+                                                    rooms={units}
+                                                    errors={errors}
+                                                />
+                                            </div>
+                                        )}
                                     <div
                                         className={cn(
                                             'grid gap-4 sm:grid-cols-2',
@@ -1727,6 +1792,36 @@ export default function ReservationCreate({
                                                     {errors.group_name}
                                                 </FieldError>
                                             </Field>
+                                        )}
+                                        <RecordSelectField
+                                            id="booking-sales_person_id"
+                                            label="Sales person"
+                                            value={data.sales_person_id ?? ''}
+                                            onValueChange={(value) =>
+                                                form.setData(
+                                                    'sales_person_id',
+                                                    value,
+                                                )
+                                            }
+                                            records={salesPeople}
+                                            error={errors.sales_person_id}
+                                        />
+                                        {marketSegments.length > 0 && (
+                                            <RecordSelectField
+                                                id="booking-market_segment_id"
+                                                label="Market segment"
+                                                value={
+                                                    data.market_segment_id ?? ''
+                                                }
+                                                onValueChange={(value) =>
+                                                    form.setData(
+                                                        'market_segment_id',
+                                                        value,
+                                                    )
+                                                }
+                                                records={marketSegments}
+                                                error={errors.market_segment_id}
+                                            />
                                         )}
                                     </div>
                                 </FieldGroup>
@@ -2167,7 +2262,7 @@ export default function ReservationCreate({
                                 <TabsContent
                                     value="notes"
                                     keepMounted
-                                    className="pt-4"
+                                    className="flex flex-col gap-6 pt-4"
                                 >
                                     <Field data-invalid={!!errors.notes}>
                                         <FieldLabel
@@ -2213,6 +2308,15 @@ export default function ReservationCreate({
                                         </InputGroup>
                                         <FieldError>{errors.notes}</FieldError>
                                     </Field>
+                                    <RemarksFields
+                                        idPrefix="booking-remarks"
+                                        kinds={remarkKinds}
+                                        value={data.remarks ?? {}}
+                                        onChange={(remarks) =>
+                                            form.setData('remarks', remarks)
+                                        }
+                                        errors={errors}
+                                    />
                                 </TabsContent>
                             </Tabs>
                         </div>

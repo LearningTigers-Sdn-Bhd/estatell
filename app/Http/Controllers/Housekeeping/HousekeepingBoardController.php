@@ -8,6 +8,7 @@ use App\Actions\Housekeeping\SetDoNotDisturb;
 use App\Actions\Housekeeping\SetNeedsMaintenance;
 use App\Actions\Housekeeping\SetRoomPriority;
 use App\Actions\Housekeeping\SetRoomRemark;
+use App\Actions\Housekeeping\UpdateBedStatus;
 use App\Actions\Housekeeping\UpdateRoomStatus;
 use App\Data\Rooms\RoomGroupData;
 use App\Data\Shared\BadgeData;
@@ -23,6 +24,7 @@ use App\Http\Requests\Housekeeping\SetNeedsMaintenanceRequest;
 use App\Http\Requests\Housekeeping\SetRoomPriorityRequest;
 use App\Http\Requests\Housekeeping\SetRoomRemarkRequest;
 use App\Http\Requests\Housekeeping\UpdateRoomStatusRequest;
+use App\Models\Bed;
 use App\Models\Property;
 use App\Models\Room;
 use App\Models\RoomGroup;
@@ -76,6 +78,23 @@ class HousekeepingBoardController extends Controller
         Inertia::flash('toast', $refusal === null
             ? ['type' => 'success', 'message' => __('Room :room is now :status.', ['room' => $room->number, 'status' => $request->status()->label()])]
             : ['type' => 'error', 'message' => $refusal->message($room->number)]);
+
+        return back();
+    }
+
+    /**
+     * One dorm bed's status, then the dorm's room status from its beds. See docs/19-housekeeping/04-dorm-beds.md.
+     */
+    public function bedStatus(UpdateRoomStatusRequest $request, Property $property, Room $room, Bed $bed, UpdateBedStatus $updateBedStatus): RedirectResponse
+    {
+        abort_if($room->archived_at !== null || $bed->archived_at !== null, 404);
+
+        $name = "{$room->number} {$bed->label}";
+        $refusal = $updateBedStatus($request->user(), $bed, $request->status());
+
+        Inertia::flash('toast', $refusal === null
+            ? ['type' => 'success', 'message' => __('Bed :bed is now :status.', ['bed' => $name, 'status' => $request->status()->label()])]
+            : ['type' => 'error', 'message' => $refusal->message($name)]);
 
         return back();
     }

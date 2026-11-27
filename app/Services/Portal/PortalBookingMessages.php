@@ -7,6 +7,7 @@ use App\Actions\Portal\PortalBookingResult;
 use App\Actions\Reservations\AttachGuestResult;
 use App\Actions\Reservations\BookingResult;
 use App\Actions\Reservations\ReservationResult;
+use App\Actions\Transfers\UnitTransferResult;
 use App\Services\Rates\RateQuote;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Log;
@@ -68,6 +69,8 @@ class PortalBookingMessages
 
         return match ($code) {
             PortalBookingResult::REFUSAL_COMPANY_SUSPENDED => [self::FORM, __('Your company can\'t book at this property right now. Contact the property.')],
+            UnitTransferResult::REFUSAL_ROUTE_NOT_FOUND => [self::FORM, __('This transfer route is no longer offered. Pick another or leave it out.')],
+            UnitTransferResult::REFUSAL_CHARGE_NOT_FOUND => [self::FORM, __('This transfer can\'t be priced right now. Leave it out and ask the property.')],
             ReservationResult::REFUSAL_NOT_AVAILABLE => ['room_type_id', $day === null ? __('Not available for these dates.') : __('Not available on :date.', ['date' => $day])],
             PortalBookingResult::REFUSAL_TOO_MANY_UNITS => [self::FORM, __('A booking can have up to 99 rooms and beds.')],
             PortalBookingResult::REFUSAL_NOT_ENOUGH_LEFT => ['rooms', __('Only :count left for these dates.', ['count' => (int) $left])],

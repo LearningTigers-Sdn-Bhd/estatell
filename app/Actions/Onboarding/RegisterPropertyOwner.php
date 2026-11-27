@@ -43,11 +43,12 @@ class RegisterPropertyOwner
 
             ($this->generateDocumentPrefix)($property);
 
-            $owner = $property->users()->create([
+            $owner = $property->homeStaff()->create([
                 'name' => $data->name,
                 'email' => $data->email,
                 'password' => $data->password,
             ]);
+            $owner->memberships()->create(['property_id' => $property->id]);
 
             ($this->seedDefaultRoles)($property);
             ($this->assignOwnerRole)($property, $owner);

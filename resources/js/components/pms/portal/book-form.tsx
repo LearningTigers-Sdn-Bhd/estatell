@@ -28,6 +28,8 @@ import {
 import type { BookGuest, BookLine } from '@/components/pms/portal/book-lines';
 import { BookSummary } from '@/components/pms/portal/book-summary';
 import { usePortalOffers } from '@/components/pms/portal/use-portal-offers';
+import { TransferPickField } from '@/components/pms/transfer-pick-field';
+import { NO_TRANSFER, transferPayload } from '@/components/pms/transfer-picks';
 import {
     planFitsRooms,
     switchGroupRates,
@@ -90,6 +92,7 @@ export function BookForm({
     cancelCutoffDays,
     autoAddOns,
     boatDepartures,
+    transferRoutes,
     companyName,
     currency,
 }: {
@@ -104,6 +107,8 @@ export function BookForm({
     cancelCutoffDays: number | null;
     autoAddOns: string[];
     boatDepartures: App.Data.Boats.BoatDepartureOptionData[];
+    /** The property's road transfer routes; empty when it does not offer transfers. */
+    transferRoutes: App.Data.Transfers.TransferRouteData[];
     companyName: string;
     currency: App.Data.Property.CurrencyData | null;
 }) {
@@ -119,6 +124,8 @@ export function BookForm({
         boat_in_time: '',
         boat_out: NOT_SET,
         boat_out_time: '',
+        transfer_in: NO_TRANSFER,
+        transfer_out: NO_TRANSFER,
     }));
     const form = useForm(initial);
     const [refresh, setRefresh] = useState(0);
@@ -246,6 +253,8 @@ export function BookForm({
             }),
             boat_in: boatTripPayload(current.boat_in, current.boat_in_time),
             boat_out: boatTripPayload(current.boat_out, current.boat_out_time),
+            transfer_in: transferPayload(current.transfer_in),
+            transfer_out: transferPayload(current.transfer_out),
         }));
         form.post(store.url({ property: propertyCode }), {
             preserveScroll: true,
@@ -364,6 +373,40 @@ export function BookForm({
                                     The boats apply to every room, and each room
                                     can change later. A fare or charter charge
                                     shows on the booking after you confirm.
+                                </p>
+                            </div>
+                        )}
+                        {transferRoutes.length > 0 && (
+                            <div className="grid items-start gap-4 sm:grid-cols-2">
+                                <TransferPickField
+                                    id="book-transfer-in"
+                                    direction="in"
+                                    value={data.transfer_in}
+                                    onChange={(choice) =>
+                                        form.setData('transfer_in', choice)
+                                    }
+                                    routes={transferRoutes}
+                                    currency={currency}
+                                    stayTime=""
+                                    errors={errors}
+                                />
+                                <TransferPickField
+                                    id="book-transfer-out"
+                                    direction="out"
+                                    value={data.transfer_out}
+                                    onChange={(choice) =>
+                                        form.setData('transfer_out', choice)
+                                    }
+                                    routes={transferRoutes}
+                                    currency={currency}
+                                    stayTime=""
+                                    errors={errors}
+                                />
+                                <p className="text-sm text-muted-foreground sm:col-span-2">
+                                    Road transfers apply to every room. A
+                                    private vehicle is charged for each room.
+                                    The charge shows on the booking after you
+                                    confirm.
                                 </p>
                             </div>
                         )}

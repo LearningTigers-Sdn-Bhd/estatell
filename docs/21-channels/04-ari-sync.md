@@ -103,7 +103,7 @@ Channex allows one full sync per property per 24 hours, off-peak. A full sync on
 
 - No local copy of sent rates. Values are always calculated at send time.
 - Long-stay discounts are never sent. Channels get the undiscounted nightly price (see [Rate plans](../08-rates/01-rate-plans.md#long-stay-discounts)).
-- Unsupported pairs from `ChannelCapability` (day use, dorm beds for now) are never sent.
+- Unsupported pairs from `ChannelCapability` (day use, and a dorm's non-per-bed plans) are never sent.
 
 ## Lessons from wastays
 

@@ -43,6 +43,20 @@ enum HousekeepingStatus: string
     }
 
     /**
+     * The statuses a viewer may move a room or bed in this status to: the legal moves, without Inspected for a viewer
+     * who may not inspect.
+     *
+     * @return list<self>
+     */
+    public function movesFor(bool $canInspect): array
+    {
+        return array_values(array_filter(
+            self::cases(),
+            fn (self $status): bool => $this->canTransitionTo($status) && ($status !== self::Inspected || $canInspect),
+        ));
+    }
+
+    /**
      * @return list<array{value: string, label: string}>
      */
     public static function options(): array

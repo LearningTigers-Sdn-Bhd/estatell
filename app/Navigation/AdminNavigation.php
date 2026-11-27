@@ -29,6 +29,7 @@ class AdminNavigation
                 new NavItemData(title: __('Partners'), href: route('admin.partners.index', absolute: false), icon: 'handshake'),
                 new NavItemData(title: __('Commissions'), href: route('admin.commissions.index', absolute: false), icon: 'percent', active: request()->routeIs('admin.commissions.*')),
                 new NavItemData(title: __('Enquiries'), href: route('admin.enquiries.index', absolute: false), icon: 'inbox', badge: $this->newEnquiries(), active: request()->routeIs('admin.enquiries.*')),
+                new NavItemData(title: __('Property groups'), href: route('admin.property-groups.index', absolute: false), icon: 'network', active: request()->routeIs('admin.property-groups.*')),
             ]),
             new NavGroupData(label: __('Content'), items: [
                 new NavItemData(title: __('Amenities'), href: route('admin.amenities.index', absolute: false), icon: 'sparkles', active: request()->routeIs('admin.amenities.*')),

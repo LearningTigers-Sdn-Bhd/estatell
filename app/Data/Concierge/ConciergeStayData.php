@@ -15,6 +15,7 @@ class ConciergeStayData extends Data
 {
     /**
      * @param  list<ConciergeDocumentData>  $documents
+     * @param  list<ConciergePlanData>  $plans  The road transfers and activities booked for the stay, from today on.
      */
     public function __construct(
         public string $token,
@@ -42,5 +43,6 @@ class ConciergeStayData extends Data
         public bool $checkInOpensLater = false,
         /** The stay was booked from an AI quote link, so the Payment and Hold expired steps word it as a booking. */
         public bool $fromQuote = false,
+        public array $plans = [],
     ) {}
 }

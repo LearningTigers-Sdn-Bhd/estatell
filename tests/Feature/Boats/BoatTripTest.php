@@ -377,6 +377,7 @@ test('the trip routes are 404 while the feature is off and refuse staff without 
     Feature::for($fixture['property'])->activate(Boats::class);
     $housekeeper = User::factory()->withRole(DefaultRoleEnum::Housekeeping)->create();
     $housekeeper->forceFill(['property_id' => $fixture['property']->id])->save();
+    $housekeeper->memberships()->create(['property_id' => $fixture['property']->id]);
 
     $this->actingAs($housekeeper)
         ->put(route('reservations.units.boat-trips.set', $params), ['mode' => 'scheduled', 'boat_departure_id' => $fixture['in']->id])
