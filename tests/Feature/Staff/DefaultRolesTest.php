@@ -102,7 +102,7 @@ test('folio permissions go to the right default roles', function () {
     expect($roles(PermissionEnum::FolioPostCharge->value))->toBe(['owner', 'manager', 'front_desk', 'finance'])
         ->and($roles(PermissionEnum::FolioReverse->value))->toBe(['owner', 'manager', 'finance'])
         ->and($roles(PermissionEnum::FolioTransfer->value))->toBe(['owner', 'manager', 'finance'])
-        ->and(PermissionEnum::FolioReverse->group())->toBe('Folio');
+        ->and(PermissionEnum::FolioReverse->group())->toBe('Folio and payments');
 });
 
 test('folio discount permissions go to the right default roles', function () {
@@ -116,7 +116,7 @@ test('folio discount permissions go to the right default roles', function () {
 
     expect($roles(PermissionEnum::FolioDiscount->value))->toBe(['owner', 'manager', 'front_desk', 'finance'])
         ->and($roles(PermissionEnum::FolioDiscountOpen->value))->toBe(['owner', 'manager', 'finance'])
-        ->and(PermissionEnum::FolioDiscountOpen->group())->toBe('Folio');
+        ->and(PermissionEnum::FolioDiscountOpen->group())->toBe('Folio and payments');
 });
 
 test('folio close and reopen permissions go to the right default roles', function () {
@@ -130,7 +130,7 @@ test('folio close and reopen permissions go to the right default roles', functio
 
     expect($roles(PermissionEnum::FolioClose->value))->toBe(['owner', 'manager', 'front_desk', 'finance'])
         ->and($roles(PermissionEnum::FolioReopen->value))->toBe(['owner', 'manager', 'finance'])
-        ->and(PermissionEnum::FolioReopen->group())->toBe('Folio');
+        ->and(PermissionEnum::FolioReopen->group())->toBe('Folio and payments');
 });
 
 test('payment permissions go to the right default roles', function () {
@@ -145,5 +145,5 @@ test('payment permissions go to the right default roles', function () {
     expect($roles(PermissionEnum::PaymentRecord->value))->toBe(['owner', 'manager', 'front_desk', 'finance'])
         ->and($roles(PermissionEnum::PaymentRefund->value))->toBe(['owner', 'manager', 'front_desk', 'finance'])
         ->and($roles(PermissionEnum::PaymentRefundOtherMethod->value))->toBe(['owner', 'manager', 'finance'])
-        ->and(PermissionEnum::PaymentRefund->group())->toBe('Payments');
+        ->and(PermissionEnum::PaymentRefund->group())->toBe('Folio and payments');
 });

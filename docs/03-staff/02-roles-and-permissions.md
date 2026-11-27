@@ -133,22 +133,22 @@ Later modules add rows here. Their module docs list their permissions.
 | Save the grid     | `PUT /p/{code}/settings/roles` (`settings.roles.update`), body `roles: {role_id: [permission, ...]}` | `roles.manage` |
 | Change staff role | `PUT /p/{code}/settings/staff/{user}/role` (Dialog on the Staff page)                                | `staff.manage` |
 
-The roles page is one grid, as in wastays: permissions are rows and roles are columns.
+The roles page is one grid, as in wastays: permissions are rows and roles are columns. The page uses the fixed-height layout: the header and toolbar stay put and only the grid scrolls, in both directions.
 
 ```
-[🔍 Search permissions]                       [New role] [Discard] [Save permissions]
+[🔍 Search permissions] [Features: All ▾]                    [Collapse all]   [New role]
 Permission                 │ 🔒 Owner │ Manager │ Front desk │ … │ Night manager
-Property                   │          │         │            │   │
-  Manage property settings │   ☑      │   ☑     │    ☐       │   │   ☐
-Team                       │          │         │            │   │
-  View staff               │   ☑      │   ☑     │    ☐       │   │   ☑
+▾ Front desk          (10) │  10/10   │  10/10  │    8/10    │   │    6/10
+    View front desk        │   ☑      │   ☑     │    ☑       │   │   ☑
+▸ Setup               (10) │  10/10   │   9/10  │    0/10    │   │    0/10
+                                         [ Unsaved changes  Discard  Save permissions ]
 ```
 
 - Columns: default roles first, then custom roles. Each header shows the active staff count and "Custom" for custom roles.
-- Rows sit under group sub-header rows from `PermissionEnum::group()`.
-- Checkboxes are always live. Save and Discard appear only once something changes, and one save covers every role. The Owner column is ticked and disabled.
-- The search box filters rows in the browser, with no request. When nothing matches, one row says so.
-- The header row and the permission column stay in place while scrolling.
+- Rows sit under collapsible group rows from `PermissionEnum::group()`, all open on load. Each group row shows its permission count and, per role, how many it grants (for example 8/10). There are 8 feature groups: Front desk, Reservations, Guests, Folio and payments, Operations, Finance, POS and restaurant, Setup. Enum cases are listed in group order.
+- The Features filter (a multi-select of the groups) and the search box filter rows in the browser, with no request. A group with a search match opens. When nothing matches, one row says so.
+- Checkboxes are always live. The floating Save bar appears once something changes, and one save covers every role. Leaving with unsaved changes asks first. The Owner column is ticked and disabled.
+- The header row, the permission column and the group names stay in place while scrolling.
 - The request accepts only this property's role ids as keys, so another property's role fails validation.
 - The sidebar shows Roles under **Team** for users with `roles.manage`.
 - Not built yet: renaming and deleting custom roles (a column menu, as in wastays).

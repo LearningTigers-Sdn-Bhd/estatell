@@ -1,4 +1,4 @@
-import { BedDouble, ChevronDown, Plus } from 'lucide-react';
+import { Bed, BedDouble, ChevronDown, Plus } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { EmptyState } from '@/components/pms/empty-state';
@@ -8,6 +8,7 @@ import {
     GenerateAllBedsSheet,
 } from '@/components/pms/rooms/beds-sheet';
 import { GenerateRoomsSheet } from '@/components/pms/rooms/generate-rooms-sheet';
+import { roomTypeHeadingClassName } from '@/components/pms/rooms/room-type-shell';
 import { SettingsSection } from '@/components/pms/settings-section';
 import { Button } from '@/components/ui/button';
 import {
@@ -202,11 +203,11 @@ export function RoomTypeRoomsForm({
     readOnly: boolean;
 }) {
     const [added, setAdded] = useState<Choice[]>([]);
-    const [groups, setGroups] = useState<Record<number, string>>(() =>
+    const savedGroups = (): Record<number, string> =>
         Object.fromEntries(
             rooms.map((room) => [room.id, String(room.roomGroupId ?? '')]),
-        ),
-    );
+        );
+    const [groups, setGroups] = useState<Record<number, string>>(savedGroups);
     const [generating, setGenerating] = useState(false);
     const [bedsRoom, setBedsRoom] = useState<Room | null>(null);
     const [addingBeds, setAddingBeds] = useState(false);
@@ -265,10 +266,17 @@ export function RoomTypeRoomsForm({
                         ? 'Rooms of this type and their group.'
                         : 'Rooms of this type, their group and beds.'
                 }
+                icon={Bed}
+                headerClassName={roomTypeHeadingClassName}
                 submitLabel="Save rooms"
                 contentClassName="flex flex-col gap-4"
                 readOnly={readOnly}
                 guardUnsavedChanges
+                saveBar
+                onDiscard={() => {
+                    setAdded([]);
+                    setGroups(savedGroups);
+                }}
                 actions={
                     readOnly
                         ? undefined
@@ -319,7 +327,7 @@ export function RoomTypeRoomsForm({
                                 description="Generate or add rooms."
                             />
                         ) : (
-                            <div className="overflow-auto rounded-lg border">
+                            <div className="overflow-auto rounded-xl border">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>

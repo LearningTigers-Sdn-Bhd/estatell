@@ -39,7 +39,9 @@ Both Actions delete the row when the new value equals the default. They refuse u
 - Settings > Notifications: `GET /p/{code}/settings/notifications` (`settings.notifications.index`). It requires `notification.manage`.
 - Account > Notifications: `GET /account/notifications` (`account.notifications.edit`). It is available to verified property staff, not platform admins.
 - Each matrix switch saves with its matching `PUT .../{type}/{channel}` route. The UI updates optimistically, preserves scroll and reloads only the matrix data.
-- Both pages show the same type x channel matrix. Unsupported cells say "Not available". Mandatory cells are checked and locked with "Required". Personal cells disabled at property level show "Disabled by property".
+- Both pages show the same type x channel matrix (`components/pms/notification-preference-matrix.tsx`). Rows sit under a header row per group, which collapses with a chevron button (all open on load, not remembered): Night audit, Channel manager, Booking website, Company portal, Guests, AI assistant, Account and setup, Property. Each row shows the type's icon, its label and a one-line description of when it is sent and who gets it.
+- Switches save on change, so the pages have no Save bar.
+- Unsupported cells say "Not available". Mandatory cells are checked and locked with "Required". Personal cells disabled at property level show "Disabled by property".
 
 ## Lessons from wastays
 

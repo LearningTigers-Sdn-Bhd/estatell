@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
 import { ListChecks } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { Fragment, useState, type ReactNode } from 'react';
 import {
     AmenityGroupRow,
@@ -9,6 +10,7 @@ import { useAmenityTable } from '@/components/pms/amenities/use-amenity-table';
 import { EmptyState } from '@/components/pms/empty-state';
 import { FilterBar } from '@/components/pms/filter-bar';
 import { PaginationFooter } from '@/components/pms/pagination-footer';
+import { PanelHeading } from '@/components/pms/panel-heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -111,6 +113,8 @@ export function AmenityPicker({
     page,
     listUrl,
     headerClassName,
+    icon,
+    title,
     rowAction,
 }: {
     picker: Picker;
@@ -118,6 +122,9 @@ export function AmenityPicker({
     description: string;
     /** Extra classes for the description, for example the heading inset inside a Workspace panel. */
     headerClassName?: string;
+    /** With `title`, shows a `PanelHeading` with the description under it, for a tab inside a Workspace panel. */
+    icon?: LucideIcon;
+    title?: string;
     readOnly: boolean;
     page: number;
     listUrl: string;
@@ -140,9 +147,22 @@ export function AmenityPicker({
 
     return (
         <div className="flex flex-col gap-4">
-            <p className={cn('text-sm text-muted-foreground', headerClassName)}>
-                {description}
-            </p>
+            {icon && title ? (
+                <PanelHeading
+                    icon={icon}
+                    title={title}
+                    description={description}
+                />
+            ) : (
+                <p
+                    className={cn(
+                        'text-sm text-muted-foreground',
+                        headerClassName,
+                    )}
+                >
+                    {description}
+                </p>
+            )}
 
             <FilterBar
                 search={table.search}

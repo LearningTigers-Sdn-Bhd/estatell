@@ -121,6 +121,12 @@ test('owners view and update the property notification matrix', function () {
             ->component('settings/notifications')
             ->has('preferences', 22)
             ->where('preferences.0.type', 'night_audit_completed')
+            ->where('preferences.0.group', 'Night audit')
+            ->where('preferences.0.description', 'The night audit closed the day. To staff who receive the audit report.')
+            ->where('preferences.0.icon', 'circle-check')
+            ->where('preferences', fn ($preferences): bool => collect($preferences)->pluck('group')->unique()->values()->all() === [
+                'Night audit', 'Channel manager', 'Booking website', 'Company portal', 'Guests', 'AI assistant', 'Account and setup', 'Property',
+            ])
             ->where('preferences.0.channels.0', [
                 'channel' => 'mail',
                 'label' => 'Email',

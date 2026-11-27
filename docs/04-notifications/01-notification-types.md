@@ -12,6 +12,7 @@ Define every notification once, with its channels, defaults and recipients.
 - `defaultEnabled(NotificationChannel $channel)`.
 - `canOptOut(NotificationChannel $channel)`.
 - `recipientPermission()`.
+- `group()`, `description()` and `icon()`: the heading, the one-line "when and to whom" text and the Lucide icon name on the notification settings pages. Cases are declared in group order, so `cases()` and `options()` list them grouped.
 
 `NotificationChannel`: Mail, Database.
 

@@ -1,3 +1,4 @@
+import { Images } from 'lucide-react';
 import { PhotoGrid } from '@/components/pms/photo-grid';
 import { destroy, reorder, store } from '@/routes/settings/room-types/photos';
 
@@ -20,6 +21,7 @@ export function RoomTypePhotos({
     return (
         <PhotoGrid
             title="Room photos"
+            icon={Images}
             description="Photos of this room type, such as the bed, bathroom or view."
             photos={photos}
             photoLimit={photoLimit}

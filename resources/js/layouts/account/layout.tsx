@@ -6,12 +6,18 @@ import { AppShell } from '@/components/app-shell';
 import { DemoBanner } from '@/components/demo-banner';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import { ImpersonationBanner } from '@/components/impersonation-banner';
+import { cn } from '@/lib/utils';
 import type { AppLayoutProps } from '@/types';
 
+/**
+ * Account pages are a narrow form column. A page with a table passes `width: 'full'` in its layout props to use
+ * the whole content area.
+ */
 export default function AccountLayout({
     children,
     breadcrumbs = [],
-}: AppLayoutProps) {
+    width = 'narrow',
+}: AppLayoutProps & { width?: 'narrow' | 'full' }) {
     return (
         <AppShell variant="sidebar">
             <div className="flex h-svh w-full flex-col overflow-hidden">
@@ -30,7 +36,12 @@ export default function AccountLayout({
                         />
                         <AdminTwoFactorBanner />
                         <div className="px-4 py-6">
-                            <section className="flex max-w-xl flex-col gap-12">
+                            <section
+                                className={cn(
+                                    'flex flex-col gap-12',
+                                    width === 'narrow' && 'max-w-xl',
+                                )}
+                            >
                                 {children}
                             </section>
                         </div>

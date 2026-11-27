@@ -10,6 +10,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { email as emailRoute } from '@/routes/finance/e-invoices';
 import { edit as emailSettings } from '@/routes/settings/emails';
+import { EmailPreview } from '@/components/pms/email-preview';
 import { type Submission } from '@/components/pms/einvoice/submission';
 
 export function EmailGuestForm({
@@ -32,7 +33,7 @@ export function EmailGuestForm({
             open={open}
             onOpenChange={onOpenChange}
             title="Email e-invoice to guest"
-            description="The guest gets this email with a View e-invoice button that opens their copy on MyInvois. Replies come to the property's contact email."
+            description="The guest gets this email. The View e-invoice button opens their copy on MyInvois."
             errors={form.errors}
             onSubmit={() =>
                 form.post(emailRoute.url({ submission: submission.id }), {
@@ -62,30 +63,18 @@ export function EmailGuestForm({
                 )}
                 <FieldError>{form.errors.to}</FieldError>
             </Field>
-            <div className="flex flex-col gap-3 rounded-lg border bg-muted/40 p-3 text-sm">
-                <p className="font-medium">{email.subject}</p>
-                {email.paragraphs.map((paragraph, position) => (
-                    <p key={position} className="whitespace-pre-line">
-                        {paragraph}
-                    </p>
-                ))}
-                <dl className="flex flex-col gap-1 rounded-md border bg-background p-2">
-                    {Object.entries(email.details).map(([label, value]) => (
-                        <div key={label} className="flex justify-between gap-3">
-                            <dt className="text-muted-foreground">{label}</dt>
-                            <dd className="tabular-nums">{value}</dd>
-                        </div>
-                    ))}
-                </dl>
-                <span className="self-start rounded-md bg-primary px-3 py-1.5 text-primary-foreground">
-                    View e-invoice
-                </span>
+            <div className="max-h-96 overflow-y-auto rounded-xl">
+                <EmailPreview
+                    subject={email.subject}
+                    replyTo={email.reply_to}
+                    html={email.html}
+                />
             </div>
             {canEditEmail && (
                 <p className="text-sm text-muted-foreground">
                     To change the wording for every guest, edit it in{' '}
                     <Link
-                        href={emailSettings()}
+                        href={emailSettings({ email: 'e_invoice' })}
                         className="underline underline-offset-2"
                     >
                         Settings › Emails

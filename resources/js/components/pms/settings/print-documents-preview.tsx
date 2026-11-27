@@ -137,9 +137,9 @@ export function PrintDocumentsPreview({
     const total = 2004;
 
     return (
-        <aside className="flex flex-col gap-3 lg:sticky lg:top-4">
+        <div className="flex flex-col gap-3">
             <div
-                className="flex flex-col gap-3 rounded-lg border bg-card p-4 text-sm text-card-foreground"
+                className="flex flex-col gap-3 rounded-xl border bg-card p-4 text-sm text-card-foreground"
                 style={{ fontFamily: font?.bodyFamily }}
             >
                 <p
@@ -245,7 +245,7 @@ export function PrintDocumentsPreview({
                 <ExternalLink data-icon="inline-start" />
                 Open sample PDF
             </a>
-        </aside>
+        </div>
     );
 }
 

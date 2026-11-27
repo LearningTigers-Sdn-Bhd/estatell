@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import { AArrowDown, AArrowUp, Type } from 'lucide-react';
 import type { EnumOption } from '@/components/pms/enum-select';
+import { OptionalBadge } from '@/components/pms/optional-badge';
 import { PrintSampleTable } from '@/components/pms/settings/print-sample-table';
 import {
     Field,
@@ -74,6 +75,10 @@ export function PrintGeneralForm({
                             htmlFor={`font-${font.value}`}
                         >
                             <Field orientation="horizontal">
+                                <RadioGroupItem
+                                    id={`font-${font.value}`}
+                                    value={font.value}
+                                />
                                 <FieldContent className="min-w-0">
                                     <FieldTitle>{font.label}</FieldTitle>
                                     <p
@@ -91,10 +96,6 @@ export function PrintGeneralForm({
                                         Tan Wei Ming · 陈美玲 · RM 1,250.00
                                     </p>
                                 </FieldContent>
-                                <RadioGroupItem
-                                    id={`font-${font.value}`}
-                                    value={font.value}
-                                />
                             </Field>
                         </FieldLabel>
                     ))}
@@ -121,6 +122,10 @@ export function PrintGeneralForm({
                                 htmlFor={`font-size-${option.value}`}
                             >
                                 <Field orientation="horizontal">
+                                    <RadioGroupItem
+                                        id={`font-size-${option.value}`}
+                                        value={option.value}
+                                    />
                                     <Icon className="mt-0.5 size-4 text-muted-foreground" />
                                     <FieldContent>
                                         <FieldTitle>{option.label}</FieldTitle>
@@ -128,10 +133,6 @@ export function PrintGeneralForm({
                                             {option.description}
                                         </FieldDescription>
                                     </FieldContent>
-                                    <RadioGroupItem
-                                        id={`font-size-${option.value}`}
-                                        value={option.value}
-                                    />
                                 </Field>
                             </FieldLabel>
                         );
@@ -159,6 +160,10 @@ export function PrintGeneralForm({
                             htmlFor={`table-style-${option.value}`}
                         >
                             <Field orientation="horizontal">
+                                <RadioGroupItem
+                                    id={`table-style-${option.value}`}
+                                    value={option.value}
+                                />
                                 <FieldContent className="min-w-0">
                                     <FieldTitle>{option.label}</FieldTitle>
                                     <FieldDescription>
@@ -201,22 +206,20 @@ export function PrintGeneralForm({
                                         }}
                                     />
                                 </FieldContent>
-                                <RadioGroupItem
-                                    id={`table-style-${option.value}`}
-                                    value={option.value}
-                                />
                             </Field>
                         </FieldLabel>
                     ))}
                 </RadioGroup>
             </FieldSet>
             <Field>
-                <FieldLabel htmlFor="footer_text">Footer text</FieldLabel>
+                <FieldLabel htmlFor="footer_text">
+                    Footer text <OptionalBadge />
+                </FieldLabel>
                 <Input
                     id="footer_text"
                     maxLength={500}
                     value={value.footerText ?? ''}
-                    placeholder="Thank you for staying with us."
+                    placeholder="e.g. Thank you for staying with us."
                     onChange={(event) =>
                         onDraft({ ...value, footerText: event.target.value })
                     }
