@@ -2798,6 +2798,9 @@ disabledReason: string | null,
 export type NotificationPreferenceData = {
 type: App.Enums.NotificationType,
 label: string,
+group: string,
+description: string,
+icon: string,
 channels: App.Data.Notifications.NotificationChannelPreferenceData[],
 };
 }
@@ -6401,7 +6404,7 @@ export type MissedArrivalPolicy = 'mark_no_show' | 'keep_as_late_arrival';
 export type NavigationContext = 'front-desk' | 'pos' | 'finance' | 'reports' | 'settings';
 export type NearbyPlaceStatus = 'pending' | 'approved' | 'rejected';
 export type NotificationChannel = 'mail' | 'database';
-export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'registration_card_link' | 'onboarding_reminder' | 'dorm_strategy_changed' | 'support_access_used' | 'go_live_approved' | 'go_live_rejected' | 'portal_booking_created' | 'portal_booking_cancelled' | 'portal_cancellation_requested' | 'channel_booking_received' | 'channel_booking_cancelled' | 'channel_removal_blocked' | 'payment_slip_received' | 'nearby_place_removed' | 'online_booking_received' | 'online_refund_needs_attention' | 'online_booking_cancelled' | 'ai_thread_escalated' | 'ai_cap_nearly_reached';
+export type NotificationType = 'night_audit_completed' | 'night_audit_exceptions' | 'night_audit_failed' | 'channel_booking_received' | 'channel_booking_cancelled' | 'channel_removal_blocked' | 'online_booking_received' | 'online_booking_cancelled' | 'online_refund_needs_attention' | 'portal_booking_created' | 'portal_booking_cancelled' | 'portal_cancellation_requested' | 'payment_slip_received' | 'registration_card_link' | 'ai_thread_escalated' | 'ai_cap_nearly_reached' | 'onboarding_reminder' | 'go_live_approved' | 'go_live_rejected' | 'support_access_used' | 'dorm_strategy_changed' | 'nearby_place_removed';
 export type OldFolioMode = 'one_amount' | 'copy_line_by_line';
 export type OldFolioRowKind = 'room' | 'charge' | 'tax' | 'payment';
 export type OnboardingPhase = 'property' | 'rooms' | 'finance' | 'prices' | 'channels' | 'review';

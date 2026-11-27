@@ -17,6 +17,9 @@ class NotificationPreferenceData extends Data
     public function __construct(
         public NotificationType $type,
         public string $label,
+        public string $group,
+        public string $description,
+        public string $icon,
         public array $channels,
     ) {}
 
@@ -28,6 +31,9 @@ class NotificationPreferenceData extends Data
         return array_map(fn (NotificationType $type): self => new self(
             type: $type,
             label: $type->label(),
+            group: $type->group(),
+            description: $type->description(),
+            icon: $type->icon(),
             channels: array_map(function (NotificationChannel $channel) use ($property, $preferences, $type): NotificationChannelPreferenceData {
                 $supported = in_array($channel, $type->channels(), true);
                 $editable = $supported && $type->canOptOut($channel);
@@ -52,6 +58,9 @@ class NotificationPreferenceData extends Data
         return array_map(fn (NotificationType $type): self => new self(
             type: $type,
             label: $type->label(),
+            group: $type->group(),
+            description: $type->description(),
+            icon: $type->icon(),
             channels: array_map(function (NotificationChannel $channel) use ($preferences, $type, $user): NotificationChannelPreferenceData {
                 $supported = in_array($channel, $type->channels(), true);
                 $mandatory = $supported && ! $type->canOptOut($channel);
