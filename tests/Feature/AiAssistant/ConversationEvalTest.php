@@ -133,7 +133,7 @@ test('the assistant handles', function (string $case, string $group, string $pla
     // Changing a quote: a quote link is not a booking, so new dates get a fresh check, not a handover.
     'changed dates keep the plan' => ['Changing a quote', 'lobby', [
         ['guest' => 'Sea View Room, room only, from 2 to 4 November 2026 for 2 adults. Send me the link.', 'tools' => [AiTool::SendQuoteLink]],
-        ['guest' => 'Change to 12-14 Nov.', 'tools' => [AiTool::CheckRoomsAndPrices], 'noTools' => [AiTool::HandOver, AiTool::SendQuoteLink], 'judge' => 'Does not hand over. Offers the same Sea View Room, Room only for 12 to 14 November 2026 with its price, first or clearly marked as the choice of the guest, also lists the other free options, and asks before sending a new link. A numbered list with a question about one option counts, as the guest can reply with another number.'],
+        ['guest' => 'Change to 12-14 Nov.', 'tools' => [AiTool::CheckRoomsAndPrices], 'noTools' => [AiTool::HandOver, AiTool::SendQuoteLink], 'judge' => 'Does not hand over. Shows the same Sea View Room, Room only for 12 to 14 November 2026 as the current choice with its price, first, and asks the guest to keep it, then lists the other free options to pick from. Does not send a new link yet.'],
         ['guest' => 'Yes, keep that one.', 'tools' => [AiTool::SendQuoteLink], 'judge' => 'Sends a new link for the Sea View Room, Room only, 12 to 14 November 2026 for 2 adults.'],
     ]],
 
@@ -145,12 +145,32 @@ test('the assistant handles', function (string $case, string $group, string $pla
         ['guest' => '5-8 dec', 'noTools' => [AiTool::HandOver], 'says' => ['2026'], 'judge' => 'Takes the dates as 5 to 8 December 2026 (any date format) and asks how many adults (it may ask about children). The reply is only the message to the guest: no notes about rules, steps, plans or what the assistant should do.'],
         ['guest' => '2 adult', 'tools' => [AiTool::CheckRoomsAndPrices], 'judge' => 'Lists numbered room options with prices for 5 to 8 December 2026. The reply is only the message to the guest: no notes about rules, steps, plans or what the assistant should do.'],
         ['guest' => '3', 'tools' => [AiTool::SendQuoteLink], 'says' => ['http'], 'judge' => 'Sends the booking link for the third option it listed.'],
-        ['guest' => 'change to 6-9 dec', 'tools' => [AiTool::CheckRoomsAndPrices], 'noTools' => [AiTool::HandOver, AiTool::SendQuoteLink], 'judge' => 'Does not hand over. Offers the same room and plan as the link it sent, for 6 to 9 December 2026 with its price, first or clearly marked as the choice of the guest, also lists the other free options, and asks before sending a new link. A numbered list with a question about one option counts, as the guest can reply with another number.'],
+        ['guest' => 'change to 6-9 dec', 'tools' => [AiTool::CheckRoomsAndPrices], 'noTools' => [AiTool::HandOver, AiTool::SendQuoteLink], 'judge' => 'Does not hand over. Shows the same room and plan as the link it sent, for 6 to 9 December 2026, as the current choice with its price, first, and asks the guest to keep it, then lists the other free options to pick from. Does not send a new link yet.'],
         ['guest' => 'ok', 'tools' => [AiTool::SendQuoteLink], 'says' => ['http'], 'judge' => 'Sends a new link for the same room and plan, 6 to 9 December 2026 for 2 adults.'],
     ]],
     'whatsapp changed dates when the plan is gone' => ['Chat API', 'api', [
         ['guest' => 'Family Suite, room only, 2 to 4 November 2026, 4 adults. Send me the link.', 'tools' => [AiTool::SendQuoteLink]],
         ['guest' => 'Can I change to 12-14 Nov instead?', 'tools' => [AiTool::CheckRoomsAndPrices], 'noTools' => [AiTool::HandOver, AiTool::SendQuoteLink], 'judge' => 'Does not hand over. Says the Family Suite (or any room for 4 adults) is not free on 12 to 14 November 2026, and offers other dates or staff help. Does not invent a free room or price.'],
+    ]],
+
+    // Children: ask each age, then quote with them. Rooms take up to 2 children.
+    'babies on whatsapp' => ['Children', 'api', [
+        ['guest' => 'hi, room available for 2-4 nov ?'],
+        ['guest' => '3 adult, 2 baby', 'noTools' => [AiTool::HandOver, AiTool::CheckRoomsAndPrices], 'judge' => 'Asks the age of the two babies (or children). Does not hand over and gives no price yet.'],
+        ['guest' => '1 and 2', 'tools' => [AiTool::CheckRoomsAndPrices], 'noTools' => [AiTool::HandOver], 'judge' => 'Lists room options with prices for 2 to 4 November 2026 for 3 adults and 2 children. Does not hand over.'],
+    ]],
+    'a baby in malay' => ['Children', 'lobby', [
+        ['guest' => 'Bilik 2 hingga 4 November 2026, 2 dewasa dan 1 bayi.', 'noTools' => [AiTool::HandOver, AiTool::CheckRoomsAndPrices], 'judge' => 'Replies in Malay and asks how old the baby is. Does not hand over.'],
+        ['guest' => '1 tahun.', 'tools' => [AiTool::CheckRoomsAndPrices], 'noTools' => [AiTool::HandOver], 'judge' => 'Replies in Malay with room options and prices for 2 adults and 1 child.'],
+    ]],
+    'a child in chinese' => ['Children', 'lobby', [
+        ['guest' => '2026年11月2号到4号，两个大人一个小孩。', 'noTools' => [AiTool::HandOver, AiTool::CheckRoomsAndPrices], 'judge' => 'Replies in Chinese and asks how old the child is. Does not hand over.'],
+    ]],
+    'a family of five asks the party' => ['Children', 'lobby', [
+        ['guest' => 'Room from 2 to 4 November 2026 for a family of 5.', 'noTools' => [AiTool::CheckRoomsAndPrices, AiTool::HandOver], 'judge' => 'Asks how many of the 5 are adults and how many are children (and may ask their ages). Does not assume all are adults.'],
+    ]],
+    'no room fits the family' => ['Children', 'lobby', [
+        ['guest' => 'Room from 2 to 4 November 2026 for 4 adults and 3 kids aged 2, 5 and 8.', 'tools' => [AiTool::CheckRoomsAndPrices], 'noTools' => [AiTool::SendQuoteLink], 'judge' => 'Says no single room fits 4 adults and 3 children on those dates, and offers other dates or the front desk. Does not invent a room or price.'],
     ]],
 
     // Ending: stop when the guest stops.

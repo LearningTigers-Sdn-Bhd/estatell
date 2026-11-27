@@ -13,8 +13,10 @@ use App\Models\AiThread;
 use App\Models\AiTurn;
 use App\Models\Amenity;
 use App\Models\ConciergeQuote;
+use App\Models\PropertyAgeGroup;
 use App\Models\PropertyAiScope;
 use App\Models\Reservation;
+use App\Models\ReservationUnit;
 use App\Models\RoomType;
 use App\Services\AiAssistant\AssistantInstructions;
 use Illuminate\Validation\ValidationException;
@@ -63,9 +65,58 @@ test('CheckRoomsAndPrices lists each plan sold online with its stay total', func
 
     expect($result['nights'])->toBe(2)
         ->and($result['rooms'])->toBe([
-            ['room_type_id' => $setup['type']->id, 'rate_plan_id' => $setup['roomOnly']->id, 'room' => 'Deluxe Double', 'plan' => 'Room only', 'total' => '200.00', 'currency' => 'MYR'],
-            ['room_type_id' => $setup['type']->id, 'rate_plan_id' => $setup['breakfast']->id, 'room' => 'Deluxe Double', 'plan' => 'With breakfast', 'total' => '260.00', 'currency' => 'MYR'],
+            ['room_type_id' => $setup['type']->id, 'rate_plan_id' => $setup['roomOnly']->id, 'room' => 'Deluxe Double', 'plan' => 'Room only', 'total' => '200.00', 'currency' => 'MYR', 'current_choice' => false],
+            ['room_type_id' => $setup['type']->id, 'rate_plan_id' => $setup['breakfast']->id, 'room' => 'Deluxe Double', 'plan' => 'With breakfast', 'total' => '260.00', 'currency' => 'MYR', 'current_choice' => false],
         ]);
+});
+
+test('CheckRoomsAndPrices puts the plan of the chat\'s open link first as the current choice', function () {
+    $setup = conciergeQuoteSetup();
+    $thread = AiThread::factory()->for($setup['property'])->create();
+    savedConciergeQuote($setup, $setup['breakfast'], ['ai_turn_id' => AiTurn::factory()->create(['ai_thread_id' => $thread->id])->id]);
+    $tool = app(CheckRoomsAndPrices::class, ['property' => $setup['property'], 'thread' => $thread]);
+
+    $result = json_decode((string) $tool->handle(new ToolRequest(quoteToolInput())), true);
+
+    expect(array_column($result['rooms'], 'plan'))->toBe(['With breakfast', 'Room only'])
+        ->and(array_column($result['rooms'], 'current_choice'))->toBe([true, false])
+        ->and($result['current_choice_unavailable'])->toBeNull();
+});
+
+test('CheckRoomsAndPrices names the current choice when that plan is not free', function () {
+    $setup = conciergeQuoteSetup();
+    $thread = AiThread::factory()->for($setup['property'])->create();
+    savedConciergeQuote($setup, $setup['staff'], ['ai_turn_id' => AiTurn::factory()->create(['ai_thread_id' => $thread->id])->id]);
+    $tool = app(CheckRoomsAndPrices::class, ['property' => $setup['property'], 'thread' => $thread]);
+
+    $result = json_decode((string) $tool->handle(new ToolRequest(quoteToolInput())), true);
+
+    expect(array_column($result['rooms'], 'current_choice'))->toBe([false, false])
+        ->and($result['current_choice_unavailable'])->toBe('Deluxe Double, Staff rate');
+});
+
+test('a quote with children keeps their ages, counts an older child as an adult and books them', function () {
+    $setup = conciergeQuoteSetup();
+    PropertyAgeGroup::factory()->for($setup['property'])->create(['label' => 'Infant', 'min_age' => 0, 'max_age' => 3]);
+    PropertyAgeGroup::factory()->for($setup['property'])->create(['label' => 'Child', 'min_age' => 4, 'max_age' => 11]);
+    $input = quoteToolInput(['adults' => 1, 'child_ages' => [1, 14]]);
+
+    $checked = json_decode((string) app(CheckRoomsAndPrices::class, ['property' => $setup['property']])->handle(new ToolRequest($input)), true);
+    $sent = json_decode((string) app(SendQuoteLink::class, ['property' => $setup['property']])
+        ->handle(new ToolRequest([...$input, 'room_type_id' => $setup['type']->id, 'rate_plan_id' => $setup['roomOnly']->id])), true);
+    $quote = ConciergeQuote::query()->with('children')->sole();
+
+    expect($checked['adults'])->toBe(2)
+        ->and($checked['child_ages'])->toBe([1])
+        ->and($sent['child_ages'])->toBe([1])
+        ->and($quote->adults)->toBe(2)
+        ->and($quote->children->pluck('age')->all())->toBe([1]);
+
+    bookQuote($setup['property'], $quote)->assertSessionHasNoErrors();
+
+    $unit = ReservationUnit::query()->where('reservation_id', $quote->fresh()->reservation_id)->sole();
+    expect($unit->adults)->toBe(2)
+        ->and($unit->children)->toBe(1);
 });
 
 test('CheckRoomsAndPrices offers nothing outside the booking window and refuses a bad date', function () {

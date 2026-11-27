@@ -8,7 +8,7 @@ use Spatie\LaravelData\Data;
 
 /**
  * A quote link as its page shows it. `total` is the price now, null when the room can no longer be booked on that plan;
- * `quotedTotal` is the price the guest was told. See docs/35-ai-assistant/03-places-and-routes.md#quote-links.
+ * `quotedTotal` is the price the guest was told. `childAges` lists the children by age. See docs/35-ai-assistant/03-places-and-routes.md#quote-links.
  */
 class ConciergeQuoteData extends Data
 {
@@ -20,6 +20,8 @@ class ConciergeQuoteData extends Data
         public string $departureDate,
         public int $nights,
         public int $adults,
+        /** @var list<int> */
+        public array $childAges,
         public string $quotedTotal,
         public ?string $total,
         public string $currency,
@@ -36,6 +38,7 @@ class ConciergeQuoteData extends Data
             $quote->departure_date->toDateString(),
             (int) $quote->arrival_date->diffInDays($quote->departure_date),
             $quote->adults,
+            array_values($quote->children->sortBy('id')->map(fn ($child): int => $child->age)->all()),
             (string) $quote->quoted_total,
             $offer === null ? null : (string) $offer->total->getAmount(),
             $currency,

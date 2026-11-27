@@ -72,7 +72,7 @@ class PropertyAssistant implements Agent, Conversational, HasTools
 
             $instance = match ($tool) {
                 AiTool::PropertyFacts => app(PropertyFacts::class, ['property' => $property]),
-                AiTool::CheckRoomsAndPrices => app(CheckRoomsAndPrices::class, ['property' => $property]),
+                AiTool::CheckRoomsAndPrices => app(CheckRoomsAndPrices::class, ['property' => $property, 'thread' => $this->thread]),
                 AiTool::SendQuoteLink => app(SendQuoteLink::class, ['property' => $property, 'thread' => $this->thread, 'linkInReply' => $this->thread->place === AiPlace::Api]),
                 AiTool::ReadMyStay => app(ReadMyStay::class, ['thread' => $this->thread]),
                 AiTool::MakeGuestRequest => app(MakeGuestRequest::class, ['thread' => $this->thread]),

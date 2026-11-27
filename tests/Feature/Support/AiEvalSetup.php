@@ -13,6 +13,7 @@ use App\Models\Amenity;
 use App\Models\AmenityCategory;
 use App\Models\NearbyPlace;
 use App\Models\Property;
+use App\Models\PropertyAgeGroup;
 use App\Models\PropertyAiScope;
 use App\Models\Rate;
 use App\Models\RatePlan;
@@ -73,6 +74,7 @@ const AI_EVAL_DECEMBER = ['2026-12-05', '2026-12-06', '2026-12-07', '2026-12-08'
  * - Sea View Room, up to 3 adults: RM 100 / RM 130, free on the same dates
  * - Family Suite, up to 4 adults: RM 180 / RM 230, free 2026-11-02 to 11-04 only (no rates from 11-12: sold out)
  * - Garden Room and Sea View Room are also free 2026-12-05 to 12-09, for the replay of a real WhatsApp chat
+ * - Every room takes up to 2 children. Age groups: Infant 0 to 3, Child 4 to 11; from 12 a guest is an adult
  *
  * @return array{property: Property}
  */
@@ -91,6 +93,8 @@ function aiEvalLobby(): array
     aiEvalRates($suite, $plans, ['2026-11-02', '2026-11-03'], '180.00', '230.00');
 
     aiEvalResort($property);
+    PropertyAgeGroup::factory()->for($property)->create(['label' => 'Infant', 'min_age' => 0, 'max_age' => 3]);
+    PropertyAgeGroup::factory()->for($property)->create(['label' => 'Child', 'min_age' => 4, 'max_age' => 11]);
 
     return ['property' => $setup['property']];
 }

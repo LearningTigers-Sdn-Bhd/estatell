@@ -7,6 +7,7 @@ use App\Actions\Concierge\ReplaceConciergeQuotes;
 use App\Models\AiThread;
 use App\Models\AiTurn;
 use App\Models\Property;
+use App\Services\Property\GuestAges;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
@@ -25,6 +26,7 @@ class SendQuoteLink implements Tool
         private readonly Property $property,
         private readonly CreateConciergeQuote $create,
         private readonly ReplaceConciergeQuotes $replace,
+        private readonly GuestAges $ages,
         private readonly ?AiThread $thread = null,
         private readonly bool $linkInReply = false,
     ) {}
@@ -35,7 +37,7 @@ class SendQuoteLink implements Tool
             ? 'This chat shows no cards, so write the url from the result in your reply.'
             : 'The guest sees the link as a card, so do not repeat the link in your reply.';
 
-        return 'Make a booking link for one room the guest chose from CheckRoomsAndPrices, with the same dates and adults. Nothing is booked until the guest books on the link, which lasts 24 hours. A new link replaces the earlier links in this chat, which stop working. '.$link;
+        return 'Make a booking link for one room the guest chose from CheckRoomsAndPrices, with the same dates, adults and child_ages. Nothing is booked until the guest books on the link, which lasts 24 hours. A new link replaces the earlier links in this chat, which stop working. '.$link;
     }
 
     public function handle(Request $request): Stringable|string
@@ -46,14 +48,18 @@ class SendQuoteLink implements Tool
             'arrival_date' => ['required', 'date_format:Y-m-d'],
             'departure_date' => ['required', 'date_format:Y-m-d', 'after:arrival_date'],
             'adults' => ['required', 'integer', 'min:1', 'max:20'],
+            'child_ages' => ['sometimes', 'array', 'max:10'],
+            'child_ages.*' => ['integer', 'min:0', 'max:17'],
         ]);
+        $party = $this->ages->split($this->property, (int) $input['adults'], array_values(array_map('intval', $input['child_ages'] ?? [])));
         $result = ($this->create)(
             $this->property,
             (int) $input['room_type_id'],
             (int) $input['rate_plan_id'],
             CarbonImmutable::createFromFormat('Y-m-d', $input['arrival_date']),
             CarbonImmutable::createFromFormat('Y-m-d', $input['departure_date']),
-            (int) $input['adults'],
+            $party['adults'],
+            $party['childAges'],
         );
 
         if ($result->quote === null) {
@@ -80,6 +86,7 @@ class SendQuoteLink implements Tool
             'arrival_date' => $quote->arrival_date->toDateString(),
             'departure_date' => $quote->departure_date->toDateString(),
             'adults' => $quote->adults,
+            'child_ages' => $party['childAges'],
             'total' => (string) $quote->quoted_total,
             'currency' => $this->property->settings->currency,
             'expires_at' => $quote->expires_at->toIso8601String(),
@@ -95,6 +102,7 @@ class SendQuoteLink implements Tool
             'arrival_date' => $schema->string()->description('Arrival date, YYYY-MM-DD.')->required(),
             'departure_date' => $schema->string()->description('Departure date, YYYY-MM-DD.')->required(),
             'adults' => $schema->integer()->description('Number of adults.')->required(),
+            'child_ages' => $schema->array()->items($schema->integer())->description('The age of each child, 0 to 17, as passed to CheckRoomsAndPrices. Leave out when no children are coming.'),
         ];
     }
 }
