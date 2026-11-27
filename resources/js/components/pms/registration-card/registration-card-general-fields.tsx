@@ -91,7 +91,6 @@ export function RegistrationCardGeneralFields({
                 id="registration_card_scope"
                 name="registration_card_scope"
                 legend="Who completes a card"
-                radioPosition="right"
                 choices={scopes.map((option) => ({
                     ...option,
                     ...scopeDetails[
@@ -159,7 +158,6 @@ export function RegistrationCardGeneralFields({
             <ChoiceCards
                 id="security_deposit"
                 legend="Security deposit"
-                radioPosition="right"
                 choices={depositChoices}
                 value={values.collectsDeposit ? 'collect' : 'none'}
                 onValueChange={(value) =>
