@@ -1,5 +1,7 @@
-import { Info } from 'lucide-react';
+import { FileText, Info } from 'lucide-react';
 import { EnumSelect, type EnumOption } from '@/components/pms/enum-select';
+import { OptionalBadge } from '@/components/pms/optional-badge';
+import { roomTypeHeadingClassName } from '@/components/pms/rooms/room-type-shell';
 import { SettingsSection } from '@/components/pms/settings-section';
 import {
     SettingsInput,
@@ -70,9 +72,13 @@ export function RoomTypeDetailsForm({
             key={roomType.id}
             form={update.form({ roomType: roomType.id })}
             title="Details"
+            icon={FileText}
+            headerClassName={roomTypeHeadingClassName}
             description="Set what you sell and how many guests it fits."
             submitLabel="Save details"
             readOnly={readOnly}
+            guardUnsavedChanges
+            saveBar
         >
             {(errors) => (
                 <>
@@ -82,6 +88,19 @@ export function RoomTypeDetailsForm({
                         value={roomType.name}
                         error={errors.name}
                         placeholder="e.g. Deluxe King"
+                        disabled={readOnly}
+                    />
+                    <SettingsInput
+                        name="print_label"
+                        label={
+                            <>
+                                Print label <OptionalBadge />
+                            </>
+                        }
+                        value={roomType.printLabel}
+                        error={errors.print_label}
+                        placeholder="e.g. KING"
+                        description="Short label on the House status report. Empty: the initials of the name."
                         disabled={readOnly}
                     />
                     {bedsOn ? (
@@ -118,7 +137,7 @@ export function RoomTypeDetailsForm({
                     )}
                     <Field className="md:col-span-2">
                         <FieldLabel htmlFor="description">
-                            Description
+                            Description <OptionalBadge />
                         </FieldLabel>
                         <Textarea
                             id="description"
@@ -131,51 +150,44 @@ export function RoomTypeDetailsForm({
                         />
                         <FieldError>{errors.description}</FieldError>
                     </Field>
-                    <SettingsInput
-                        name="max_adults"
-                        label="Max adults"
-                        type="number"
-                        min={1}
-                        max={50}
-                        value={roomType.maxAdults}
-                        error={errors.max_adults}
-                        placeholder="e.g. 2"
-                        disabled={readOnly}
-                    />
-                    <SettingsInput
-                        name="max_children"
-                        label="Max children"
-                        type="number"
-                        min={0}
-                        max={50}
-                        value={roomType.maxChildren}
-                        error={errors.max_children}
-                        placeholder="e.g. 1"
-                        disabled={readOnly}
-                    />
-                    <SettingsInput
-                        name="print_label"
-                        label="Print label"
-                        value={roomType.printLabel}
-                        error={errors.print_label}
-                        placeholder="e.g. KING"
-                        description="Short label on the House status report. Empty: the initials of the name."
-                        disabled={readOnly}
-                    />
-                    <SettingsInput
-                        name="base_occupancy"
-                        label={<GuestsIncludedLabel />}
-                        type="number"
-                        min={1}
-                        value={roomType.baseOccupancy}
-                        error={errors.base_occupancy}
-                        placeholder="e.g. 2"
-                        disabled={readOnly}
-                    />
+                    <div className="grid gap-5 md:col-span-2 md:grid-cols-3">
+                        <SettingsInput
+                            name="max_adults"
+                            label="Max adults"
+                            type="number"
+                            min={1}
+                            max={50}
+                            value={roomType.maxAdults}
+                            error={errors.max_adults}
+                            placeholder="e.g. 2"
+                            disabled={readOnly}
+                        />
+                        <SettingsInput
+                            name="max_children"
+                            label="Max children"
+                            type="number"
+                            min={0}
+                            max={50}
+                            value={roomType.maxChildren}
+                            error={errors.max_children}
+                            placeholder="e.g. 1"
+                            disabled={readOnly}
+                        />
+                        <SettingsInput
+                            name="base_occupancy"
+                            label={<GuestsIncludedLabel />}
+                            type="number"
+                            min={1}
+                            value={roomType.baseOccupancy}
+                            error={errors.base_occupancy}
+                            placeholder="e.g. 2"
+                            disabled={readOnly}
+                        />
+                    </div>
                     {termsDocuments.length > 0 && (
                         <Field>
                             <FieldLabel htmlFor="terms_document_id">
-                                Terms document
+                                Terms document <OptionalBadge />
                             </FieldLabel>
                             <EnumSelect
                                 id="terms_document_id"
@@ -200,22 +212,24 @@ export function RoomTypeDetailsForm({
                             <FieldError>{errors.terms_document_id}</FieldError>
                         </Field>
                     )}
-                    <SettingsSwitch
-                        name="smoking_allowed"
-                        label="Smoking allowed"
-                        checked={roomType.smokingAllowed}
-                        description="On: guests may smoke in rooms of this type. Off: rooms of this type are non-smoking."
-                        error={errors.smoking_allowed}
-                        disabled={readOnly}
-                    />
-                    <SettingsSwitch
-                        name="pets_allowed"
-                        label="Pets allowed"
-                        checked={roomType.petsAllowed}
-                        description="On: guests may bring pets to rooms of this type. Off: no pets."
-                        error={errors.pets_allowed}
-                        disabled={readOnly}
-                    />
+                    <div className="grid gap-5 md:col-span-2 md:grid-cols-2">
+                        <SettingsSwitch
+                            name="smoking_allowed"
+                            label="Smoking allowed"
+                            checked={roomType.smokingAllowed}
+                            description="On: guests may smoke in rooms of this type. Off: rooms of this type are non-smoking."
+                            error={errors.smoking_allowed}
+                            disabled={readOnly}
+                        />
+                        <SettingsSwitch
+                            name="pets_allowed"
+                            label="Pets allowed"
+                            checked={roomType.petsAllowed}
+                            description="On: guests may bring pets to rooms of this type. Off: no pets."
+                            error={errors.pets_allowed}
+                            disabled={readOnly}
+                        />
+                    </div>
                 </>
             )}
         </SettingsSection>

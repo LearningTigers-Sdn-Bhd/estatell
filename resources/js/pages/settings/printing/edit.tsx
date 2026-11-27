@@ -1,6 +1,8 @@
 import { Head } from '@inertiajs/react';
-import { FileText, PanelTop, Type } from 'lucide-react';
-import Heading from '@/components/heading';
+import { Eye, FileText, PanelTop, Type } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { PageHeader } from '@/components/pms/page-header';
+import { PanelHeading } from '@/components/pms/panel-heading';
 import { AutoSaveStatus } from '@/components/pms/settings/auto-save-status';
 import type {
     FontSizeOption,
@@ -14,6 +16,7 @@ import { PrintHeaderForm } from '@/components/pms/settings/print-header-form';
 import { PrintPreview } from '@/components/pms/settings/print-preview';
 import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
 import type { TabLink } from '@/components/pms/tab-links';
+import { Workspace } from '@/components/pms/workspace';
 import { useAutoSave } from '@/hooks/use-auto-save';
 import { documents, general, header, update } from '@/routes/settings/printing';
 import { update as updateDocuments } from '@/routes/settings/printing/documents';
@@ -82,6 +85,35 @@ function printingTabs(): TabLink[] {
     ];
 }
 
+/** The heading of each tab's main panel. */
+const tabHeadings: Record<
+    Tab,
+    { icon: LucideIcon; title: string; description: string }
+> = {
+    general: {
+        icon: Type,
+        title: 'General',
+        description: 'Font, text size, table style and the footer line.',
+    },
+    header: {
+        icon: PanelTop,
+        title: 'Header',
+        description:
+            'The property details printed at the top of every document.',
+    },
+    documents: {
+        icon: FileText,
+        title: 'Documents',
+        description:
+            'The lines and sections on invoices, receipts and the booking summary.',
+    },
+};
+
+/**
+ * Settings › Printing. Each tab is its own URL. The tab content sits in a fixed-height `Workspace` like
+ * Settings › Property: each panel scrolls on its own, with the live preview in a 28rem right rail. Every change
+ * saves by itself, so there is no Save button.
+ */
 export default function PrintingSettings({
     tab,
     settings,
@@ -109,23 +141,54 @@ export default function PrintingSettings({
     return (
         <>
             <Head title="Printing" />
-            <div className="flex flex-col gap-4 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                    <Heading
-                        title="Printing"
-                        description="How every PDF of this property looks: receipts, invoices, statements and reports."
-                        className="mb-0"
-                    />
-                    <AutoSaveStatus saving={form.saving} />
-                </div>
+            <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4 lg:overflow-hidden">
+                <PageHeader
+                    title="Printing"
+                    description="How every PDF of this property looks: receipts, invoices, statements and reports."
+                />
                 <TabLinks
                     activeTab={tab}
-                    className="flex flex-col gap-4"
-                    panelWidth="full"
                     tabs={printingTabs()}
+                    triggerClassName="md:min-w-0"
+                    panelWidth="full"
+                    className="flex flex-col gap-4 lg:min-h-0 lg:flex-1"
+                    panelClassName="flex flex-col lg:min-h-0 lg:flex-1"
                 >
-                    <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
-                        <div className="lg:col-span-2">
+                    <Workspace
+                        asideLabel="Preview"
+                        asideWidth="wide"
+                        aside={
+                            <section className="flex flex-col gap-4">
+                                <PanelHeading
+                                    icon={Eye}
+                                    title="Preview"
+                                    description="A sample document with your settings."
+                                />
+                                {tab === 'documents' ? (
+                                    <PrintDocumentsPreview
+                                        settings={form.value}
+                                        fonts={fonts}
+                                        propertyName={profile.name}
+                                        bankAccounts={bankAccounts}
+                                    />
+                                ) : (
+                                    <PrintPreview
+                                        settings={form.value}
+                                        profile={profile}
+                                        taxes={taxes}
+                                        fonts={fonts}
+                                    />
+                                )}
+                            </section>
+                        }
+                    >
+                        <section className="flex flex-col gap-5 pb-6">
+                            <PanelHeading
+                                {...tabHeadings[tab]}
+                                actions={
+                                    <AutoSaveStatus saving={form.saving} />
+                                }
+                            />
                             {tab === 'general' ? (
                                 <PrintGeneralForm
                                     value={form.value}
@@ -151,23 +214,8 @@ export default function PrintingSettings({
                                     bankAccounts={bankAccounts}
                                 />
                             )}
-                        </div>
-                        {tab === 'documents' ? (
-                            <PrintDocumentsPreview
-                                settings={form.value}
-                                fonts={fonts}
-                                propertyName={profile.name}
-                                bankAccounts={bankAccounts}
-                            />
-                        ) : (
-                            <PrintPreview
-                                settings={form.value}
-                                profile={profile}
-                                taxes={taxes}
-                                fonts={fonts}
-                            />
-                        )}
-                    </div>
+                        </section>
+                    </Workspace>
                 </TabLinks>
             </div>
         </>
@@ -175,6 +223,7 @@ export default function PrintingSettings({
 }
 
 PrintingSettings.layout = (props: { tab: Tab }) => ({
+    variant: 'fixed',
     breadcrumbs: withTabCrumb(
         [{ title: 'Printing', href: general() }],
         printingTabs(),

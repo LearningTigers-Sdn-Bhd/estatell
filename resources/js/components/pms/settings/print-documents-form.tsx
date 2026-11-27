@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { ArrowUpRight } from 'lucide-react';
+import { OptionalBadge } from '@/components/pms/optional-badge';
 import {
     Field,
     FieldContent,
@@ -163,7 +164,9 @@ export function PrintDocumentsForm({
                 </FieldDescription>
             </Field>
             <Field>
-                <FieldLabel htmlFor="bank_details">Payment notes</FieldLabel>
+                <FieldLabel htmlFor="bank_details">
+                    Payment notes <OptionalBadge />
+                </FieldLabel>
                 <Textarea
                     id="bank_details"
                     maxLength={500}

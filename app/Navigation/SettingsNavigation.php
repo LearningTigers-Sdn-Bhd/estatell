@@ -172,7 +172,7 @@ class SettingsNavigation
                 ) : null,
                 $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(EInvoicing::class) ? new NavItemData(
                     title: __('E-Invoice'),
-                    href: route('settings.e-invoice.edit', ['property' => $property->code], absolute: false),
+                    href: route('settings.e-invoice.general', ['property' => $property->code], absolute: false),
                     icon: 'file-text',
                     active: request()->routeIs('settings.e-invoice.*'),
                 ) : null,
@@ -200,7 +200,7 @@ class SettingsNavigation
                 ) : null,
                 $user->can(PermissionEnum::SettingsManage->value) && app(GuestEmailText::class)->available($property) !== [] ? new NavItemData(
                     title: __('Emails'),
-                    href: route('settings.emails.edit', ['property' => $property->code], absolute: false),
+                    href: route('settings.emails.index', ['property' => $property->code], absolute: false),
                     icon: 'mail',
                     active: request()->routeIs('settings.emails.*'),
                 ) : null,

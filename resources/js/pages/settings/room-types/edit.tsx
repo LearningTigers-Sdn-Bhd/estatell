@@ -4,7 +4,7 @@ import { RoomTypeDetailsForm } from '@/components/pms/rooms/room-type-details-fo
 import {
     RoomTypeShell,
     isRoomTypeReadOnly,
-    roomTypeBreadcrumbs,
+    roomTypeLayout,
 } from '@/components/pms/rooms/room-type-shell';
 
 type RoomType = App.Data.Rooms.RoomTypeData;
@@ -45,6 +45,5 @@ export default function RoomTypeEdit({
     );
 }
 
-RoomTypeEdit.layout = (props: Parameters<typeof roomTypeBreadcrumbs>[0]) => ({
-    breadcrumbs: roomTypeBreadcrumbs(props, 'details'),
-});
+RoomTypeEdit.layout = (props: Parameters<typeof roomTypeLayout>[0]) =>
+    roomTypeLayout(props, 'details');

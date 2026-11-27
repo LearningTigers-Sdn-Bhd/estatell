@@ -80,4 +80,5 @@ export default function AccountNotifications({
 
 AccountNotifications.layout = {
     breadcrumbs: [{ title: 'Notifications', href: edit() }],
+    width: 'full',
 };

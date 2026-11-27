@@ -207,8 +207,10 @@ test('a new document starts as a copy of the template in both languages', functi
         ->and($document->versions()->count())->toBe(2);
 });
 
-test('the terms tab sends the documents and the editor for the open language', function () {
+test('the terms tab lists the documents with their languages and room types', function () {
     [$owner, $property, $document] = termsProperty();
+    RoomType::factory()->for($property)->create(['terms_document_id' => $document->id]);
+    $document->versions()->forLocale(Locale::Malay)->delete();
 
     $this->actingAs($owner)
         ->get(termsUrl($property))
@@ -219,14 +221,30 @@ test('the terms tab sends the documents and the editor for the open language', f
             ->where('defaultTermsPreset', 'standard_hotel')
             ->has('termsDocuments', 1)
             ->where('termsDocuments.0.isDefault', true)
-            ->where('termsEditor.documentId', $document->id)
-            ->where('termsEditor.locale', 'en')
-            ->where('termsEditor.version', 1)
-            ->where('termsEditor.isDraft', false)
-            ->where('termsEditor.newerTemplateBody', null)
-            ->where('termsEditor.localeOptions.1.label', 'Bahasa Malaysia')
-            ->has('termsEditor.history', 1)
-            ->has('termsEditor.placeholderValues.property_name'));
+            ->where('termsDocuments.0.canDelete', false)
+            ->where('termsDocuments.0.roomTypeCount', 1)
+            ->where('termsDocuments.0.languages.0.version', 1)
+            ->where('termsDocuments.0.languages.1.version', null)
+            ->where('termsDocuments.0.lastPublishedAt', fn (?string $value): bool => $value !== null)
+            ->missing('termsEditor'));
+});
+
+test('the document page sends the editor for the open language', function () {
+    [$owner, $property, $document] = termsProperty();
+
+    $this->actingAs($owner)
+        ->get(termsUrl($property, 'settings.registration-card.terms.documents.edit', [$document->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('settings/registration-card/terms/edit')
+            ->where('document.id', $document->id)
+            ->where('editor.documentId', $document->id)
+            ->where('editor.locale', 'en')
+            ->where('editor.version', 1)
+            ->where('editor.isDraft', false)
+            ->where('editor.newerTemplateBody', null)
+            ->where('editor.localeOptions.1.published', true)
+            ->has('editor.history', 1)
+            ->has('editor.placeholderValues.property_name'));
 });
 
 test('a language with no version opens the template as an unpublished draft', function () {
@@ -234,22 +252,22 @@ test('a language with no version opens the template as an unpublished draft', fu
     $document->versions()->forLocale(Locale::Malay)->delete();
 
     $this->actingAs($owner)
-        ->get(termsUrl($property, parameters: ['locale' => 'ms', 'document' => $document->id]))
+        ->get(termsUrl($property, 'settings.registration-card.terms.documents.edit', [$document->id, 'locale' => 'ms']))
         ->assertInertia(fn (Assert $page) => $page
-            ->where('termsEditor.locale', 'ms')
-            ->where('termsEditor.isDraft', true)
-            ->where('termsEditor.version', null)
-            ->where('termsEditor.localeOptions.1.label', 'Bahasa Malaysia (not published)')
-            ->where('termsEditor.body', TermsPreset::StandardHotel->body(Locale::Malay)));
+            ->where('editor.locale', 'ms')
+            ->where('editor.isDraft', true)
+            ->where('editor.version', null)
+            ->where('editor.localeOptions.1.published', false)
+            ->where('editor.body', TermsPreset::StandardHotel->body(Locale::Malay)));
 });
 
-test('the terms tab offers a newer template when the template version moved on', function () {
+test('the document page offers a newer template when the template version moved on', function () {
     [$owner, $property, $document] = termsProperty();
     $document->versions()->forLocale(Locale::English)->update(['preset_version' => 0]);
 
     $this->actingAs($owner)
-        ->get(termsUrl($property))
-        ->assertInertia(fn (Assert $page) => $page->where('termsEditor.newerTemplateBody', TermsPreset::StandardHotel->body(Locale::English)));
+        ->get(termsUrl($property, 'settings.registration-card.terms.documents.edit', [$document->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('editor.newerTemplateBody', TermsPreset::StandardHotel->body(Locale::English)));
 });
 
 test('a document of another property is not found', function () {
@@ -259,6 +277,7 @@ test('a document of another property is not found', function () {
     $this->actingAs($owner)
         ->post(termsUrl($property, 'settings.registration-card.terms.versions.store', [$foreign->id]), ['locale' => 'en', 'body' => 'x'])
         ->assertNotFound();
+    $this->get(termsUrl($property, 'settings.registration-card.terms.documents.edit', [$foreign->id]))->assertNotFound();
     $this->delete(termsUrl($property, 'settings.registration-card.terms.documents.destroy', [$foreign->id]))->assertNotFound();
 });
 
@@ -267,7 +286,7 @@ test('publishing through the page redirects back to the open document and langua
 
     $this->actingAs($owner)
         ->post(termsUrl($property, 'settings.registration-card.terms.versions.store', [$document->id]), ['locale' => 'ms', 'body' => "Terma baharu\n\n- [ ] Saya setuju."])
-        ->assertRedirect(route('settings.registration-card.terms', [$property->code, 'document' => $document->id, 'locale' => 'ms']));
+        ->assertRedirect(route('settings.registration-card.terms.documents.edit', [$property->code, $document->id, 'locale' => 'ms']));
 
     expect($document->versions()->forLocale(Locale::Malay)->max('version'))->toBe(2);
 });
@@ -303,7 +322,9 @@ test('adding a document needs a name the property does not use yet', function ()
 
     $this->actingAs($owner)->post($url, ['name' => 'standard', 'preset' => 'hostel'])->assertSessionHasErrors('name');
     $this->post($url, ['name' => '', 'preset' => 'hostel'])->assertSessionHasErrors('name');
-    $this->post($url, ['name' => 'Long stay', 'preset' => 'hostel'])->assertRedirect();
+    $response = $this->post($url, ['name' => 'Long stay', 'preset' => 'hostel']);
+    $created = $property->termsDocuments()->where('name', 'Long stay')->firstOrFail();
+    $response->assertRedirect(route('settings.registration-card.terms.documents.edit', [$property->code, $created->id, 'locale' => 'en']));
     $this->post($url, ['name' => 'No template'])->assertSessionHasErrors('preset');
 
     expect($property->termsDocuments()->count())->toBe(2);
@@ -315,6 +336,17 @@ test('deleting the default document shows an error toast', function () {
     $this->actingAs($owner)
         ->delete(termsUrl($property, 'settings.registration-card.terms.documents.destroy', [$document->id]))
         ->assertSessionHas('inertia.flash_data.toast.type', 'error');
+
+    expect($property->termsDocuments()->count())->toBe(1);
+});
+
+test('deleting a document no room type uses returns to the list', function () {
+    [$owner, $property] = termsProperty();
+    $extra = app(CreateTermsDocument::class)($property, $owner, 'Long stay');
+
+    $this->actingAs($owner)
+        ->delete(termsUrl($property, 'settings.registration-card.terms.documents.destroy', [$extra->id]))
+        ->assertRedirect(termsUrl($property));
 
     expect($property->termsDocuments()->count())->toBe(1);
 });
@@ -373,16 +405,18 @@ test('a room type can use a terms document of its own property only', function (
     expect($roomType->refresh()->terms_document_id)->toBeNull();
 });
 
-test('the room types page lists documents only when there is a second one', function () {
+test('the room type page lists documents only when there is a second one', function () {
     [$owner, $property] = termsProperty();
+    $roomType = RoomType::factory()->for($property)->create();
+    $url = route('settings.room-types.edit', [$property->code, $roomType->id]);
 
     $this->actingAs($owner)
-        ->get(route('settings.room-types.index', $property->code))
+        ->get($url)
         ->assertInertia(fn (Assert $page) => $page->where('termsDocuments', []));
 
     app(CreateTermsDocument::class)($property, $owner, 'Long stay');
 
-    $this->get(route('settings.room-types.index', $property->code))
+    $this->get($url)
         ->assertInertia(fn (Assert $page) => $page->has('termsDocuments', 2));
 });
 

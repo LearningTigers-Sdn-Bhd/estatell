@@ -1,9 +1,10 @@
 import { Head } from '@inertiajs/react';
+import { Sparkles } from 'lucide-react';
 import { AmenityPicker } from '@/components/pms/amenities/amenity-picker';
 import {
     RoomTypeShell,
     isRoomTypeReadOnly,
-    roomTypeBreadcrumbs,
+    roomTypeLayout,
 } from '@/components/pms/rooms/room-type-shell';
 import { update } from '@/routes/settings/room-types/amenities';
 
@@ -36,6 +37,8 @@ export default function RoomTypeAmenitiesPage({
                 <AmenityPicker
                     picker={amenities}
                     saveUrl={update.url({ roomType: roomType.id })}
+                    icon={Sparkles}
+                    title="Amenities"
                     description="Turn on what guests find in this room type. Each switch saves at once."
                     readOnly={isRoomTypeReadOnly(roomType, canManage)}
                     page={page}
@@ -46,8 +49,5 @@ export default function RoomTypeAmenitiesPage({
     );
 }
 
-RoomTypeAmenitiesPage.layout = (
-    props: Parameters<typeof roomTypeBreadcrumbs>[0],
-) => ({
-    breadcrumbs: roomTypeBreadcrumbs(props, 'amenities'),
-});
+RoomTypeAmenitiesPage.layout = (props: Parameters<typeof roomTypeLayout>[0]) =>
+    roomTypeLayout(props, 'amenities');

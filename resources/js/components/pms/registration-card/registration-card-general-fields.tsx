@@ -1,6 +1,7 @@
 import { Banknote, CircleOff, UserRound, UsersRound } from 'lucide-react';
 import { ChoiceCards } from '@/components/pms/choice-cards';
 import type { EnumOption } from '@/components/pms/enum-select';
+import { OptionalBadge } from '@/components/pms/optional-badge';
 import {
     Field,
     FieldContent,
@@ -90,7 +91,6 @@ export function RegistrationCardGeneralFields({
                 id="registration_card_scope"
                 name="registration_card_scope"
                 legend="Who completes a card"
-                radioPosition="right"
                 choices={scopes.map((option) => ({
                     ...option,
                     ...scopeDetails[
@@ -132,7 +132,7 @@ export function RegistrationCardGeneralFields({
             </Field>
             <Field>
                 <FieldLabel htmlFor="id_document_retention_days">
-                    ID document retention (days)
+                    ID document retention (days) <OptionalBadge />
                 </FieldLabel>
                 <Input
                     id="id_document_retention_days"
@@ -158,7 +158,6 @@ export function RegistrationCardGeneralFields({
             <ChoiceCards
                 id="security_deposit"
                 legend="Security deposit"
-                radioPosition="right"
                 choices={depositChoices}
                 value={values.collectsDeposit ? 'collect' : 'none'}
                 onValueChange={(value) =>

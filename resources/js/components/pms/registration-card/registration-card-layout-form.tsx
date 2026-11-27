@@ -1,7 +1,9 @@
 import { router } from '@inertiajs/react';
-import { ArrowDown, ArrowUp } from 'lucide-react';
+import { ArrowDown, ArrowUp, Eye, TableProperties } from 'lucide-react';
 import { Fragment, useEffect, useRef, useState } from 'react';
+import { PanelHeading } from '@/components/pms/panel-heading';
 import { RegistrationCardPreview } from '@/components/pms/registration-card/registration-card-preview';
+import { Workspace } from '@/components/pms/workspace';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
@@ -131,32 +133,46 @@ export function RegistrationCardLayoutForm({
     };
 
     return (
-        <div className="flex flex-col gap-5">
-            <header className="flex flex-wrap items-start justify-between gap-2">
-                <div className="space-y-1">
-                    <h3 className="text-base font-medium">Layout</h3>
-                    <p className="text-sm text-muted-foreground">
-                        Choose what the registration card shows and which guest
-                        details are required.
-                    </p>
-                </div>
-                <p
-                    role="status"
-                    className="flex items-center gap-2 text-sm text-muted-foreground"
-                >
-                    {saving ? (
-                        <>
-                            <Spinner />
-                            Saving…
-                        </>
-                    ) : (
-                        'Changes save automatically.'
-                    )}
-                </p>
-            </header>
-
-            <div className="grid gap-5 lg:grid-cols-3 lg:items-start">
-                <div className="overflow-auto rounded-lg border lg:col-span-2">
+        <Workspace
+            asideLabel="Preview"
+            asideWidth="wide"
+            aside={
+                <section className="flex flex-col gap-4">
+                    <PanelHeading
+                        icon={Eye}
+                        title="Preview"
+                        description="A rough picture of the card, with sample guest details."
+                    />
+                    <RegistrationCardPreview
+                        fields={ordered}
+                        visibilities={visibilities}
+                        propertyName={propertyName}
+                    />
+                </section>
+            }
+        >
+            <section className="flex flex-col gap-5">
+                <PanelHeading
+                    icon={TableProperties}
+                    title="Layout"
+                    description="Choose what the registration card shows and which guest details are required."
+                    actions={
+                        <p
+                            role="status"
+                            className="flex items-center gap-2 text-sm text-muted-foreground"
+                        >
+                            {saving ? (
+                                <>
+                                    <Spinner />
+                                    Saving…
+                                </>
+                            ) : (
+                                'Changes save automatically.'
+                            )}
+                        </p>
+                    }
+                />
+                <div className="overflow-auto rounded-xl border">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -261,13 +277,7 @@ export function RegistrationCardLayoutForm({
                         </TableBody>
                     </Table>
                 </div>
-
-                <RegistrationCardPreview
-                    fields={ordered}
-                    visibilities={visibilities}
-                    propertyName={propertyName}
-                />
-            </div>
-        </div>
+            </section>
+        </Workspace>
     );
 }

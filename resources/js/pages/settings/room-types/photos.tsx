@@ -3,7 +3,7 @@ import { RoomTypePhotos } from '@/components/pms/rooms/room-type-photos';
 import {
     RoomTypeShell,
     isRoomTypeReadOnly,
-    roomTypeBreadcrumbs,
+    roomTypeLayout,
 } from '@/components/pms/rooms/room-type-shell';
 
 type RoomType = App.Data.Rooms.RoomTypeData;
@@ -44,8 +44,5 @@ export default function RoomTypePhotosPage({
     );
 }
 
-RoomTypePhotosPage.layout = (
-    props: Parameters<typeof roomTypeBreadcrumbs>[0],
-) => ({
-    breadcrumbs: roomTypeBreadcrumbs(props, 'photos'),
-});
+RoomTypePhotosPage.layout = (props: Parameters<typeof roomTypeLayout>[0]) =>
+    roomTypeLayout(props, 'photos');

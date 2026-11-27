@@ -1,7 +1,7 @@
 import { Baby, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-/** The adults and children of a stay as icons with counts. Children show only when there are any. Used by the stay view and the Units tab. */
+/** The adults and children of a stay as icons with counts. Children show only when there are any. Used by the stay view, the Units tab and the room types list. */
 export function PaxCount({
     stay,
     size = 'default',

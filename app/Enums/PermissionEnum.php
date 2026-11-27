@@ -8,14 +8,22 @@ namespace App\Enums;
  */
 enum PermissionEnum: string
 {
-    case SettingsManage = 'settings.manage';
-    case StaffView = 'staff.view';
-    case StaffManage = 'staff.manage';
-    case RolesManage = 'roles.manage';
-    case RoomsView = 'rooms.view';
-    case RoomsManage = 'rooms.manage';
-    case RoomsBlock = 'rooms.block';
-    case NotificationManage = 'notification.manage';
+    case FrontDeskView = 'front-desk.view';
+    case FrontDeskCheckIn = 'front-desk.check-in';
+    case FrontDeskCheckOut = 'front-desk.check-out';
+    case FrontDeskCheckInWithoutCard = 'front-desk.check-in-without-card';
+    case FrontDeskWaiveFees = 'front-desk.waive-fees';
+    case FrontDeskUndoCheckIn = 'front-desk.undo-check-in';
+    case FrontDeskUndoCheckOut = 'front-desk.undo-check-out';
+    case RegistrationCardSign = 'registration-card.sign';
+    case RegistrationCardSendLink = 'registration-card.send-link';
+    case RegistrationCardVoid = 'registration-card.void';
+    case ReservationsView = 'reservations.view';
+    case ReservationsManage = 'reservations.manage';
+    case ReservationsChangePrice = 'reservations.change-price';
+    case EventsView = 'events.view';
+    case EventsManage = 'events.manage';
+    case FacilitiesBook = 'facilities.book';
     case RatesView = 'rates.view';
     case RatesManage = 'rates.manage';
     case RatesOverrideRestrictions = 'rates.override-restrictions';
@@ -25,12 +33,10 @@ enum PermissionEnum: string
     case GuestsViewDocuments = 'guests.view-documents';
     case GuestsMerge = 'guests.merge';
     case GuestsAnonymize = 'guests.anonymize';
-    case ReservationsView = 'reservations.view';
-    case ReservationsManage = 'reservations.manage';
-    case ReservationsChangePrice = 'reservations.change-price';
-    case EventsView = 'events.view';
-    case EventsManage = 'events.manage';
-    case FacilitiesBook = 'facilities.book';
+    case GuestRequestsView = 'guest-requests.view';
+    case GuestRequestsManage = 'guest-requests.manage';
+    case GuestRequestsResolve = 'guest-requests.resolve';
+    case AiChatsClose = 'ai-chats.close';
     case FolioPostCharge = 'folio.post-charge';
     case FolioReverse = 'folio.reverse';
     case FolioTransfer = 'folio.transfer';
@@ -45,6 +51,17 @@ enum PermissionEnum: string
     case PaymentRecord = 'payment.record';
     case PaymentRefund = 'payment.refund';
     case PaymentRefundOtherMethod = 'payment.refund-other-method';
+    case RoomsView = 'rooms.view';
+    case RoomsManage = 'rooms.manage';
+    case RoomsBlock = 'rooms.block';
+    case HousekeepingView = 'housekeeping.view';
+    case HousekeepingUpdate = 'housekeeping.update';
+    case HousekeepingInspect = 'housekeeping.inspect';
+    case HousekeepingEditTimes = 'housekeeping.edit-times';
+    case NightAuditRun = 'night-audit.run';
+    case NightAuditForce = 'night-audit.force';
+    case NightAuditReceiveReport = 'night-audit.receive-report';
+    case ReportsView = 'reports.view';
     case CompanyView = 'company.view';
     case CompanyManage = 'company.manage';
     case CompanyCreditOverride = 'company.credit-override';
@@ -52,32 +69,6 @@ enum PermissionEnum: string
     case CityLedgerCreditNote = 'city-ledger.credit-note';
     case CityLedgerPayment = 'city-ledger.payment';
     case CityLedgerAllocate = 'city-ledger.allocate';
-    case RegistrationCardManageTerms = 'registration-card.manage-terms';
-    case RegistrationCardSign = 'registration-card.sign';
-    case RegistrationCardSendLink = 'registration-card.send-link';
-    case RegistrationCardVoid = 'registration-card.void';
-    case FrontDeskView = 'front-desk.view';
-    case FrontDeskCheckIn = 'front-desk.check-in';
-    case FrontDeskCheckOut = 'front-desk.check-out';
-    case FrontDeskCheckInWithoutCard = 'front-desk.check-in-without-card';
-    case FrontDeskWaiveFees = 'front-desk.waive-fees';
-    case FrontDeskUndoCheckIn = 'front-desk.undo-check-in';
-    case FrontDeskUndoCheckOut = 'front-desk.undo-check-out';
-    case NightAuditRun = 'night-audit.run';
-    case NightAuditForce = 'night-audit.force';
-    case NightAuditReceiveReport = 'night-audit.receive-report';
-    case ReportsView = 'reports.view';
-    case HousekeepingView = 'housekeeping.view';
-    case HousekeepingUpdate = 'housekeeping.update';
-    case HousekeepingInspect = 'housekeeping.inspect';
-    case HousekeepingEditTimes = 'housekeeping.edit-times';
-    case BookingWebsiteManage = 'booking-website.manage';
-    case BookingWebsitePublish = 'booking-website.publish';
-    case BookingWebsiteApi = 'booking-website.api';
-    case BookingWebsitePaymentMode = 'booking-website.payment-mode';
-    case GuestRequestsView = 'guest-requests.view';
-    case GuestRequestsManage = 'guest-requests.manage';
-    case GuestRequestsResolve = 'guest-requests.resolve';
     case EInvoiceView = 'einvoice.view';
     case EInvoiceManage = 'einvoice.manage';
     case PayoutsView = 'payouts.view';
@@ -95,6 +86,16 @@ enum PermissionEnum: string
     case PosInventory = 'pos.inventory';
     case PosHardware = 'pos.hardware';
     case PosReports = 'pos.reports';
+    case SettingsManage = 'settings.manage';
+    case NotificationManage = 'notification.manage';
+    case RegistrationCardManageTerms = 'registration-card.manage-terms';
+    case BookingWebsiteManage = 'booking-website.manage';
+    case BookingWebsitePublish = 'booking-website.publish';
+    case BookingWebsiteApi = 'booking-website.api';
+    case BookingWebsitePaymentMode = 'booking-website.payment-mode';
+    case StaffView = 'staff.view';
+    case StaffManage = 'staff.manage';
+    case RolesManage = 'roles.manage';
 
     public function label(): string
     {
@@ -169,6 +170,7 @@ enum PermissionEnum: string
             self::GuestRequestsView => __('View guest requests'),
             self::GuestRequestsManage => __('Record, assign, cancel and reopen guest requests'),
             self::GuestRequestsResolve => __('Start and resolve guest requests'),
+            self::AiChatsClose => __('Close AI chats so the next message starts a new chat'),
             self::EInvoiceView => __('View e-invoices and submissions'),
             self::EInvoiceManage => __('Submit, cancel, and configure e-invoices'),
             self::PayoutsView => __('View payouts and commission from Estatell'),
@@ -190,32 +192,19 @@ enum PermissionEnum: string
     }
 
     /**
-     * The heading the permission sits under on the role page.
+     * The feature group the permission sits under on the roles page. Cases are listed in group order.
      */
     public function group(): string
     {
         return match ($this) {
-            self::SettingsManage => __('Property'),
-            self::StaffView, self::StaffManage, self::RolesManage => __('Team'),
-            self::RoomsView, self::RoomsManage, self::RoomsBlock => __('Rooms'),
-            self::NotificationManage => __('System'),
-            self::RatesView, self::RatesManage, self::RatesOverrideRestrictions => __('Rates'),
-            self::GuestsView, self::GuestsManage, self::GuestsBlacklist, self::GuestsViewDocuments, self::GuestsMerge, self::GuestsAnonymize => __('Guests'),
-            self::ReservationsView, self::ReservationsManage, self::ReservationsChangePrice => __('Reservations'),
-            self::EventsView, self::EventsManage, self::FacilitiesBook => __('Events'),
-            self::FolioPostCharge, self::FolioReverse, self::FolioTransfer, self::FolioDiscount, self::FolioDiscountOpen, self::FolioClose, self::FolioReopen, self::FolioPrintVoucher, self::FolioManual, self::FolioViewManualEntries, self::FolioWaiveTax => __('Folio'),
-            self::PaymentRecord, self::PaymentRefund, self::PaymentRefundOtherMethod => __('Payments'),
-            self::CompanyView, self::CompanyManage, self::CompanyCreditOverride, self::CityLedgerInvoice, self::CityLedgerCreditNote, self::CityLedgerPayment, self::CityLedgerAllocate => __('City ledger'),
-            self::RegistrationCardManageTerms, self::RegistrationCardSign, self::RegistrationCardSendLink, self::RegistrationCardVoid => __('Registration card'),
-            self::FrontDeskView, self::FrontDeskCheckIn, self::FrontDeskCheckOut, self::FrontDeskCheckInWithoutCard, self::FrontDeskWaiveFees, self::FrontDeskUndoCheckIn, self::FrontDeskUndoCheckOut => __('Front desk'),
-            self::NightAuditRun, self::NightAuditForce, self::NightAuditReceiveReport => __('Night audit'),
-            self::ReportsView => __('Reports'),
-            self::HousekeepingView, self::HousekeepingUpdate, self::HousekeepingInspect, self::HousekeepingEditTimes => __('Housekeeping'),
-            self::BookingWebsiteManage, self::BookingWebsitePublish, self::BookingWebsiteApi, self::BookingWebsitePaymentMode => __('Booking website'),
-            self::GuestRequestsView, self::GuestRequestsManage, self::GuestRequestsResolve => __('Guest requests'),
-            self::EInvoiceView, self::EInvoiceManage => __('Finance'),
-            self::PayoutsView => __('Payouts'),
+            self::FrontDeskView, self::FrontDeskCheckIn, self::FrontDeskCheckOut, self::FrontDeskCheckInWithoutCard, self::FrontDeskWaiveFees, self::FrontDeskUndoCheckIn, self::FrontDeskUndoCheckOut, self::RegistrationCardSign, self::RegistrationCardSendLink, self::RegistrationCardVoid => __('Front desk'),
+            self::ReservationsView, self::ReservationsManage, self::ReservationsChangePrice, self::EventsView, self::EventsManage, self::FacilitiesBook, self::RatesView, self::RatesManage, self::RatesOverrideRestrictions => __('Reservations'),
+            self::GuestsView, self::GuestsManage, self::GuestsBlacklist, self::GuestsViewDocuments, self::GuestsMerge, self::GuestsAnonymize, self::GuestRequestsView, self::GuestRequestsManage, self::GuestRequestsResolve, self::AiChatsClose => __('Guests'),
+            self::FolioPostCharge, self::FolioReverse, self::FolioTransfer, self::FolioDiscount, self::FolioDiscountOpen, self::FolioClose, self::FolioReopen, self::FolioPrintVoucher, self::FolioManual, self::FolioViewManualEntries, self::FolioWaiveTax, self::PaymentRecord, self::PaymentRefund, self::PaymentRefundOtherMethod => __('Folio and payments'),
+            self::RoomsView, self::RoomsManage, self::RoomsBlock, self::HousekeepingView, self::HousekeepingUpdate, self::HousekeepingInspect, self::HousekeepingEditTimes, self::NightAuditRun, self::NightAuditForce, self::NightAuditReceiveReport, self::ReportsView => __('Operations'),
+            self::CompanyView, self::CompanyManage, self::CompanyCreditOverride, self::CityLedgerInvoice, self::CityLedgerCreditNote, self::CityLedgerPayment, self::CityLedgerAllocate, self::EInvoiceView, self::EInvoiceManage, self::PayoutsView => __('Finance'),
             self::PosView, self::PosManage, self::PosResolve, self::MealsRedeem, self::PosSell, self::PosShift, self::PosVoid, self::PosDiscount, self::PosRefund, self::PosKds, self::PosMenu, self::PosInventory, self::PosHardware, self::PosReports => __('POS and restaurant'),
+            self::SettingsManage, self::NotificationManage, self::RegistrationCardManageTerms, self::BookingWebsiteManage, self::BookingWebsitePublish, self::BookingWebsiteApi, self::BookingWebsitePaymentMode, self::StaffView, self::StaffManage, self::RolesManage => __('Setup'),
         };
     }
 

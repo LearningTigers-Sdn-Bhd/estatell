@@ -84,10 +84,7 @@ export function RegistrationCardPreview({
     const prices = shown('prices');
 
     return (
-        <aside
-            aria-label="Registration card preview"
-            className="flex flex-col gap-3 rounded-lg border bg-card p-4 text-xs text-card-foreground lg:sticky lg:top-4"
-        >
+        <div className="flex flex-col gap-3 rounded-xl border bg-card p-4 text-xs text-card-foreground">
             <header className="flex flex-col gap-0.5">
                 <p className="text-sm font-medium">{propertyName}</p>
                 <p className="text-muted-foreground">Registration card</p>
@@ -148,6 +145,6 @@ export function RegistrationCardPreview({
                 <span className="h-8 border-b" aria-hidden />
                 <span className="text-muted-foreground">Guest signature</span>
             </div>
-        </aside>
+        </div>
     );
 }

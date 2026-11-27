@@ -3,9 +3,10 @@
 namespace App\Http\Controllers\Property;
 
 use App\Actions\EInvoice\SaveEInvoiceSettings;
-use App\Enums\EInvoiceEnvironment;
-use App\Features\EInvoicing;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Property\UpdateEInvoiceBusinessRequest;
+use App\Http\Requests\Property\UpdateEInvoiceConnectionRequest;
+use App\Http\Requests\Property\UpdateEInvoiceGeneralRequest;
 use App\Models\Property;
 use App\Models\PropertyEInvoiceSetting;
 use App\Services\EInvoice\MalaysiaStates;
@@ -15,55 +16,43 @@ use App\Services\EInvoice\MyInvoisClientFactory;
 use App\Services\EInvoice\SupplierDetails;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
-use Laravel\Pennant\Feature;
 
+/**
+ * Settings › E-invoicing. Each tab is its own URL and saves only its own fields. The `einvoicing` route middleware
+ * answers 404 while the feature is off. See docs/31-einvoice/01-lhdn-myinvois.md.
+ */
 class EInvoiceSettingsController extends Controller
 {
-    public function edit(Property $property, SupplierDetails $supplierDetails): Response|RedirectResponse
+    /**
+     * General tab: switch e-invoicing on, send at check-out, monthly summary.
+     */
+    public function general(Property $property, SupplierDetails $supplierDetails): Response
     {
-        if (! Feature::for($property)->active(EInvoicing::class)) {
-            abort(404);
-        }
+        return $this->renderTab($property, $supplierDetails, 'general');
+    }
 
-        $setting = $property->eInvoiceSetting;
+    /**
+     * Connection tab: where e-invoices go and the MyInvois login.
+     */
+    public function connection(Property $property, SupplierDetails $supplierDetails): Response
+    {
+        return $this->renderTab($property, $supplierDetails, 'connection');
+    }
 
-        return Inertia::render('settings/e-invoice/edit', [
-            'setting' => $setting === null ? null : [
-                'enabled' => $setting->enabled,
-                'api_environment' => $setting->api_environment->value,
-                'client_id' => (string) $setting->client_id,
-                'has_client_secret' => ! empty($setting->client_secret),
-                'supplier_name' => $setting->supplier_name,
-                'supplier_tin' => $setting->supplier_tin,
-                'supplier_brn' => $setting->supplier_brn,
-                'supplier_sst_registration' => $setting->supplier_sst_registration,
-                'supplier_ttx_registration' => $setting->supplier_ttx_registration,
-                'supplier_msic_code' => $setting->supplier_msic_code,
-                'supplier_business_description' => $setting->supplier_business_description,
-                'supplier_email' => $setting->supplier_email,
-                'supplier_phone' => $setting->supplier_phone,
-                'supplier_address_line1' => $setting->supplier_address_line1,
-                'supplier_address_line2' => $setting->supplier_address_line2,
-                'supplier_city' => $setting->supplier_city,
-                'supplier_postal_code' => $setting->supplier_postal_code,
-                'supplier_state_code' => $setting->supplier_state_code,
-                'auto_submit_on_checkout' => $setting->auto_submit_on_checkout,
-                'consolidation_enabled' => $setting->consolidation_enabled,
-                'effective_from' => $setting->effective_from?->toIso8601String(),
-            ],
-            // E-invoicing already on with gaps, for example switched on before details were checked.
-            'problems' => $setting?->enabled ? $supplierDetails->missing($property) : [],
-            'environmentOptions' => EInvoiceEnvironment::options(),
+    /**
+     * Business details tab: the hotel details printed on every e-invoice. An empty field shows the property's value.
+     */
+    public function business(Property $property, SupplierDetails $supplierDetails): Response
+    {
+        return $this->renderTab($property, $supplierDetails, 'business', [
             'malaysiaStates' => MalaysiaStates::options(),
             'propertyDefaults' => [
-                'tin' => $property->tin,
-                'registration_number' => $property->registration_number,
                 'brn' => $supplierDetails->for($property)['brn'],
                 'legal_name' => $property->legal_name ?: $property->name,
+                'tin' => $property->tin,
                 'msic_code' => $property->msic_code ?: '55101',
                 'business_description' => $property->business_description ?: 'Hotel and accommodation services',
                 'address_line1' => $property->address_line1,
@@ -78,80 +67,47 @@ class EInvoiceSettingsController extends Controller
     }
 
     /**
-     * Signing fields (signature_enabled, signing_certificate, signing_private_key,
-     * signing_passphrase) are deliberately not accepted. DocumentSigner does not
-     * produce a signature LHDN accepts yet, so a crafted request must not be able
-     * to switch signing on. Unsigned v1.0 documents are what LHDN accepts today.
+     * Switching on needs every saved business detail LHDN reads: nothing is made up for a missing one.
      */
-    public function update(Property $property, Request $request, SaveEInvoiceSettings $saveAction, SupplierDetails $supplierDetails): RedirectResponse
+    public function update(UpdateEInvoiceGeneralRequest $request, Property $property, SaveEInvoiceSettings $saveAction, SupplierDetails $supplierDetails): RedirectResponse
     {
-        if (! Feature::for($property)->active(EInvoicing::class)) {
-            abort(404);
-        }
+        $validated = $request->validated();
 
-        $validated = $request->validate([
-            'enabled' => ['required', 'boolean'],
-            'api_environment' => ['required', 'string', 'in:mock,sandbox,production'],
-            'confirm_production' => ['nullable', 'boolean'],
-            'client_id' => ['nullable', 'string', 'max:255'],
-            'client_secret' => ['nullable', 'string', 'max:255'],
-            'supplier_name' => ['nullable', 'string', 'max:255'],
-            'supplier_tin' => ['nullable', 'string', 'max:30'],
-            'supplier_brn' => ['nullable', 'string', 'max:40'],
-            'supplier_sst_registration' => ['nullable', 'string', 'max:30'],
-            'supplier_ttx_registration' => ['nullable', 'string', 'max:30'],
-            'supplier_msic_code' => ['nullable', 'string', 'max:5'],
-            'supplier_business_description' => ['nullable', 'string', 'max:255'],
-            'supplier_email' => ['nullable', 'email', 'max:255'],
-            'supplier_phone' => ['nullable', 'string', 'max:30'],
-            'supplier_address_line1' => ['nullable', 'string', 'max:255'],
-            'supplier_address_line2' => ['nullable', 'string', 'max:255'],
-            'supplier_city' => ['nullable', 'string', 'max:100'],
-            'supplier_postal_code' => ['nullable', 'string', 'max:20'],
-            'supplier_state_code' => ['nullable', 'string', 'max:2'],
-            'auto_submit_on_checkout' => ['nullable', 'boolean'],
-            'consolidation_enabled' => ['nullable', 'boolean'],
-        ]);
-
-        if ($validated['api_environment'] === 'mock' && app()->isProduction()) {
+        if ($validated['enabled'] && $supplierDetails->missing($property, $property->eInvoiceSetting) !== []) {
             throw ValidationException::withMessages([
-                'api_environment' => __('Test (offline) is only for development. Choose the LHDN test site or live LHDN.'),
+                'enabled' => __('Complete the business details before switching e-invoicing on.'),
             ]);
         }
 
-        $currentSetting = $property->eInvoiceSetting;
-        if (
-            $validated['api_environment'] === 'production' &&
-            $currentSetting?->api_environment?->value !== 'production' &&
-            empty($validated['confirm_production'])
-        ) {
-            throw ValidationException::withMessages([
-                'confirm_production' => __('Tick the box to confirm that e-invoices will now be filed with LHDN for real.'),
-            ]);
-        }
+        return $this->save($property, $validated, $request, $saveAction);
+    }
 
-        // Switching on needs every detail LHDN reads: nothing is made up for a missing one.
-        if ($validated['enabled']) {
-            $draft = ($property->eInvoiceSetting ?? new PropertyEInvoiceSetting)->replicate()->forceFill(Arr::only($validated, SaveEInvoiceSettings::SUPPLIER_FIELDS));
-            $problems = $supplierDetails->missing($property, $draft);
+    public function updateConnection(UpdateEInvoiceConnectionRequest $request, Property $property, SaveEInvoiceSettings $saveAction): RedirectResponse
+    {
+        return $this->save($property, $request->validated(), $request, $saveAction);
+    }
+
+    /**
+     * While e-invoicing is on, a business detail LHDN needs cannot be cleared.
+     */
+    public function updateBusiness(UpdateEInvoiceBusinessRequest $request, Property $property, SaveEInvoiceSettings $saveAction, SupplierDetails $supplierDetails): RedirectResponse
+    {
+        $validated = $request->validated();
+        $setting = $property->eInvoiceSetting;
+
+        if ($setting?->enabled) {
+            $problems = $supplierDetails->missing($property, $setting->replicate()->forceFill($validated));
+
             if ($problems !== []) {
-                throw ValidationException::withMessages([...$problems, 'enabled' => __('Complete the hotel details below before switching e-invoicing on.')]);
+                throw ValidationException::withMessages($problems);
             }
         }
 
-        $saveAction($property, $validated, $request->user());
-
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('E-invoice settings saved.')]);
-
-        return back();
+        return $this->save($property, $validated, $request, $saveAction);
     }
 
     public function test(Property $property): RedirectResponse
     {
-        if (! Feature::for($property)->active(EInvoicing::class)) {
-            abort(404);
-        }
-
         $setting = $property->eInvoiceSetting;
         if ($setting === null || ! MyInvoisClientFactory::isReady($setting)) {
             Inertia::flash('toast', ['type' => 'error', 'message' => __('Enter and save the MyInvois Client ID and Client secret first.')]);
@@ -173,5 +129,65 @@ class EInvoiceSettingsController extends Controller
 
             return back();
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function save(Property $property, array $validated, Request $request, SaveEInvoiceSettings $saveAction): RedirectResponse
+    {
+        $saveAction($property, $validated, $request->user());
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => __('E-invoice settings saved.')]);
+
+        return back();
+    }
+
+    /**
+     * Every tab draws the Status rail, so each gets the saved setting and what still stops e-invoices from going out.
+     *
+     * @param  'general'|'connection'|'business'  $tab
+     * @param  array<string, mixed>  $tabProps
+     */
+    private function renderTab(Property $property, SupplierDetails $supplierDetails, string $tab, array $tabProps = []): Response
+    {
+        $setting = $property->eInvoiceSetting;
+
+        return Inertia::render('settings/e-invoice/edit', [
+            'tab' => $tab,
+            'setting' => $setting === null ? null : $this->settingProps($setting),
+            'problems' => $supplierDetails->missing($property, $setting),
+            ...$tabProps,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function settingProps(PropertyEInvoiceSetting $setting): array
+    {
+        return [
+            'enabled' => $setting->enabled,
+            'api_environment' => $setting->api_environment->value,
+            'client_id' => (string) $setting->client_id,
+            'has_client_secret' => ! empty($setting->client_secret),
+            'supplier_name' => $setting->supplier_name,
+            'supplier_tin' => $setting->supplier_tin,
+            'supplier_brn' => $setting->supplier_brn,
+            'supplier_sst_registration' => $setting->supplier_sst_registration,
+            'supplier_ttx_registration' => $setting->supplier_ttx_registration,
+            'supplier_msic_code' => $setting->supplier_msic_code,
+            'supplier_business_description' => $setting->supplier_business_description,
+            'supplier_email' => $setting->supplier_email,
+            'supplier_phone' => $setting->supplier_phone,
+            'supplier_address_line1' => $setting->supplier_address_line1,
+            'supplier_address_line2' => $setting->supplier_address_line2,
+            'supplier_city' => $setting->supplier_city,
+            'supplier_postal_code' => $setting->supplier_postal_code,
+            'supplier_state_code' => $setting->supplier_state_code,
+            'auto_submit_on_checkout' => $setting->auto_submit_on_checkout,
+            'consolidation_enabled' => $setting->consolidation_enabled,
+            'effective_from' => $setting->effective_from?->toIso8601String(),
+        ];
     }
 }

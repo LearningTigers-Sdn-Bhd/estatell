@@ -64,8 +64,11 @@ export function Workspace({
     hideAside?: boolean;
     /** Whether each panel scrolls on its own or the page scrolls. */
     scroll?: WorkspaceScroll;
-    /** The aside width: `default` is 20rem, `wide` is 28rem for a rail with wider content. */
-    asideWidth?: 'default' | 'wide';
+    /**
+     * The aside width: `default` is 20rem, `wide` is 28rem for a rail with wider content, `email` is 28rem and 38rem
+     * from `xl`, so a 570px email preview fits at full width.
+     */
+    asideWidth?: 'default' | 'wide' | 'email';
     /** Centre panel, the content of the open tab. */
     children: ReactNode;
 }) {
@@ -75,9 +78,11 @@ export function Workspace({
                 className={cn(
                     'grid grid-cols-1 gap-1.5 lg:flex-1',
                     aside !== undefined &&
-                        (asideWidth === 'wide'
-                            ? 'lg:grid-cols-[minmax(0,1fr)_28rem]'
-                            : 'lg:grid-cols-[minmax(0,1fr)_20rem]'),
+                        (asideWidth === 'email'
+                            ? 'lg:grid-cols-[minmax(0,1fr)_28rem] xl:grid-cols-[minmax(0,1fr)_38rem]'
+                            : asideWidth === 'wide'
+                              ? 'lg:grid-cols-[minmax(0,1fr)_28rem]'
+                              : 'lg:grid-cols-[minmax(0,1fr)_20rem]'),
                 )}
             >
                 <Panel scroll="page" label="Details">
@@ -104,9 +109,11 @@ export function Workspace({
                           : 'lg:grid-cols-[14rem_minmax(0,1fr)_20rem]'
                     : hideAside
                       ? 'lg:grid-cols-[minmax(0,1fr)_0rem]'
-                      : asideWidth === 'wide'
-                        ? 'lg:grid-cols-[minmax(0,1fr)_28rem]'
-                        : 'lg:grid-cols-[minmax(0,1fr)_20rem]',
+                      : asideWidth === 'email'
+                        ? 'lg:grid-cols-[minmax(0,1fr)_28rem] xl:grid-cols-[minmax(0,1fr)_38rem]'
+                        : asideWidth === 'wide'
+                          ? 'lg:grid-cols-[minmax(0,1fr)_28rem]'
+                          : 'lg:grid-cols-[minmax(0,1fr)_20rem]',
             )}
         >
             <Panel
@@ -121,7 +128,11 @@ export function Workspace({
                 <div
                     className={cn(
                         hideAside &&
-                            (asideWidth === 'wide' ? 'lg:w-109' : 'lg:w-77'),
+                            (asideWidth === 'email'
+                                ? 'lg:w-109 xl:w-149'
+                                : asideWidth === 'wide'
+                                  ? 'lg:w-109'
+                                  : 'lg:w-77'),
                     )}
                 >
                     {aside}
