@@ -249,7 +249,7 @@ class DemoGroupLodgesSeeder extends Seeder
             app(UpdateTax::class)($owner, $tax, TaxInputData::fromModel($tax, enabled: true));
         }
 
-        app(UpdateRoomRevenueTaxes::class)($property, $owner, $taxes->modelKeys());
+        app(UpdateRoomRevenueTaxes::class)($property, $owner, array_values(array_map(intval(...), $taxes->modelKeys())));
     }
 
     /**
