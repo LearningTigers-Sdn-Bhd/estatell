@@ -78,7 +78,7 @@ Key clauses the guest ticks one by one before signing. They live in the terms ma
 - Publishing text that is the same as the latest version of that language is refused.
 - A document is deleted only when it is not the default and no room type uses it. The signing flow adds a refusal for signed cards.
 - The default document cannot be deleted. Another document becomes the default only through a later change, so there is no action for it now.
-- The UI shows one document at first. Multiple documents and per-room-type assignment appear when a second document exists.
+- The room type form shows its Terms document Select only when a second document exists.
 
 ## Actions
 
@@ -90,27 +90,58 @@ Key clauses the guest ticks one by one before signing. They live in the terms ma
 
 ## UI
 
-The Terms tab has the editor in the main panel and the preview in the 28rem rail, like the Layout tab. The Document and Language Selects and Add document sit on the right of the Terms heading.
+Two pages, like Room types: a list of documents on the Terms tab, and an editor page per document. The list replaced one tab that held the document and language Selects, the editor and every action (2026-11-27).
+
+### Terms tab (list)
 
 ```
+┌──────────────────────────────────────────────────────────────────┐
+│ Terms                                               [+ New doc]  │
+│ What guests agree to when signing. Each change is a new version. │
+│ Search documents [                                     ]         │
+│ ┌──────────────────────────────────────────────────────────────┐ │
+│ │ Name             Languages                 Room types  Last… │ │
+│ │ Standard Default English v3 · BM v2                 3  12 Nov›│ │
+│ │ Chalet rules     English v1 · BM Draft              1  02 Nov›│ │
+│ └──────────────────────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+- A `rounded-xl` table in the Workspace panel, no rail. Columns: Name (with a **Default** badge), Languages (latest version per language, or **Draft**), Room types (how many use it), Last published. The whole row opens the document page.
+- Search sits on its own row under the heading and filters by name in the browser.
+- **New document** opens a Dialog with a name field and a **Start from** Select of the five templates (the property type's template is picked first). The new document starts as a copy of that template in every language, and its page opens.
+
+### Document page (editor)
+
+`GET settings.registration-card.terms.documents.edit` at `/settings/registration-card/terms/documents/{document}?locale=en`. Breadcrumbs: Settings › Registration card › Terms › {document} › {language}.
+
+```
+← Standard [Default]                                      [⋯ More actions]
+  Used by 3 room types.                                     Version history
+[English] [Bahasa Malaysia  Draft]                          Delete document
 ┌──────────────────────────────────────────────┬─────────────────────────┐
-│ Terms   [Document ⌄] [Language ⌄] [+ Add doc]│ Preview                 │
-│ v3 · published 5 Oct · Standard template     │ (placeholders filled)   │
+│ Terms text                                   │ Preview                 │
+│ v3 published 12 Nov 2026 by Aina             │ (placeholders filled)   │
 │ ┌──────────────────────────────────────────┐ │                         │
 │ │ markdown editor                          │ │                         │
 │ └──────────────────────────────────────────┘ │                         │
 │ ⓘ A newer template is available. [Preview] [Apply]                     │
-│ [Version history]      [Publish new version] │                         │
 └──────────────────────────────────────────────┴─────────────────────────┘
+              [ Unsaved changes   Discard   Publish v4 ]   ← Save bar
 ```
 
-- **Language** is a Select menu with every property locale (`Locale::options()`), not tabs or a toggle. A language the document has no version for is listed as "Bahasa Malaysia (not published)". Choosing it opens the editor with the property type's preset text, as an unpublished draft with a note. Publishing makes version 1 in that language.
-- The **document** Select appears only when a second document exists. **Add document** is always in the toolbar and opens a Dialog with a name field and a **Start from** Select of the five templates (the property type's template is picked first). The new document starts as a copy of that template in every language. With one document the toolbar shows Add document and the language Select.
-- The open document and language are in the URL (`?document=` and `?locale=`), so a refresh and a shared link keep them. Changing either is a partial reload that sends only the editor data.
+- A fixed-height Workspace with the preview in the 28rem rail.
+- **Languages are tabs**, one per `Locale` case, each its own URL (`?locale=`). A language with no version shows a **Draft** badge on its tab. It opens with the property type's preset text, as an unpublished draft. Publishing makes version 1 in that language.
+- **Publish** is in the floating Save bar, shown while the text has changed or the language is a draft. Its button names the next version ("Publish v4"). Discard restores the latest version. Leaving with unsaved text asks first.
+- **More actions** holds **Version history** and **Delete document**. Delete shows only when the document is not the default and no room type uses it. After delete, the list opens.
 - **Version history** is a Sheet with a read-only list (version, date, who). **Use as starting point** copies an old version into the editor. It does not publish.
 - **Apply** (and the "newer template" banner) calls `ApplyTermsPreset`. It makes a new version, so nothing is lost. **Preview** shows the new template text read only. There is no line-by-line compare.
 - The preview is drawn in the browser from the editor text. The server sends the placeholder values. It is a small renderer in the app (headings, lists, bold, italic and tick boxes), so no markdown package is added. The server renders the final text with `Str::markdown()`.
-- Each version is saved only by **Publish new version**. There is no autosave on this tab, because a published version cannot be edited.
+- Each version is saved only by Publish. There is no autosave, because a published version cannot be edited.
+- Publish and Apply return to the document page in the same language.
+
+### Shared
+
 - Routes are under `/p/{code}/settings/registration-card/terms` (see [Routing](../routing.md)).
 - The room type form has a **Terms document** Select (Default, or one of the property's documents). It shows only when a second document exists.
 

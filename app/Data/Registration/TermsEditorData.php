@@ -10,11 +10,11 @@ use Illuminate\Support\Collection;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Data;
 
-/** Everything the Terms tab editor shows for one document in one language. */
+/** Everything the terms document page shows for one language. */
 class TermsEditorData extends Data
 {
     /**
-     * @param  list<array{value: string, label: string}>  $localeOptions
+     * @param  list<array{value: string, label: string, published: bool}>  $localeOptions  one per language tab
      * @param  array<string, string>  $placeholderValues  keyed by placeholder name, for the preview
      * @param  Collection<int, TermsVersionData>  $history  newest first
      */
@@ -50,7 +50,8 @@ class TermsEditorData extends Data
             localeOptions: array_map(
                 fn (Locale $option): array => [
                     'value' => $option->value,
-                    'label' => in_array($option, $publishedLocales, true) ? $option->label() : __(':language (not published)', ['language' => $option->label()]),
+                    'label' => $option->label(),
+                    'published' => in_array($option, $publishedLocales, true),
                 ],
                 Locale::cases(),
             ),

@@ -4464,6 +4464,13 @@ id: number,
 name: string,
 isDefault: boolean,
 canDelete: boolean,
+roomTypeCount: number,
+languages: {
+locale: string,
+label: string,
+version: number | null,
+}[],
+lastPublishedAt: string | null,
 };
 export type TermsEditorData = {
 documentId: number,
@@ -4471,6 +4478,7 @@ locale: string,
 localeOptions: {
 value: string,
 label: string,
+published: boolean,
 }[],
 version: number | null,
 body: string,

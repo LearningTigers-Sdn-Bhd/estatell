@@ -3,7 +3,7 @@ import { FileText, SlidersHorizontal, TableProperties } from 'lucide-react';
 import type { EnumOption } from '@/components/pms/enum-select';
 import { RegistrationCardGeneralForm } from '@/components/pms/registration-card/registration-card-general-form';
 import { RegistrationCardLayoutForm } from '@/components/pms/registration-card/registration-card-layout-form';
-import { RegistrationCardTermsForm } from '@/components/pms/registration-card/registration-card-terms-form';
+import { RegistrationCardTermsList } from '@/components/pms/registration-card/registration-card-terms-list';
 import { PageHeader } from '@/components/pms/page-header';
 import { TabLinks, withTabCrumb } from '@/components/pms/tab-links';
 import type { TabLink } from '@/components/pms/tab-links';
@@ -43,7 +43,7 @@ function registrationCardTabs(canManageTerms: boolean): TabLink[] {
 
 /**
  * Settings › Registration card. Each tab is its own URL. The tab content sits in a fixed-height `Workspace` like
- * Settings › Property: each panel scrolls on its own. Layout and Terms show their preview in a right rail.
+ * Settings › Property: each panel scrolls on its own. Layout shows its preview in a right rail. Terms lists the documents; each opens its own editor page.
  */
 export default function RegistrationCard({
     settings,
@@ -53,7 +53,6 @@ export default function RegistrationCard({
     registrationCardScopes = [],
     fields = [],
     termsDocuments = [],
-    termsEditor = null,
     termsPresets = [],
     defaultTermsPreset = '',
 }: {
@@ -64,7 +63,6 @@ export default function RegistrationCard({
     registrationCardScopes?: EnumOption[];
     fields?: App.Data.Registration.RegistrationCardFieldData[];
     termsDocuments?: App.Data.Registration.TermsDocumentData[];
-    termsEditor?: App.Data.Registration.TermsEditorData | null;
     termsPresets?: EnumOption[];
     defaultTermsPreset?: string;
 }) {
@@ -99,9 +97,8 @@ export default function RegistrationCard({
                         />
                     )}
                     {tab === 'terms' && (
-                        <RegistrationCardTermsForm
+                        <RegistrationCardTermsList
                             documents={termsDocuments}
-                            editor={termsEditor}
                             presets={termsPresets}
                             defaultPreset={defaultTermsPreset}
                         />

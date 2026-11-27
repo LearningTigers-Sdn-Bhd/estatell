@@ -28,18 +28,20 @@ use Inertia\Response;
 class RegistrationTermsController extends Controller
 {
     /**
-     * Registration card page, Terms tab. The open document and language are in the URL.
-     * Changing either reloads only the editor data.
+     * Registration card page, Terms tab: the list of terms documents. Each row opens its own editor page.
      */
-    public function index(Request $request, Property $property, SettingsLock $settingsLock, TermsRenderer $renderer): Response|RedirectResponse
+    public function index(Property $property, SettingsLock $settingsLock): Response|RedirectResponse
     {
         if ($property->settings === null) {
             return to_route('settings.edit', $property);
         }
 
-        $documents = $property->termsDocuments()->withExists('roomTypes')->orderByDesc('is_default')->orderBy('name')->get();
-        $document = $documents->firstWhere('id', $request->integer('document')) ?? $documents->firstWhere('is_default', true) ?? $documents->first();
-        $locale = Locale::tryFrom((string) $request->query('locale')) ?? $property->settings->default_locale;
+        $documents = $property->termsDocuments()
+            ->withCount('roomTypes')
+            ->with('versions:id,terms_document_id,locale,version,published_at')
+            ->orderByDesc('is_default')
+            ->orderBy('name')
+            ->get();
 
         return Inertia::render('settings/registration-card/edit', [
             'settings' => PropertySettingsData::fromModel($property->settings, $settingsLock->locksCurrencyAndTimeZone($property)),
@@ -49,7 +51,24 @@ class RegistrationTermsController extends Controller
             'termsPresets' => TermsPreset::options(),
             'defaultTermsPreset' => TermsPreset::forPropertyType($property->type ?? PropertyType::Hotel)->value,
             'termsDocuments' => $documents->map(fn (TermsDocument $terms): TermsDocumentData => TermsDocumentData::fromModel($terms))->values(),
-            'termsEditor' => fn (): ?TermsEditorData => $document === null ? null : $this->editor($property, $document, $locale, $renderer),
+        ]);
+    }
+
+    /**
+     * The editor page of one terms document. The language is in the URL, one tab per language.
+     */
+    public function edit(Request $request, Property $property, TermsDocument $termsDocument, TermsRenderer $renderer): Response|RedirectResponse
+    {
+        if ($property->settings === null) {
+            return to_route('settings.edit', $property);
+        }
+
+        $locale = Locale::tryFrom((string) $request->query('locale')) ?? $property->settings->default_locale;
+        $termsDocument->loadCount('roomTypes')->load('versions:id,terms_document_id,locale,version,published_at');
+
+        return Inertia::render('settings/registration-card/terms/edit', [
+            'document' => TermsDocumentData::fromModel($termsDocument),
+            'editor' => $this->editor($property, $termsDocument, $locale, $renderer),
         ]);
     }
 
@@ -59,7 +78,7 @@ class RegistrationTermsController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':name created.', ['name' => $document->name])]);
 
-        return $this->back($property, $document, Locale::English);
+        return $this->back($property, $document, $property->settings?->default_locale ?? Locale::English);
     }
 
     public function destroyDocument(Request $request, Property $property, TermsDocument $termsDocument, DeleteTermsDocument $deleteTermsDocument): RedirectResponse
@@ -67,7 +86,7 @@ class RegistrationTermsController extends Controller
         if (! $deleteTermsDocument($termsDocument, $request->user())) {
             Inertia::flash('toast', ['type' => 'error', 'message' => __(':name is the default or a room type uses it, so it cannot be deleted.', ['name' => $termsDocument->name])]);
 
-            return $this->back($property, $termsDocument, Locale::English);
+            return $this->back($property, $termsDocument, $property->settings?->default_locale ?? Locale::English);
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':name deleted.', ['name' => $termsDocument->name])]);
@@ -115,6 +134,6 @@ class RegistrationTermsController extends Controller
 
     private function back(Property $property, TermsDocument $document, Locale $locale): RedirectResponse
     {
-        return to_route('settings.registration-card.terms', [$property, 'document' => $document->id, 'locale' => $locale->value]);
+        return to_route('settings.registration-card.terms.documents.edit', [$property, $document, 'locale' => $locale->value]);
     }
 }

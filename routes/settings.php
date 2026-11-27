@@ -105,6 +105,7 @@ Route::prefix('settings')->name('settings.')->group(function () {
     Route::prefix('registration-card/terms')->name('registration-card.terms')->middleware('can:'.PermissionEnum::RegistrationCardManageTerms->value)->scopeBindings()->group(function () {
         Route::get('/', [RegistrationTermsController::class, 'index']);
         Route::post('documents', [RegistrationTermsController::class, 'storeDocument'])->name('.documents.store');
+        Route::get('documents/{termsDocument}', [RegistrationTermsController::class, 'edit'])->name('.documents.edit');
         Route::delete('documents/{termsDocument}', [RegistrationTermsController::class, 'destroyDocument'])->name('.documents.destroy');
         Route::post('documents/{termsDocument}/versions', [RegistrationTermsController::class, 'storeVersion'])->name('.versions.store');
         Route::post('documents/{termsDocument}/preset', [RegistrationTermsController::class, 'applyPreset'])->name('.preset.apply');
