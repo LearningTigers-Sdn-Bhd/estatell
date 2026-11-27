@@ -13,6 +13,8 @@ use Spatie\Activitylog\Models\Activity;
 function guestEmailOwner(): User
 {
     $owner = User::factory()->owner()->create();
+    // A fixed name: the rendered email keeps an apostrophe as is, while e() would encode a random "O'Kon Inn".
+    $owner->property->forceFill(['name' => 'Kopi Lane Inn'])->save();
     Feature::for($owner->property)->activate(EInvoicing::class);
 
     return $owner;
