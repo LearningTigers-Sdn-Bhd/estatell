@@ -41,7 +41,7 @@ class RoomTypeController extends Controller
     /**
      * Active room types in display order, then archived ones. The list is bounded, so it loads once.
      */
-    public function index(Property $property): Response
+    public function index(Request $request, Property $property): Response
     {
         return Inertia::render('settings/room-types/index', [
             'roomTypes' => $property->roomTypes()
@@ -51,7 +51,7 @@ class RoomTypeController extends Controller
                 ->map(fn (RoomType $roomType): RoomTypeData => RoomTypeData::fromModel($roomType)),
             'sellUnits' => SellUnit::options(),
             'bedsOn' => in_array(SellUnit::Bed, SellUnit::availableFor($property), true),
-            'termsDocuments' => $this->termsDocumentOptions($property),
+            'canManage' => $request->user()->can(PermissionEnum::RoomsManage->value),
         ]);
     }
 

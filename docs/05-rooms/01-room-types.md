@@ -51,11 +51,18 @@ Neither is stored. The browser derives both from data the server sends.
 
 ## UI
 
-Settings > Room types (`settings.room-types.index`) lists active room types with sell unit, guests included and capacity, with archived ones below. Up and down buttons reorder. The name opens the room type page. **New room type** opens a right-side Sheet; after create, the new room type's Details tab opens. The list has no edit Sheet. The "N rate plans" link is not built yet; it needs the rate calendar. It has no price fields.
+Settings > Room types (`settings.room-types.index`) is one table in the Charge items design: an **Available** switch, the name with Smoking and Pets badges and a one-line description, sell unit, guests included and capacity (max adults and children as icons with counts, `PaxCount`), then **Edit**. Archived room types sort last with the switch off; there is no separate archived table. A search box filters by name and description in the browser.
+
+- Turning **Available** off opens the archive confirm. The switch moves only after the server answers, because archive can queue a channel removal instead, or be refused. Turning it on restores at once; a name clash shows an error toast and the switch stays off.
+- Up and down buttons reorder available room types only.
+- **New room type** opens a dialog with Name, and Sold by while beds are on. The other fields send their defaults (2 adults, 0 children, 2 included, smoking and pets off, default terms). After create, the new room type's Details tab opens.
+- The page gets `canManage`. Staff with only `rooms.view` see the switch disabled, no New or reorder buttons, and **View** in place of Edit.
+
+The list has no edit Sheet. The "N rate plans" link is not built yet; it needs the rate calendar. It has no price fields.
 
 ### Room type page
 
-The page copies the rate plan editor: a shell with a header and tab links. Each tab is its own URL and loads only its own data.
+A shell with a header and tab links (`RoomTypeShell`). Each tab is its own URL and loads only its own data. The tab content sits in a fixed-height `Workspace` like Settings › Property, with no rail: the panel scrolls on its own. Each tab's section has an icon heading (Details `FileText`, Rooms `Bed`, Photos `Images`, Amenities `Sparkles`).
 
 | Tab       | Route                                | Page                                      |
 | --------- | ------------------------------------ | ----------------------------------------- |
@@ -66,16 +73,16 @@ The page copies the rate plan editor: a shell with a header and tab links. Each 
 
 ```
 Settings › Room types › Deluxe King
-Deluxe King                                      [Archive]
-[ Details ] [ Rooms (12) ]
+Deluxe King                               [⋯ More actions]
+[ Details ] [ Rooms (12) ] [ Photos ] [ Amenities ]
 ```
 
-- The header shows **Archive**, or **Restore** for an archived room type. An archived room type opens read-only.
-- Staff with only `rooms.view` see both tabs read-only: fields disabled, no Save and no header buttons.
+- **More actions** holds **Archive** (destructive, opens the archive confirm) or **Restore** for an archived room type. An archived room type opens read-only.
+- Staff with only `rooms.view` see every tab read-only: fields disabled, no Save and no More actions.
 
 ### Details tab
 
-The former Sheet form, in one `SettingsSection`: Name, Description, Sold by, Guests included, Max adults, Max children, Smoking, Pets and Terms document. The fields and rules do not change. `PUT settings.room-types.update` saves and returns to this tab.
+One `SettingsSection` with `guardUnsavedChanges` and the floating Save bar (Discard and Save while there are unsaved changes). Fields in rows: Name and Print label, Sold by, Description, then Max adults, Max children and Guests included in one row, Terms document, then Smoking and Pets. Print label, Description and Terms document show an Optional badge. `PUT settings.room-types.update` saves and returns to this tab.
 
 ### Rooms tab
 
@@ -87,10 +94,10 @@ Room    Group
 101     [Floor 1      ⌄]
 201     [Ungrouped    ⌄]
 305     [Floor 3      ⌄]   From Standard Twin            [Undo]
-                                                            [Save]
+                              ┌ Unsaved changes  [Discard] [Save] ┐
 ```
 
-- One `SettingsSection` with `guardUnsavedChanges`. **Generate rooms** and **+ Add rooms** sit in the section header (the `actions` slot, which can be a function of the form state so Generate rooms can follow `isDirty`). On a phone they wrap below the description.
+- One `SettingsSection` with `guardUnsavedChanges` and the floating Save bar. Discard also drops rooms picked to add and group changes. **Generate rooms** and **+ Add rooms** sit in the section header (the `actions` slot, which can be a function of the form state so Generate rooms can follow `isDirty`). On a phone they wrap below the description.
 - Each active room of this type has a Group select: any group of the property, or Ungrouped.
 - **+ Add rooms** is a searchable list of active rooms in other types, shown as "305 · Standard Twin". A picked room joins the list marked "From Standard Twin", with **Undo**. Nothing moves until **Save**.
 - There is no Remove. A room always has a type, so it leaves this type only when it is added on another type's page.

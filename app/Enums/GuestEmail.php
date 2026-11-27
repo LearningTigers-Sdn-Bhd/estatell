@@ -18,6 +18,26 @@ enum GuestEmail: string
         };
     }
 
+    /**
+     * The part of the app that sends it, for grouping the Settings › Emails list.
+     */
+    public function module(): string
+    {
+        return match ($this) {
+            self::EInvoice => __('E-invoicing'),
+        };
+    }
+
+    /**
+     * When it goes out, for the Settings › Emails list.
+     */
+    public function sentWhen(): string
+    {
+        return match ($this) {
+            self::EInvoice => __('Staff press Email to guest on an e-invoice LHDN accepted.'),
+        };
+    }
+
     public function description(): string
     {
         return match ($this) {

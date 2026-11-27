@@ -72,6 +72,8 @@ export type Submission = {
         subject: string;
         paragraphs: string[];
         details: Record<string, string>;
+        reply_to: string | null;
+        html: string;
     } | null;
     lhdn_reference: string | null;
     reasons: { message: string; fix: string; where: Where }[];

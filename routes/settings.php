@@ -112,6 +112,7 @@ Route::prefix('settings')->name('settings.')->group(function () {
     Route::prefix('registration-card/terms')->name('registration-card.terms')->middleware('can:'.PermissionEnum::RegistrationCardManageTerms->value)->scopeBindings()->group(function () {
         Route::get('/', [RegistrationTermsController::class, 'index']);
         Route::post('documents', [RegistrationTermsController::class, 'storeDocument'])->name('.documents.store');
+        Route::get('documents/{termsDocument}', [RegistrationTermsController::class, 'edit'])->name('.documents.edit');
         Route::delete('documents/{termsDocument}', [RegistrationTermsController::class, 'destroyDocument'])->name('.documents.destroy');
         Route::post('documents/{termsDocument}/versions', [RegistrationTermsController::class, 'storeVersion'])->name('.versions.store');
         Route::post('documents/{termsDocument}/preset', [RegistrationTermsController::class, 'applyPreset'])->name('.preset.apply');
@@ -376,14 +377,20 @@ Route::prefix('settings')->name('settings.')->group(function () {
     });
 
     Route::prefix('emails')->name('emails.')->middleware('can:'.PermissionEnum::SettingsManage->value)->group(function () {
-        Route::get('/', [GuestEmailController::class, 'edit'])->name('edit');
+        Route::get('/', [GuestEmailController::class, 'index'])->name('index');
+        Route::get('{email}', [GuestEmailController::class, 'edit'])->name('edit');
+        Route::post('{email}/preview', [GuestEmailController::class, 'preview'])->name('preview');
         Route::put('{email}', [GuestEmailController::class, 'update'])->name('update');
         Route::delete('{email}', [GuestEmailController::class, 'reset'])->name('reset');
     });
 
     Route::prefix('e-invoice')->name('e-invoice.')->middleware(['einvoicing', 'can:'.PermissionEnum::SettingsManage->value])->group(function () {
-        Route::get('/', [EInvoiceSettingsController::class, 'edit'])->name('edit');
+        Route::get('/', [EInvoiceSettingsController::class, 'general'])->name('general');
         Route::put('/', [EInvoiceSettingsController::class, 'update'])->name('update');
+        Route::get('connection', [EInvoiceSettingsController::class, 'connection'])->name('connection');
+        Route::put('connection', [EInvoiceSettingsController::class, 'updateConnection'])->name('connection.update');
+        Route::get('business', [EInvoiceSettingsController::class, 'business'])->name('business');
+        Route::put('business', [EInvoiceSettingsController::class, 'updateBusiness'])->name('business.update');
         Route::post('test', [EInvoiceSettingsController::class, 'test'])->name('test');
     });
 

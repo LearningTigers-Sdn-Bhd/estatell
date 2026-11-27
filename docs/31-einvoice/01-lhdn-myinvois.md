@@ -85,11 +85,26 @@ Signing is hidden, the same as in WAStays. `DocumentSigner` does not yet build t
 
 `SupplierDetails` resolves the hotel (the supplier on every document) once for all four builders: each detail from E-invoice settings, else from the property. Nothing is made up. `missing()` lists what is empty or malformed, and:
 
-- **Switching e-invoicing on** is refused until it is empty (errors on each settings field).
+- **Switching e-invoicing on** (General tab) is refused until it is empty for the saved details: the error sits on the switch, and the Status rail lists each gap.
+- **Saving Business details** while e-invoicing is on is refused when it would leave a gap (errors on each field).
 - **Every send** checks it again (`MissingEInvoiceDetails::hotel`), so clearing a detail later stops sending instead of filling in a placeholder.
-- **The settings page** shows "E-invoices cannot go out until these are fixed" when e-invoicing is already on with gaps.
+- **The settings page** lists the gaps in the Status rail: "E-invoices cannot go out until these are fixed" while on, "Complete these before switching on" while off.
 
 Required: registered name; tax number (letters then digits); company registration number (`supplier_brn`, 12 digits, read out of forms such as `201901012345 (123456-A)`); 5-digit MSIC code; email; phone; street address; city; 5-digit postcode; state (the property's state may be a name such as "Sabah"; `MalaysiaStates::codeFor` turns it into LHDN's code). A hotel with an enabled SST tax must give its SST registration number, and one with tourism tax (`TTX`) its tourism tax registration number; both are sent as supplier identifications (verified on preprod, 11 Nov 2026). The business description defaults to "Hotel and accommodation services".
+
+## Settings page
+
+Settings › E-invoicing is a fixed-height Workspace with three tabs. Each tab has its own URL and saves only its own fields from the floating Save bar (`EInvoiceSettingsController`).
+
+| Tab              | Fields                                                                                                                              |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| General          | Enable e-invoicing, Send at check-out, Monthly summary                                                                              |
+| Connection       | Send e-invoices to (Test (offline), LHDN test site, LHDN live), the live confirm box, MyInvois Client ID and Client secret          |
+| Business details | The hotel details above. An empty field shows the property's own value. SST, tourism tax and address line 2 show an Optional badge. |
+
+- Every tab has a 28rem **Status** rail: status, environment, MyInvois login, on since, the gaps with a link to Business details, **Test connection**, **Open MyInvois portal** and LHDN's main rules. It reads the saved settings.
+- Switching to live LHDN needs the confirm box. Test (offline) is refused in production.
+- The client secret is stored encrypted. A blank secret keeps the saved one.
 
 ## Tax
 
@@ -220,7 +235,7 @@ Finance › E-invoicing › **E-invoices** is written for owners, managers and f
 
     The resubmit buttons show only while nothing newer has replaced the rejected e-invoice. Corrections typed in the folio form go to LHDN only; they do not update the guest profile.
 
-- **Email to guest** (valid e-invoices, `einvoice.manage`): a Dialog with the guest's address and a preview of the email. `EmailEInvoiceToGuest` sends `EInvoiceForGuest` with the property's wording from [Settings › Emails](../04-notifications/04-guest-emails.md) and logs `einvoice.emailed`.
+- **Email to guest** (valid e-invoices, `einvoice.manage`): a Dialog with the guest's address and the email as the guest gets it, rendered from the mail template. `EmailEInvoiceToGuest` sends `EInvoiceForGuest` with the property's wording from [Settings › Emails](../04-notifications/04-guest-emails.md) and logs `einvoice.emailed`.
 - **Credit notes** show the 3 latest, with **Show all**, under "Credited X of Y".
 - **Privacy**: the page never receives the UBL document or LHDN's raw replies, and shows the buyer's full IC, passport or registration number only to staff with `guests.view-documents` (others see the last four characters, as on the guest profile). `SubmissionView` builds what the page gets.
 - **Statuses**: Preparing, Being checked, Valid, Rejected, Cancelled.

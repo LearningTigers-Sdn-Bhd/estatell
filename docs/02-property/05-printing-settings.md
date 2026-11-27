@@ -151,7 +151,7 @@ What the customer documents show. One set of switches: each applies to every doc
 - The voucher, the receipts, the AR statement and the reports do not read these switches.
 
 ```
-┌ Documents ────────────────────────────────┬ Preview (sticky) ──────┐
+┌ Documents ────────────────────────────────┬ Preview (rail) ────────┐
 │ Lines                                     │ Booking summary        │
 │ ● Room and guest on lines                 │ BILL TO   STAY         │
 │ ○ Nightly breakdown                       │ Acme      12–15 Oct    │
@@ -239,10 +239,10 @@ The booking summary always has a Rooms section. The folio invoice and the AR inv
 
 Report column layouts are not here. They are a Sheet on each report page. See [Core reports](../22-reports/01-core-reports.md#layout-sheet).
 
-All tabs use the three-column grid of the registration card Layout tab: the form takes two columns and a sticky preview takes one.
+The page uses a fixed-height `Workspace`, like Settings › Property and Registration card: each panel scrolls on its own. The form is in the main panel under a heading with the tab's icon. The preview is in a 28rem right rail under a **Preview** heading.
 
 ```
-┌ General ──────────────────────────────────┬ Preview (sticky) ──────┐
+┌ General ──────────────────────────────────┬ Preview (rail) ────────┐
 │ Font style                                │ Sandbay Resort         │
 │ ┌ Office ──────(•)┐ ┌ Modern ───────( )┐  │ Tan Wei Ming · 陈美玲   │
 │ │ Sandbay Resort  │ │ Sandbay Resort   │  │ RM 1,250.00            │
@@ -262,7 +262,7 @@ All tabs use the three-column grid of the registration card Layout tab: the form
 │                                           │ [Open sample PDF ↗]    │
 └───────────────────────────────────────────┴────────────────────────┘
 
-┌ Header ───────────────────────────────────┬ Preview (sticky) ──────┐
+┌ Header ───────────────────────────────────┬ Preview (rail) ────────┐
 │ ● Show logo                               │ [LOGO] Sandbay Resort  │
 │ ● Address                                 │ Lot 12, Jalan Pantai…  │
 │ ● Phone and email                         │ +60 88 123 456 · stay@ │
@@ -275,8 +275,9 @@ All tabs use the three-column grid of the registration card Layout tab: the form
 └───────────────────────────────────────────┴────────────────────────┘
 ```
 
+- Footer text and Payment notes show an Optional badge.
 - An empty property value or a missing logo shows "Not set" (or "No logo") with a link to the Details page, Profile tab, and its switch is disabled.
-- There is no Save button. A switch, select or radio saves by itself 300 ms after the last change. The footer text saves on blur. The header shows "Saving…" and then "Changes save automatically." A refused save shows an error toast and the form snaps back to the server copy. The `use-auto-save` hook (`resources/js/hooks/`) does this, and later auto-saving forms reuse it.
+- There is no Save button. A switch, select or radio saves by itself 300 ms after the last change. The footer text saves on blur. The tab heading shows "Saving…" on the right and then "Changes save automatically." A refused save shows an error toast and the form snaps back to the server copy. The `use-auto-save` hook (`resources/js/hooks/`) does this, and later auto-saving forms reuse it.
 - The preview is drawn in the browser from the form state. The server sends the property values, the tax numbers and the logo URL. Browser fonts differ from dompdf fonts, so the preview is close but not exact.
 - **Open sample PDF** opens `settings.printing.sample` in a new tab: the real dompdf output of the saved settings, with a sample report table.
 

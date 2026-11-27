@@ -5,7 +5,6 @@ namespace App\Actions\EInvoice;
 use App\Enums\EInvoiceStatus;
 use App\Models\EInvoiceSubmission;
 use App\Models\User;
-use App\Notifications\EInvoiceForGuest;
 use App\Services\EInvoice\EInvoiceGuestEmail;
 use App\Services\Notifications\MailActorResolver;
 use Illuminate\Support\Facades\Context;
@@ -30,14 +29,7 @@ class EmailEInvoiceToGuest
             return EInvoiceResult::refused(EInvoiceResult::REFUSAL_NOT_EMAILABLE, __('This e-invoice has no LHDN link yet. Press Check status, then try again.'));
         }
 
-        Context::scope(fn () => Notification::route('mail', $to)->notify(new EInvoiceForGuest(
-            $email['subject'],
-            $email['paragraphs'],
-            $email['details'],
-            $email['property_name'],
-            $email['reply_to'],
-            $email['view_url'],
-        )), hidden: [MailActorResolver::PROPERTY_CONTEXT_KEY => $submission->property_id]);
+        Context::scope(fn () => Notification::route('mail', $to)->notify($this->guestEmail->notification($email)), hidden: [MailActorResolver::PROPERTY_CONTEXT_KEY => $submission->property_id]);
 
         activity()
             ->performedOn($submission)
