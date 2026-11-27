@@ -419,7 +419,8 @@ test('saving the Rooms tab changes groups and moves rooms in, logging only chang
     $group = RoomGroup::factory()->for($property)->create();
     $kept = Room::factory()->for($property)->create(['room_type_id' => $roomType->id]);
     $regrouped = Room::factory()->for($property)->create(['room_type_id' => $roomType->id]);
-    $moving = Room::factory()->for($property)->create(['room_type_id' => $other->id, 'number' => '305']);
+    // Below the factory's 100–9999 range, so it never collides with a random number.
+    $moving = Room::factory()->for($property)->create(['room_type_id' => $other->id, 'number' => '99']);
     $url = route('settings.room-types.rooms.update', [$property->code, $roomType]);
 
     $this->actingAs($owner)
