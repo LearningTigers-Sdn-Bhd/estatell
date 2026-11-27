@@ -130,14 +130,6 @@ function groupPermissions(permissions: PermissionOption[]) {
     return [...groups.entries()];
 }
 
-function featuresLabel(ticked: string[]) {
-    if (ticked.length === 0) {
-        return 'All features';
-    }
-
-    return ticked.length === 1 ? ticked[0] : `Features · ${ticked.length}`;
-}
-
 /** Tick one or more feature groups. Nothing ticked shows every group. Filters in the browser. */
 function FeaturesFilter({
     groups,
@@ -151,10 +143,24 @@ function FeaturesFilter({
     return (
         <DropdownMenu>
             <DropdownMenuTrigger
-                className={buttonVariants({ variant: 'outline' })}
+                className={cn(
+                    buttonVariants({ variant: 'outline' }),
+                    'w-48 justify-between',
+                )}
                 aria-label="Features"
             >
-                {featuresLabel(value)}
+                {value.length === 0 && 'All features'}
+                {value.length === 1 && (
+                    <span className="truncate">{value[0]}</span>
+                )}
+                {value.length > 1 && (
+                    <span className="flex items-center gap-2">
+                        Features
+                        <Badge variant="outline" className="tabular-nums">
+                            {value.length}
+                        </Badge>
+                    </span>
+                )}
                 <ChevronDown data-icon="inline-end" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56">
@@ -267,7 +273,7 @@ function PermissionMatrix({
             )}
         >
             <div className="flex flex-wrap items-center gap-2">
-                <InputGroup className="sm:w-64">
+                <InputGroup className="min-w-48 flex-1">
                     <InputGroupAddon>
                         <Search aria-hidden />
                     </InputGroupAddon>
@@ -286,7 +292,6 @@ function PermissionMatrix({
                 />
                 <Button
                     variant="ghost"
-                    className="ml-auto"
                     disabled={isSearching || groups.length === 0}
                     onClick={() =>
                         setCollapsed(
