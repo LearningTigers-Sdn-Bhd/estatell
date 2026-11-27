@@ -78,7 +78,7 @@ class RegistrationTermsController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':name created.', ['name' => $document->name])]);
 
-        return $this->back($property, $document, $property->settings?->default_locale ?? Locale::English);
+        return $this->back($property, $document, $property->settings->default_locale ?? Locale::English);
     }
 
     public function destroyDocument(Request $request, Property $property, TermsDocument $termsDocument, DeleteTermsDocument $deleteTermsDocument): RedirectResponse
@@ -86,7 +86,7 @@ class RegistrationTermsController extends Controller
         if (! $deleteTermsDocument($termsDocument, $request->user())) {
             Inertia::flash('toast', ['type' => 'error', 'message' => __(':name is the default or a room type uses it, so it cannot be deleted.', ['name' => $termsDocument->name])]);
 
-            return $this->back($property, $termsDocument, $property->settings?->default_locale ?? Locale::English);
+            return $this->back($property, $termsDocument, $property->settings->default_locale ?? Locale::English);
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => __(':name deleted.', ['name' => $termsDocument->name])]);
