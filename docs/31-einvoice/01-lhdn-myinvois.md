@@ -235,7 +235,7 @@ Finance › E-invoicing › **E-invoices** is written for owners, managers and f
 
     The resubmit buttons show only while nothing newer has replaced the rejected e-invoice. Corrections typed in the folio form go to LHDN only; they do not update the guest profile.
 
-- **Email to guest** (valid e-invoices, `einvoice.manage`): a Dialog with the guest's address and a preview of the email. `EmailEInvoiceToGuest` sends `EInvoiceForGuest` with the property's wording from [Settings › Emails](../04-notifications/04-guest-emails.md) and logs `einvoice.emailed`.
+- **Email to guest** (valid e-invoices, `einvoice.manage`): a Dialog with the guest's address and the email as the guest gets it, rendered from the mail template. `EmailEInvoiceToGuest` sends `EInvoiceForGuest` with the property's wording from [Settings › Emails](../04-notifications/04-guest-emails.md) and logs `einvoice.emailed`.
 - **Credit notes** show the 3 latest, with **Show all**, under "Credited X of Y".
 - **Privacy**: the page never receives the UBL document or LHDN's raw replies, and shows the buyer's full IC, passport or registration number only to staff with `guests.view-documents` (others see the last four characters, as on the guest profile). `SubmissionView` builds what the page gets.
 - **Statuses**: Preparing, Being checked, Valid, Rejected, Cancelled.

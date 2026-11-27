@@ -200,7 +200,7 @@ class SettingsNavigation
                 ) : null,
                 $user->can(PermissionEnum::SettingsManage->value) && app(GuestEmailText::class)->available($property) !== [] ? new NavItemData(
                     title: __('Emails'),
-                    href: route('settings.emails.edit', ['property' => $property->code], absolute: false),
+                    href: route('settings.emails.index', ['property' => $property->code], absolute: false),
                     icon: 'mail',
                     active: request()->routeIs('settings.emails.*'),
                 ) : null,

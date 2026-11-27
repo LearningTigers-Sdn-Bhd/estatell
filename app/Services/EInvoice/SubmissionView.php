@@ -8,6 +8,7 @@ use App\Enums\EInvoiceStatus;
 use App\Enums\Tone;
 use App\Models\EInvoiceSubmission;
 use App\Models\Folio;
+use App\Services\Notifications\GuestEmailPreview;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -19,7 +20,7 @@ use Illuminate\Support\Str;
  */
 class SubmissionView
 {
-    public function __construct(private LhdnRejectionReasons $rejectionReasons, private EInvoiceGuestEmail $guestEmail, private FolioEInvoiceLock $folioEInvoiceLock, private SubmissionStatusBadge $statusBadge, private RejectionReplacements $rejectionReplacements, private SubmissionRules $submissionRules, private ReportableLines $reportableLines) {}
+    public function __construct(private LhdnRejectionReasons $rejectionReasons, private EInvoiceGuestEmail $guestEmail, private FolioEInvoiceLock $folioEInvoiceLock, private SubmissionStatusBadge $statusBadge, private RejectionReplacements $rejectionReplacements, private SubmissionRules $submissionRules, private ReportableLines $reportableLines, private GuestEmailPreview $guestEmailPreview) {}
 
     /**
      * @return array<string, mixed>
@@ -79,7 +80,7 @@ class SubmissionView
             'can_credit_note' => ! $isCreditNote && $status === EInvoiceStatus::Valid,
             'can_check_status' => in_array($status, [EInvoiceStatus::Pending, EInvoiceStatus::Submitted], true),
             'guest_link' => $status === EInvoiceStatus::Valid ? $this->submissionRules->validationUrl($submission) : null,
-            'guest_email' => $status === EInvoiceStatus::Valid && ! $submission->is_consolidated ? $this->guestEmail->for($submission) : null,
+            'guest_email' => $status === EInvoiceStatus::Valid && ! $submission->is_consolidated ? $this->guestEmailWithPreview($submission) : null,
             'lhdn_reference' => $submission->uuid,
             'reasons' => $status === EInvoiceStatus::Invalid ? $this->rejectionReasons->for($submission) : [],
             'replaced_by' => $replacedBy === null ? null : [
@@ -364,5 +365,17 @@ class SubmissionView
         usort($events, fn (array $a, array $b): int => $a['sort'] <=> $b['sort']);
 
         return array_map(fn (array $event): array => ['label' => $event['label'], 'at' => $event['at']], $events);
+    }
+
+    /**
+     * The guest email for the Email to guest dialog, with the rendered email so the dialog shows exactly what is sent.
+     *
+     * @return array{to: string|null, subject: string, paragraphs: list<string>, details: array<string, string>, view_url: string|null, reply_to: string|null, property_name: string, html: string}
+     */
+    private function guestEmailWithPreview(EInvoiceSubmission $submission): array
+    {
+        $email = $this->guestEmail->for($submission);
+
+        return [...$email, 'html' => $this->guestEmailPreview->html($this->guestEmail->notification($email))];
     }
 }

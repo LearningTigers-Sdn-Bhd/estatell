@@ -341,7 +341,9 @@ Route::prefix('settings')->name('settings.')->group(function () {
     });
 
     Route::prefix('emails')->name('emails.')->middleware('can:'.PermissionEnum::SettingsManage->value)->group(function () {
-        Route::get('/', [GuestEmailController::class, 'edit'])->name('edit');
+        Route::get('/', [GuestEmailController::class, 'index'])->name('index');
+        Route::get('{email}', [GuestEmailController::class, 'edit'])->name('edit');
+        Route::post('{email}/preview', [GuestEmailController::class, 'preview'])->name('preview');
         Route::put('{email}', [GuestEmailController::class, 'update'])->name('update');
         Route::delete('{email}', [GuestEmailController::class, 'reset'])->name('reset');
     });
