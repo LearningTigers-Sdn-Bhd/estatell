@@ -37,7 +37,7 @@ class AssistantInstructions
             $this->place($thread->place),
             "# The property\n\n".$this->json($this->knowledge($property)),
             $this->language($property),
-            "# Handover\n\nWhen you hand over, call the HandOver tool and then tell the guest exactly this:\n".$this->handover->forProperty($property),
+            "# Handover\n\nWhen you hand over, call the HandOver tool and then send the guest the message below, in the language the guest writes in. Keep its meaning and add nothing. Leave out an opening such as \"Good question!\" when the guest did not ask a question:\n".$this->handover->forProperty($property),
             // Last, so the parts before it stay the same all day for the provider's prompt cache.
             $this->todaySection($property),
         ]);
@@ -132,7 +132,7 @@ class AssistantInstructions
     {
         $default = $property->settings->default_locale->label();
 
-        return "# Language\n\nReply in the language the guest writes in. When you cannot tell, reply in {$default}.";
+        return "# Language\n\nReply in the language the guest writes in. When you cannot tell, reply in {$default}. Write the way a native speaker writes, with correct grammar, never word for word from English. Keep the guest's own words for names, such as \"airport transfer\".";
     }
 
     /**

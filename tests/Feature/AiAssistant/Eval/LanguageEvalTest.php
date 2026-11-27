@@ -28,4 +28,8 @@ test('the assistant handles', function (string $case, string $group, string $pla
         ['guest' => 'Boleh saya simpan beg awal?', 'judge' => 'Replies in Malay. Says bags can be left at the front desk.'],
         ['guest' => 'Ok terima kasih', 'judge' => 'Replies in Malay.'],
     ]],
+    'handover in malay' => ['Language', 'api', [
+        ['guest' => 'Saya nak batalkan tempahan saya', 'tools' => [AiTool::HandOver], 'judge' => 'Replies in Malay, not English: says the question is passed to the front desk. The Malay is natural and grammatically correct, not a word-for-word translation. Does not promise a cancellation.'],
+        ['guest' => 'dan boleh dapat refund?', 'judge' => 'Replies in natural, correct Malay in one or two short sentences that the front desk has this question too. Does not repeat the full handover message. Does not promise a refund.'],
+    ]],
 ]))->group('ai-eval')->repeat(aiEvalRepeat());

@@ -75,7 +75,7 @@ Rules for every tool:
 
 ## Handover
 
-`EscalateAiThread` (an Action) marks the thread Escalated (built with guest questions), sends the staff notification `AiThreadEscalated` (to staff with `front-desk.view`) and queues the `ai.escalated` webhook (a new `WebhookEvent`). The guest sees the handover message from Settings. An escalated thread keeps answering questions, and staff see it in the [Chat handovers inbox](03-places-and-routes.md#chat-handovers-inbox). See [Handover](03-places-and-routes.md#handover).
+`EscalateAiThread` (an Action) marks the thread Escalated (built with guest questions), sends the staff notification `AiThreadEscalated` (to staff with `front-desk.view`) and queues the `ai.escalated` webhook (a new `WebhookEvent`). The guest sees the handover message from Settings, written by the model in the language the guest writes in (it keeps the meaning, and leaves out an opening such as "Good question!" when the guest did not ask a question). The fixed fallback replies that need no model call (cap, failing key, held-back reply) send the message as written. When the thread is already handed over, `HandOver` calls `AddToAiHandover` instead: the new question goes on a new line of the handover summary (staff are not alerted again), and the guest gets one short line that the front desk has this question too, not the handover message again. An escalated thread keeps answering questions, and staff see it in the [Chat handovers inbox](03-places-and-routes.md#chat-handovers-inbox). See [Handover](03-places-and-routes.md#handover).
 
 ## Safety in the instructions is not enough
 
