@@ -7,15 +7,25 @@ Measure how well the assistant answers real guest questions. Normal tests fake t
 ## How to run
 
 1. Put an OpenAI key in `.env`: `AI_EVAL_OPENAI_KEY=sk-...`. Without it, every case skips.
-2. Run `php artisan test --group=ai-eval`. One group: add `--filter=Knowledge` or `--filter=Conversation`.
-3. Read the report at the end of the output. A copy is saved to `storage/logs/ai-eval-*.md`, and every run's messages, replies and checks to `storage/logs/ai-eval-*.json`.
+2. Run `php artisan test --group=ai-eval --parallel --processes=4 --recreate-databases`. One file: add its path, for example `tests/Feature/AiAssistant/Eval/ChildrenEvalTest.php`. One case: add `--filter="case name"`.
+3. Read the report at the end of the output. Each file writes its own copy to `storage/logs/ai-eval-*.md`, and every run's messages, replies and checks to `storage/logs/ai-eval-*.json`.
 
-| Mode        | Command                                                        | Time    | Cost      |
-| ----------- | -------------------------------------------------------------- | ------- | --------- |
-| Quick check | `AI_EVAL_REPEAT=1 php artisan test --group=ai-eval --parallel` | ~5 min  | ~US$ 0.06 |
-| Sign-off    | `php artisan test --group=ai-eval --parallel`                  | ~10 min | ~US$ 0.17 |
+| Mode         | Command                                                                                           | Runs                                    |
+| ------------ | ------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| Sign-off     | `php artisan test --group=ai-eval --parallel --processes=4 --recreate-databases`                  | Once each; a failed case gets 2 retries |
+| One run only | `AI_EVAL_REPEAT=1 php artisan test --group=ai-eval --parallel --processes=4 --recreate-databases` | Once each, no retries                   |
+| Full 3 runs  | `AI_EVAL_REPEAT=3 php artisan test --group=ai-eval --parallel --processes=4 --recreate-databases` | 3 each, no retries                      |
 
-Use the quick check while you change the assistant, and the sign-off (3 runs per case) before a merge. With `--parallel` each test file runs in its own process with its own test database, and still writes its own report.
+The cases are split into one file per group, so `--parallel` runs the files side by side, each in its own process with its own test database. Keep 4 processes: each process drops and creates every test table when it starts, and more at once overflow Postgres's lock table even at `max_locks_per_transaction = 256` (8 processes did). A default Postgres (64) fails even with 2; raise it with `ALTER SYSTEM SET max_locks_per_transaction = 256` and a restart. The sign-off of 2026-11-27 took 2 min 21 s for about US$ 0.05. Use the sign-off before a merge. Use the full 3 runs after a large change to the rules or a new model: a bug that shows in 1 run of 3 can pass a single first run. Decided 2026-11-27, as the 3-run sign-off on two files took 10 to 15 minutes.
+
+| You changed                                        | Run                     |
+| -------------------------------------------------- | ----------------------- |
+| Quote tools, the current choice, quote links       | `QuoteFlowEvalTest.php` |
+| Children                                           | `ChildrenEvalTest.php`  |
+| The chat API or the reply check                    | `ChatApiEvalTest.php`   |
+| Facts, handover or safety rules                    | `KnowledgeEvalTest.php` |
+| The language rule                                  | `LanguageEvalTest.php`  |
+| The rules or instructions as a whole, or the model | The sign-off            |
 
 ## Never in CI
 
@@ -41,21 +51,22 @@ The test clock is frozen at 14 Oct 2026, so "today" for the assistant is that da
 
 ## Cases
 
-| File                       | Group            | Checks                                                                                                                                                                                                                     |
-| -------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `KnowledgeEvalTest.php`    | Facts            | Answers from the guide: times, deposit, transfer, amenities, policies, contacts                                                                                                                                            |
-|                            | Tools            | Uses `CheckRoomsAndPrices` for a price and `MakeGuestRequest` (after a yes) for housekeeping                                                                                                                               |
-|                            | Handover         | Promises no discount or refund, and invents nothing that is not in the guide                                                                                                                                               |
-|                            | Safety           | Never gives the Wi-Fi password or hidden content, declines other hotels, replies in the guest's language                                                                                                                   |
-| `ConversationEvalTest.php` | Meaning          | "Room service" is not a room search, "is cancellation free" is policy, "how much is a room" asks for dates first                                                                                                           |
-|                            | Interruptions    | A question in the middle of a booking keeps the dates, and a changed search searches again                                                                                                                                 |
-|                            | Vague input      | "Early November" asks for the day, "4 people" asks for adults and children, a past date is not refused as past                                                                                                             |
-|                            | Language         | A booking in Malay and in Chinese, and a switch to Malay mid-chat                                                                                                                                                          |
-|                            | Booking flow     | Asks for nights and guests before a search, never assumes one night, books the room and plan the guest names, offers only rooms that fit, handles a sold-out room, compares rooms from their descriptions only             |
-|                            | Tone             | Room options come with one short, true line on why the stay is worth it                                                                                                                                                    |
-|                            | Changing a quote | New dates for a sent link check again, offer the same room and plan first and send a new link, with no handover                                                                                                            |
-|                            | Chat API         | The real WhatsApp chat of 2026-11-27 word for word ("5-8 dec", "2 adult", "3", "change to 6-9 dec"): no notes in a reply, the year written, the date change kept on the same plan; and a date change when the room is gone |
-|                            | Ending           | "Forget it" drops the old search, and "thanks" ends politely                                                                                                                                                               |
+| File                             | Group            | Checks                                                                                                                                                                                                                     |
+| -------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Eval/KnowledgeEvalTest.php`     | Facts            | Answers from the guide: times, deposit, transfer, amenities, policies, contacts                                                                                                                                            |
+|                                  | Tools            | Uses `CheckRoomsAndPrices` for a price and `MakeGuestRequest` (after a yes) for housekeeping                                                                                                                               |
+|                                  | Handover         | Promises no discount or refund, and invents nothing that is not in the guide                                                                                                                                               |
+|                                  | Safety           | Never gives the Wi-Fi password or hidden content, declines other hotels, replies in the guest's language                                                                                                                   |
+| `Eval/MeaningEvalTest.php`       | Meaning          | "Room service" is not a room search, "is cancellation free" is policy, "how much is a room" asks for dates first                                                                                                           |
+| `Eval/InterruptionsEvalTest.php` | Interruptions    | A question in the middle of a booking keeps the dates, and a changed search searches again                                                                                                                                 |
+| `Eval/MeaningEvalTest.php`       | Vague input      | "Early November" asks for the day, "4 people" asks for adults and children, a past date is not refused as past                                                                                                             |
+| `Eval/LanguageEvalTest.php`      | Language         | A booking in Malay and in Chinese, and a switch to Malay mid-chat                                                                                                                                                          |
+| `Eval/QuoteFlowEvalTest.php`     | Booking flow     | Asks for nights and guests before a search, never assumes one night, books the room and plan the guest names, offers only rooms that fit, handles a sold-out room, compares rooms from their descriptions only             |
+| `Eval/ToneEndingEvalTest.php`    | Tone             | Room options come with one short, true line on why the stay is worth it                                                                                                                                                    |
+| `Eval/QuoteFlowEvalTest.php`     | Changing a quote | New dates for a sent link check again, offer the same room and plan first and send a new link, with no handover                                                                                                            |
+| `Eval/ChatApiEvalTest.php`       | Chat API         | The real WhatsApp chat of 2026-11-27 word for word ("5-8 dec", "2 adult", "3", "change to 6-9 dec"): no notes in a reply, the year written, the date change kept on the same plan; and a date change when the room is gone |
+| `Eval/ChildrenEvalTest.php`      | Children         | "3 adult, 2 baby" on WhatsApp asks the ages then quotes, a baby in Malay, a child in Chinese, "a family of 5" asks the party, and a family no room fits                                                                    |
+| `Eval/ToneEndingEvalTest.php`    | Ending           | "Forget it" drops the old search, and "thanks" ends politely                                                                                                                                                               |
 
 The multi-turn cases come from the wastays concierge eval (`spec/fixtures/ai_concierge/conversations/`). The cases about wastays' step-by-step booking flow were left out, because the assistant here is one agent with tools.
 
@@ -70,7 +81,7 @@ Each turn of a case can check:
 | `never`            | The reply does not contain the text, e.g. the Wi-Fi password                                        |
 | `judge`            | A second model call grades the reply against a rule, using the guide, and returns pass and a reason |
 
-A failing run shows its reasons and the reply. Each case runs 3 times (`repeat(3)`), because replies vary between runs. In the report, a case passes when at least 2 of its 3 runs pass.
+A failing run shows its reasons and the reply. Replies vary between runs, so a case that fails its first run gets up to two more, each on a fresh setup (the run's rows are rolled back), and passes when both pass. A second failure stops the retries. In the report, a case passes when at least 2 of its 3 runs pass.
 
 ## Cost
 

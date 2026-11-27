@@ -37,6 +37,7 @@ class CheckRoomsAndPrices implements Tool
     public function description(): Stringable|string
     {
         return 'Find the rooms free for a stay and their prices. Use it before you name any room or price, and again when the guest changes the dates or the party. '
+            .'When the guest gives an arrival and a number of nights, work out the departure date yourself (12 November and 2 nights is 12 to 14 November); never ask for a check-out date the guest already gave as nights. '
             .'It needs the number of adults: if the guest gave none, or only a total ("4 people", "my family"), ask how many adults and whether any children are coming. When the guest gives a number of adults, take it that no children are coming unless they say so. '
             .'Any baby, infant, toddler, kid, child, son or daughter (anak, bayi, budak, 小孩, 宝宝) means children are coming: ask the age of each in one short question, then pass child_ages. '
             .'Then offer the guest the rooms it returns. If no room fits the party, say so and offer other dates or the front desk. '

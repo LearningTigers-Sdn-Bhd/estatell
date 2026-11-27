@@ -25,6 +25,7 @@ use App\Services\AiAssistant\AssistantInstructions;
 use App\Services\BookingEngine\MapsPlace;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Routing\Middleware\ThrottleRequests;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Ai\Ai;
 use Laravel\Pennant\Feature;
@@ -47,12 +48,19 @@ function aiEvalKey(): ?string
 }
 
 /**
- * How many times each case runs: 3 by default, or AI_EVAL_REPEAT from the shell (`AI_EVAL_REPEAT=1` for a quick check).
+ * How many times each case runs. By default once, and a case that fails gets two more runs (see `aiEvalRetriesFailures`).
+ * AI_EVAL_REPEAT from the shell runs every case that many times with no retries (`AI_EVAL_REPEAT=3` for a full sign-off).
  * Read from the process environment, because the test files load before Laravel reads .env.
  */
 function aiEvalRepeat(): int
 {
-    return max(1, (int) (getenv('AI_EVAL_REPEAT') ?: 3));
+    return max(1, (int) (getenv('AI_EVAL_REPEAT') ?: 1));
+}
+
+/** True when no AI_EVAL_REPEAT is set: a failed case then runs twice more and passes on 2 of 3. */
+function aiEvalRetriesFailures(): bool
+{
+    return getenv('AI_EVAL_REPEAT') === false || getenv('AI_EVAL_REPEAT') === '';
 }
 
 /** Skips the case when no eval key is set, so the group costs nothing by accident. */
@@ -62,6 +70,9 @@ function aiEvalSkipWithoutKey(): void
         test()->markTestSkipped('Set AI_EVAL_OPENAI_KEY in .env to run the AI eval.');
     }
 }
+
+/** A plain room search most booking cases start with. */
+const AI_EVAL_SEARCH = 'I want a room from 2 to 4 November 2026 for 2 adults.';
 
 /** The December nights the Garden Room and Sea View Room are also free: 5 to 9 December 2026. */
 const AI_EVAL_DECEMBER = ['2026-12-05', '2026-12-06', '2026-12-07', '2026-12-08'];
@@ -467,7 +478,7 @@ function aiEvalJudge(Property $property, array $transcript, string $rule): array
 }
 
 /**
- * Records one run of a case for the report, then fails the test with the reasons when it did not pass.
+ * Records one run of a case for the report.
  *
  * @param  list<string>  $failures
  */
@@ -479,8 +490,6 @@ function aiEvalRecord(Property $property, string $group, string $case, array $fa
     $GLOBALS['aiEvalTranscript'] = [];
     $GLOBALS['aiEvalModel'] = (string) config('ai.providers.openai.models.text.default');
     $GLOBALS['aiEvalLogs'] = storage_path('logs');
-
-    expect($failures)->toBe([], implode("\n", $failures));
 }
 
 /**
@@ -529,7 +538,8 @@ function aiEvalDataset(array $cases): array
 }
 
 /**
- * Runs one case on a fresh lobby, stay or chat API thread, then records it. The chat API thread uses the lobby's rooms.
+ * Runs one case and fails the test with the reasons when it did not pass. When failures are retried, a failed first run
+ * gets up to two more runs, and the case passes when both pass (2 of 3), as the report counts it.
  *
  * @param  'lobby'|'stay'|'api'  $place
  * @param  list<array{guest: string, tools?: list<AiTool>, noTools?: list<AiTool>, says?: list<string>, saysAny?: list<string>, never?: list<string>, judge?: string}>  $turns
@@ -539,16 +549,51 @@ function aiEvalRun(string $case, string $group, string $place, array $turns): vo
     aiEvalSkipWithoutKey();
     test()->withoutMiddleware(ThrottleRequests::class);
 
-    if ($place === 'stay') {
-        ['property' => $property, 'token' => $token] = aiEvalStay();
-        $send = aiEvalStaySend($token);
-    } elseif ($place === 'api') {
-        ['property' => $property] = aiEvalLobby();
-        $send = aiEvalApiSend(aiEvalApi($property), '60123456789@c.us');
-    } else {
-        ['property' => $property] = aiEvalLobby();
-        $send = aiEvalLobbySend($property, (string) Str::uuid());
+    $failures = aiEvalAttempt($case, $group, $place, $turns);
+
+    if ($failures !== [] && aiEvalRetriesFailures()) {
+        $retriesPassed = 0;
+
+        // A failed retry already loses the case, so the second retry is skipped.
+        while ($retriesPassed < 2 && aiEvalAttempt($case, $group, $place, $turns) === []) {
+            $retriesPassed++;
+        }
+
+        $failures = $retriesPassed === 2 ? [] : [...$failures, "Retries passed: {$retriesPassed} of 2."];
     }
 
-    aiEvalRecord($property, $group, $case, aiEvalPlay($property, $turns, $send));
+    expect($failures)->toBe([], implode("\n", $failures));
+}
+
+/**
+ * One run of a case on a fresh lobby, stay or chat API thread, recorded for the report. The run's rows are rolled back,
+ * so a retry starts clean. The chat API thread uses the lobby's rooms.
+ *
+ * @param  'lobby'|'stay'|'api'  $place
+ * @param  list<array{guest: string, tools?: list<AiTool>, noTools?: list<AiTool>, says?: list<string>, saysAny?: list<string>, never?: list<string>, judge?: string}>  $turns
+ * @return list<string>
+ */
+function aiEvalAttempt(string $case, string $group, string $place, array $turns): array
+{
+    DB::beginTransaction();
+
+    try {
+        if ($place === 'stay') {
+            ['property' => $property, 'token' => $token] = aiEvalStay();
+            $send = aiEvalStaySend($token);
+        } elseif ($place === 'api') {
+            ['property' => $property] = aiEvalLobby();
+            $send = aiEvalApiSend(aiEvalApi($property), '60123456789@c.us');
+        } else {
+            ['property' => $property] = aiEvalLobby();
+            $send = aiEvalLobbySend($property, (string) Str::uuid());
+        }
+
+        $failures = aiEvalPlay($property, $turns, $send);
+        aiEvalRecord($property, $group, $case, $failures);
+
+        return $failures;
+    } finally {
+        DB::rollBack();
+    }
 }

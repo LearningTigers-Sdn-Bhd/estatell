@@ -37,7 +37,7 @@ class SendQuoteLink implements Tool
             ? 'This chat shows no cards, so write the url from the result in your reply.'
             : 'The guest sees the link as a card, so do not repeat the link in your reply.';
 
-        return 'Make a booking link for one room the guest chose from CheckRoomsAndPrices, with the same dates, adults and child_ages. Nothing is booked until the guest books on the link, which lasts 24 hours. A new link replaces the earlier links in this chat, which stop working. '.$link;
+        return 'Make a booking link for one room the guest chose from CheckRoomsAndPrices, with the same dates, adults and child_ages. Nothing is booked until the guest books on the link, which lasts 24 hours. A new link replaces the earlier links in this chat, which stop working. When the guest already named the room, plan, dates and party and asks for the link, call CheckRoomsAndPrices for the ids, then send this link in the same turn without listing the other rooms. '.$link;
     }
 
     public function handle(Request $request): Stringable|string
