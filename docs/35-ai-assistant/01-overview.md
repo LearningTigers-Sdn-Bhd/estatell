@@ -144,9 +144,10 @@ property_settings   ai_openai_key (text, nullable, encrypted cast),
 
 ## Permissions
 
-| Permission        | Allows                                                                   |
-| ----------------- | ------------------------------------------------------------------------ |
-| `settings.manage` | Settings › AI assistant, including the API key and Usage tabs (existing) |
+| Permission        | Allows                                                                                                        |
+| ----------------- | ------------------------------------------------------------------------------------------------------------- |
+| `settings.manage` | Settings › AI assistant, including the API key and Usage tabs (existing)                                      |
+| `ai-chats.close`  | Close a chat in the Chat handovers inbox, so the next message starts a new chat. Owner and Manager by default |
 
 The staff helper needs no new permission. Its tools run as the signed-in staff member and check that member's permissions, so it never shows what the member could not open.
 

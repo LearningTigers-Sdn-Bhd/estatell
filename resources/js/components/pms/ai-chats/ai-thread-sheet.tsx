@@ -1,4 +1,4 @@
-import { Link, router } from '@inertiajs/react';
+import { Form, Link, router } from '@inertiajs/react';
 import type { UIMessage } from 'ai';
 import { MessageCircle } from 'lucide-react';
 import { useState } from 'react';
@@ -7,6 +7,16 @@ import {
     timeAgo,
 } from '@/components/pms/ai-chats/ai-threads-table';
 import { StatusBadge } from '@/components/pms/status-badge';
+import {
+    AlertDialog,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import {
     Conversation,
@@ -27,7 +37,7 @@ import {
     SheetTitle,
 } from '@/components/ui/sheet';
 import { Spinner } from '@/components/ui/spinner';
-import { resolve } from '@/routes/ai-chats';
+import { close as closeThread, resolve } from '@/routes/ai-chats';
 import { show as reservationShow } from '@/routes/reservations';
 
 type Thread = App.Data.AiAssistant.AiThreadData;
@@ -40,7 +50,8 @@ function textOf(message: UIMessage): string {
 
 /**
  * One AI chat, read only: the handover summary, the stay's reservation, and every message. Staff contact the guest
- * their own way and press Resolve when the handover is handled. There is no reply box.
+ * their own way and press Resolve when the handover is handled. Close chat ends the thread, so the guest's next
+ * message starts a new chat with no history (for a chat an n8n flow looped). There is no reply box.
  */
 export function AiThreadSheet({
     thread,
@@ -50,6 +61,7 @@ export function AiThreadSheet({
     onClose: () => void;
 }) {
     const [resolving, setResolving] = useState(false);
+    const [closeOpen, setCloseOpen] = useState(false);
     const messages = (thread?.messages ?? []) as unknown as UIMessage[];
 
     const resolveNow = () => {
@@ -154,18 +166,82 @@ export function AiThreadSheet({
                             </ConversationContent>
                         </Conversation>
 
-                        {thread.canResolve && (
-                            <SheetFooter className="border-t">
-                                <Button
-                                    onClick={resolveNow}
-                                    disabled={resolving}
-                                    focusableWhenDisabled
-                                >
-                                    {resolving && (
-                                        <Spinner data-icon="inline-start" />
-                                    )}
-                                    Resolve
-                                </Button>
+                        {(thread.canResolve || thread.canClose) && (
+                            <SheetFooter className="flex-row justify-end border-t">
+                                {thread.canClose && (
+                                    <AlertDialog
+                                        open={closeOpen}
+                                        onOpenChange={setCloseOpen}
+                                    >
+                                        <AlertDialogTrigger
+                                            render={
+                                                <Button variant="outline" />
+                                            }
+                                        >
+                                            Close chat
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>
+                                                    Close the chat with{' '}
+                                                    {guestLabel(thread.row)}?
+                                                </AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    Contact the guest first if
+                                                    they need help. Their next
+                                                    message starts a new chat,
+                                                    and the assistant forgets
+                                                    this one.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <Form
+                                                {...closeThread.form({
+                                                    thread: thread.row.id,
+                                                })}
+                                                options={{
+                                                    preserveScroll: true,
+                                                    preserveState: true,
+                                                }}
+                                                onSuccess={() =>
+                                                    setCloseOpen(false)
+                                                }
+                                            >
+                                                {({ processing }) => (
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>
+                                                            Cancel
+                                                        </AlertDialogCancel>
+                                                        <Button
+                                                            type="submit"
+                                                            variant="destructive"
+                                                            disabled={
+                                                                processing
+                                                            }
+                                                            focusableWhenDisabled
+                                                        >
+                                                            {processing && (
+                                                                <Spinner data-icon="inline-start" />
+                                                            )}
+                                                            Close chat
+                                                        </Button>
+                                                    </AlertDialogFooter>
+                                                )}
+                                            </Form>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                )}
+                                {thread.canResolve && (
+                                    <Button
+                                        onClick={resolveNow}
+                                        disabled={resolving}
+                                        focusableWhenDisabled
+                                    >
+                                        {resolving && (
+                                            <Spinner data-icon="inline-start" />
+                                        )}
+                                        Resolve
+                                    </Button>
+                                )}
                             </SheetFooter>
                         )}
                     </>

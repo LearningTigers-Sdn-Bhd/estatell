@@ -6,7 +6,7 @@ use App\Models\AiThread;
 use Spatie\LaravelData\Data;
 
 /**
- * The open thread in the AI chats inbox Sheet: its row, who resolved the last handover, and the chat in the shape the AI
+ * The open thread in the AI chats inbox Sheet: its row, who resolved the last handover, whether staff may resolve or close it, and the chat in the shape the AI
  * Elements messages read. `messages` is empty once the 90-day purge has run.
  */
 class AiThreadData extends Data
@@ -19,19 +19,21 @@ class AiThreadData extends Data
         public ?string $resolvedAt,
         public ?string $resolvedByName,
         public bool $canResolve,
+        public bool $canClose,
         public array $messages,
     ) {}
 
     /**
      * @param  list<array<string, mixed>>  $messages
      */
-    public static function fromModel(AiThread $thread, array $messages, bool $canResolve): self
+    public static function fromModel(AiThread $thread, array $messages, bool $canResolve, bool $canClose): self
     {
         return new self(
             row: AiThreadRowData::fromModel($thread),
             resolvedAt: $thread->resolved_at?->toIso8601String(),
             resolvedByName: $thread->resolvedBy?->name,
             canResolve: $canResolve,
+            canClose: $canClose,
             messages: $messages,
         );
     }

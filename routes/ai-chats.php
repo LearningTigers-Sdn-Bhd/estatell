@@ -11,4 +11,5 @@ Route::prefix('ai-chats')->name('ai-chats.')->middleware(['ai-assistant', 'can:'
     Route::get('/', [AiChatsController::class, 'index'])->name('index');
     Route::get('all', [AiChatsController::class, 'all'])->name('all');
     Route::post('{thread}/resolve', [AiChatsController::class, 'resolve'])->whereUuid('thread')->name('resolve');
+    Route::post('{thread}/close', [AiChatsController::class, 'close'])->whereUuid('thread')->middleware('can:'.PermissionEnum::AiChatsClose->value)->name('close');
 });

@@ -120,6 +120,24 @@ test('a handed-over thread continues within 24 hours, and after that stays for s
         ->and(AiThread::query()->findOrFail($first)->status)->toBe(AiThreadStatus::Escalated);
 });
 
+test('after staff close a handed-over thread, the same chat id starts a new thread with no history', function () {
+    ['property' => $property] = chatApiSetup();
+    PropertyAssistant::fake(['One.', 'Two.']);
+    $first = chatApiMessage()->assertOk()->json('thread_id');
+    AiThread::query()->whereKey($first)->update(['status' => AiThreadStatus::Escalated, 'escalated_at' => now()]);
+    $staff = User::factory()->for($property)->withPermissions(['front-desk.view', 'ai-chats.close'])->create();
+
+    $this->actingAs($staff)->post(route('ai-chats.close', [$property, $first]))->assertRedirect();
+    $second = chatApiMessage()->assertOk()->json('thread_id');
+
+    $old = AiThread::query()->findOrFail($first);
+    $new = AiThread::query()->findOrFail($second);
+    expect($second)->not->toBe($first)
+        ->and($old->status)->toBe(AiThreadStatus::Closed)
+        ->and($new->status)->toBe(AiThreadStatus::Open)
+        ->and($new->agent_conversation_id)->not->toBe($old->agent_conversation_id);
+});
+
 test('another channel with the same chat id is another thread', function () {
     chatApiSetup();
     PropertyAssistant::fake(['One.', 'Two.']);
