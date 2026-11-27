@@ -346,8 +346,12 @@ Route::prefix('settings')->name('settings.')->group(function () {
     });
 
     Route::prefix('e-invoice')->name('e-invoice.')->middleware(['einvoicing', 'can:'.PermissionEnum::SettingsManage->value])->group(function () {
-        Route::get('/', [EInvoiceSettingsController::class, 'edit'])->name('edit');
+        Route::get('/', [EInvoiceSettingsController::class, 'general'])->name('general');
         Route::put('/', [EInvoiceSettingsController::class, 'update'])->name('update');
+        Route::get('connection', [EInvoiceSettingsController::class, 'connection'])->name('connection');
+        Route::put('connection', [EInvoiceSettingsController::class, 'updateConnection'])->name('connection.update');
+        Route::get('business', [EInvoiceSettingsController::class, 'business'])->name('business');
+        Route::put('business', [EInvoiceSettingsController::class, 'updateBusiness'])->name('business.update');
         Route::post('test', [EInvoiceSettingsController::class, 'test'])->name('test');
     });
 

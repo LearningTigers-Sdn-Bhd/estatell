@@ -172,7 +172,7 @@ class SettingsNavigation
                 ) : null,
                 $user->can(PermissionEnum::SettingsManage->value) && Feature::for($property)->active(EInvoicing::class) ? new NavItemData(
                     title: __('E-Invoice'),
-                    href: route('settings.e-invoice.edit', ['property' => $property->code], absolute: false),
+                    href: route('settings.e-invoice.general', ['property' => $property->code], absolute: false),
                     icon: 'file-text',
                     active: request()->routeIs('settings.e-invoice.*'),
                 ) : null,

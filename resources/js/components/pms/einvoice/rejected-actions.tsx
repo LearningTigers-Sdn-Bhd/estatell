@@ -5,7 +5,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { show as showCompany } from '@/routes/finance/city-ledger/companies';
 import { eInvoice as submitArEInvoice } from '@/routes/finance/city-ledger/invoices';
 import { show } from '@/routes/finance/e-invoices';
-import { edit as eInvoiceSettings } from '@/routes/settings/e-invoice';
+import { general as eInvoiceSettings } from '@/routes/settings/e-invoice';
 import {
     KIND_LABEL,
     type Submission,
