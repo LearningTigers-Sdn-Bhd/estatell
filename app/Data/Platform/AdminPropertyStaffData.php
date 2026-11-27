@@ -20,7 +20,8 @@ class AdminPropertyStaffData extends Data
     ) {}
 
     /**
-     * Expects `roles` loaded for the property's permission team.
+     * Expects `roles` loaded for the property's permission team. Loaded through `Property::users()`, deactivated is
+     * the membership at that property.
      */
     public static function fromModel(User $user): self
     {
@@ -30,7 +31,7 @@ class AdminPropertyStaffData extends Data
             email: $user->email,
             role: $user->roles->first()?->name,
             verified: $user->email_verified_at !== null,
-            deactivated: $user->deactivated_at !== null,
+            deactivated: ($user->relationLoaded('pivot') ? $user->getRelation('pivot')->getAttribute('deactivated_at') : $user->deactivated_at) !== null,
             canSendSetupLink: $user->email_verified_at === null
                 && $user->roles->first()?->default_role === DefaultRoleEnum::Owner,
             createdAt: $user->created_at->toDateString(),

@@ -11,7 +11,8 @@ use Spatie\LaravelData\Data;
  * `ReportKey::FacilityBookings`. `key` is the booking id, `date` is `Y-m-d` and `time` is "20:00–22:00". `owner` is the
  * event name or the reservation's booker, `ref` the event number, or the reservation's rooms (its reference when no
  * room is set). `amount` is the price before tax, null when charged by hand. `section` groups the rows of one facility,
- * date and time, and `capacity` and `unit` give its subtotal.
+ * date and time, and `capacity` and `unit` give its subtotal. `party` is everyone in the reservation's live rooms
+ * (`GuestParty`); an event has none.
  */
 class FacilityBookingRow extends Data implements ReportRow
 {
@@ -28,10 +29,13 @@ class FacilityBookingRow extends Data implements ReportRow
         public string $folio,
         public ?string $amount,
         public ?string $notes,
+        public ?string $dietary,
         public string $section,
         public int $capacity,
         public string $unit,
         public bool $counts,
+        public ?string $crew = null,
+        public ?string $party = null,
     ) {}
 
     /**
@@ -44,6 +48,7 @@ class FacilityBookingRow extends Data implements ReportRow
             'time' => $this->time,
             'facility' => $this->facility,
             'owner' => $this->owner,
+            'party' => $this->party ?? '',
             'ref' => $this->ref,
             'quantity' => (string) $this->quantity,
             'status' => $this->status->label,
@@ -51,6 +56,7 @@ class FacilityBookingRow extends Data implements ReportRow
             'folio' => $this->folio,
             'amount' => $this->amount === null ? '' : number_format((float) $this->amount, 2),
             'notes' => $this->notes ?? '',
+            'dietary' => $this->dietary ?? '',
         ];
     }
 
@@ -64,6 +70,7 @@ class FacilityBookingRow extends Data implements ReportRow
             'time' => $this->time,
             'facility' => $this->facility,
             'owner' => $this->owner,
+            'party' => $this->party ?? '',
             'ref' => $this->ref,
             'quantity' => $this->quantity,
             'status' => $this->status->label,
@@ -71,6 +78,7 @@ class FacilityBookingRow extends Data implements ReportRow
             'folio' => $this->folio,
             'amount' => $this->amount === null ? '' : round((float) $this->amount, 2),
             'notes' => $this->notes ?? '',
+            'dietary' => $this->dietary ?? '',
         ];
     }
 }

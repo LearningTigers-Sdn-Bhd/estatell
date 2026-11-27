@@ -13,6 +13,7 @@ use App\Models\DoorCard;
 use App\Models\ReservationUnit;
 use App\Services\DoorLocks\CardNumber;
 use App\Services\DoorLocks\PasscodeWindow;
+use App\Services\DoorLocks\StayLockLabel;
 use App\Services\DoorLocks\StayLocks;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
@@ -66,7 +67,7 @@ class RegisterStayCard
 
         $timeZone = $stay->property->settings->time_zone ?? 'Asia/Kuala_Lumpur';
         [$startsAt, $endsAt] = $this->passcodeWindow->forUnit($stay, PasscodeKind::Custom, $timeZone);
-        $label = mb_substr('Stay '.$stay->reservation_id.' card', 0, 60);
+        $label = StayLockLabel::for($stay);
         $cards = [];
 
         foreach ($locks as $lock) {

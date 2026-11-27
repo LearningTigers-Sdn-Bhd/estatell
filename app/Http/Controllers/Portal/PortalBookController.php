@@ -10,6 +10,7 @@ use App\Enums\CompanyStatus;
 use App\Enums\Gender;
 use App\Enums\IdentityDocumentType;
 use App\Enums\Locale;
+use App\Features\Transfers;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Portal\PortalOffersRequest;
 use App\Http\Requests\Portal\StorePortalBookingRequest;
@@ -24,11 +25,13 @@ use App\Services\Portal\PortalBookingRules;
 use App\Services\Portal\PortalBookings;
 use App\Services\Portal\PortalRatePlans;
 use App\Services\Reservations\AutoAddOns;
+use App\Services\Transfers\ReservationTransfers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Laravel\Pennant\Feature;
 
 /**
  * Book a stay: the new booking page, the offers for a search and the new booking. The company always comes from the
@@ -61,6 +64,7 @@ class PortalBookController extends Controller
             'genders' => Gender::options(),
             'locales' => Locale::options(),
             'boatDepartures' => $suspended ? [] : $bookings->boatDepartures($property),
+            'transferRoutes' => $suspended || ! Feature::for($property)->active(Transfers::class) ? [] : app(ReservationTransfers::class)->routes($property),
             'autoAddOns' => array_map(fn (ChargeItem $item): string => $item->name, $autoAddOns->items($property)),
             'currency' => CurrencyData::forProperty($property),
         ]);

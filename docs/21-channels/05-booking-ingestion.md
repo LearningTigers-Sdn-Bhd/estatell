@@ -61,7 +61,7 @@ IngestChannelBooking ── CreateReservation(fromChannel: true), booking source
 - `IngestChannelBooking` creates reservations through `CreateReservation` (see [Group bookings](../12-reservations/02-group-bookings.md#creating-reservations-and-units)) with `fromChannel: true`, which skips the past-arrival, restriction and availability checks. `AddUnit` also accepts a stay the rate quote refuses when `override_total` is set (decided 2026-10-21).
 - `created_by` and the activity log causer are the property's owner (`PropertyOwners::firstFor`). There is no system user. A property with no owner fails the revision.
 - A refusal that estatell cannot skip fails the revision with its code, for example a Cancel with no cancellation policy (`policy_not_found`), a date change that needs a business date (`no_business_date`), or a closed reservation.
-- Dorm bed bookings are not expected until the dorm work. A revision for an unmapped room fails and alerts.
+- A room of a dorm booking is one bed per guest (BedAsUnit, changed 2026-11-25): `ChannelRevisionMapper::rooms()` splits a dorm room with N adults and children into N rooms of one adult, each with an equal share of the room amount and of each night's price (a cent more on the first beds) and one guest name. Infants take no bed. A room of one guest is unchanged. New bookings, Modified matching and the OTA payment shares all read the split list, so a bed keeps its place across revisions. Before this, a room with 3 guests took one bed at the price of three (staging, `OFL-DORMMULTI-084116`). A revision for an unmapped room fails and alerts.
 
 ## OTA collected payments
 
@@ -103,7 +103,7 @@ Booking.com and Expedia support `load_future_reservations`. **Import future book
 ## To verify on staging
 
 - The signature headers and the secret on a real webhook (`CHANNEX_WEBHOOK_SECRET`).
-- Whether a multi-bed booking arrives as one room entry or N (see [Dorm checks](06-staging-verification.md#dorm-checks-wip)).
+- Whether an OTA sends a multi-bed booking as one room entry or N. Both are handled now; the Booking.com test hotel sells the dorm as a one-person Single Room, so N entries is expected (see [Dorm checks](06-staging-verification.md#dorm-checks-wip)).
 - The room `amount`: tax inclusive or not per OTA (see [Open checks](06-staging-verification.md#open-checks)).
 - The feed page size.
 - Whether Booking.com virtual card bookings arrive with `payment_collect` = `ota`, or with `property` and `guarantee.is_virtual` = true.
@@ -112,7 +112,7 @@ Booking.com and Expedia support `load_future_reservations`. **Import future book
 
 ## Open
 
-- A night that cannot be repriced on a Modified booking (a refusal from `ChangeNightPrice`) keeps its old price without any alert, so the total can differ from the OTA. A refusal needs a property with no room revenue code, or a folio that cannot take the correction.
+- A night that cannot be repriced on a Modified booking (a refusal from `ChangeNightPrice`) keeps its old price without any alert, so the total can differ from the OTA. A refusal needs a property with no room revenue code, a folio that cannot take the correction, or a tourism tax property and a guest with no nationality (`nationality_required`, seen on staging 2026-11-25: an OTA guest often has none).
 
 ## Out of scope
 

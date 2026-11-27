@@ -85,4 +85,12 @@ class UnitAddOn extends Model
     {
         return $this->hasMany(BoatTripAddOn::class);
     }
+
+    /**
+     * @return HasMany<UnitTransferAddOn, $this>
+     */
+    public function transferLinks(): HasMany
+    {
+        return $this->hasMany(UnitTransferAddOn::class);
+    }
 }

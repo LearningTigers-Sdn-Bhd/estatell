@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * A sellable bed in a room whose room type sells beds. It has no `property_id`: the room carries it.
@@ -36,6 +37,16 @@ class Bed extends Model
         return [
             'archived_at' => 'datetime',
         ];
+    }
+
+    /**
+     * The bed's housekeeping status. See docs/19-housekeeping/04-dorm-beds.md.
+     *
+     * @return HasOne<BedStatus, $this>
+     */
+    public function status(): HasOne
+    {
+        return $this->hasOne(BedStatus::class);
     }
 
     /**

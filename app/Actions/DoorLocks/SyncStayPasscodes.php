@@ -9,6 +9,7 @@ use App\Enums\UnitStatus;
 use App\Models\DoorPasscode;
 use App\Models\ReservationUnit;
 use App\Services\DoorLocks\PasscodeWindow;
+use App\Services\DoorLocks\StayLockLabel;
 use App\Services\DoorLocks\StayLocks;
 
 /**
@@ -39,7 +40,7 @@ class SyncStayPasscodes
         $locks = $unit->status === UnitStatus::CheckedIn ? $this->stayLocks->current($unit) : collect();
 
         $unit->loadMissing('reservation.booker');
-        $label = $this->label($unit);
+        $label = StayLockLabel::for($unit);
         $timeZone = $property->settings->time_zone ?? 'Asia/Kuala_Lumpur';
 
         $retry = false;
@@ -80,10 +81,5 @@ class SyncStayPasscodes
             ->each(fn (DoorPasscode $passcode) => ($this->revokeDoorPasscode)($passcode));
 
         return $retry;
-    }
-
-    private function label(ReservationUnit $unit): string
-    {
-        return mb_substr(trim('Stay '.$unit->reservation_id.' '.($unit->reservation->booker->full_name)), 0, 60);
     }
 }

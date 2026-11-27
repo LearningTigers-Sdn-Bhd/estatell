@@ -272,6 +272,7 @@ class VarsityLoftSeeder extends Seeder
             $user->property_id = $property->id;
             $user->email_verified_at = now();
             $user->save();
+            $user->memberships()->create(['property_id' => $user->property_id]);
             $users[$role->value] = $user;
         }
 
@@ -281,7 +282,7 @@ class VarsityLoftSeeder extends Seeder
         foreach ([DefaultRoleEnum::Manager, DefaultRoleEnum::FrontDesk, DefaultRoleEnum::Housekeeping] as $role) {
             $roleModel = Role::query()->where('property_id', $property->id)->where('default_role', $role)->firstOrFail();
 
-            if (! app(AssignStaffRole::class)($owner, $users[$role->value], $roleModel)) {
+            if (! app(AssignStaffRole::class)($owner, $property, $users[$role->value], $roleModel)) {
                 throw new RuntimeException("Could not assign the {$role->value} role.");
             }
         }

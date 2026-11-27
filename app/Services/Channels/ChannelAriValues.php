@@ -73,7 +73,8 @@ class ChannelAriValues
             ->whereBetween('date', [$from->toDateString(), $to->toDateString()])
             ->get()
             ->keyBy(fn (Rate $rate): string => $rate->date->toDateString());
-        $occupancies = $this->occupancies($sellMode, $roomType);
+        $channelAdults = $this->capability->channelAdults($roomType);
+        $occupancies = $sellMode->occupancies($channelAdults);
         $prices = $isPackage ? $this->packagePrices($plan, $roomType, $from, $to, $currency, $occupancies) : $this->nightlyPrices($plan, $roomType, $from, $to, $currency, $occupancies);
         $values = [];
 
@@ -95,7 +96,7 @@ class ChannelAriValues
             if ($price !== null) {
                 $value += $sellMode === ChannelSellMode::PerPerson
                     ? ['rates' => array_map(fn (int $adults): array => ['occupancy' => $adults, 'rate' => $price[$adults]], $occupancies)]
-                    : ['rate' => $price[$roomType->max_adults]];
+                    : ['rate' => $price[$channelAdults]];
             }
 
             $values[$key] = $value;
@@ -194,16 +195,6 @@ class ChannelAriValues
         $night = NightPrice::of(CarbonImmutable::parse($period->arrival_from), $base, $extra, Money::zero($currency));
 
         return ($plan->parent === null ? $night : $this->resolver->resolve($night, $plan, 1))->total();
-    }
-
-    /**
-     * The adult counts Channex gets a price for: every count for a per-person plan, else the top one.
-     *
-     * @return list<int>
-     */
-    private function occupancies(ChannelSellMode $sellMode, RoomType $roomType): array
-    {
-        return $sellMode === ChannelSellMode::PerPerson ? range(1, $roomType->max_adults) : [$roomType->max_adults];
     }
 
     /**

@@ -23,6 +23,7 @@ use App\Enums\FolioStatus;
 use App\Enums\FolioType;
 use App\Enums\SellUnit;
 use App\Features\Boats;
+use App\Features\Transfers;
 use App\Models\BookingSource;
 use App\Models\ChargeItem;
 use App\Models\Company;
@@ -272,6 +273,7 @@ class CreatePortalReservation
             externalReference: filled($data->externalReference) ? trim((string) $data->externalReference) : null,
             groupName: filled($data->groupName) ? trim((string) $data->groupName) : null,
             companyId: $company->id,
+            transfers: Feature::for($company->property)->active(Transfers::class) ? $data->transfers : [],
         ), $lineOfUnit];
     }
 

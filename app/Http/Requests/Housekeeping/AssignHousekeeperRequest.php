@@ -46,8 +46,7 @@ class AssignHousekeeperRequest extends FormRequest
         }
 
         return User::query()
-            ->where('property_id', $this->property()->id)
-            ->whereNull('deactivated_at')
+            ->activeMemberOf($this->property())
             ->find((int) $id);
     }
 

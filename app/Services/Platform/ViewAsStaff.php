@@ -21,10 +21,10 @@ class ViewAsStaff
         return array_values(User::query()
             ->leftJoin('model_has_roles', fn ($join) => $join
                 ->on('model_has_roles.model_id', '=', 'users.id')
-                ->where('model_has_roles.model_type', (new User)->getMorphClass()))
+                ->where('model_has_roles.model_type', (new User)->getMorphClass())
+                ->where('model_has_roles.property_id', $property->id))
             ->leftJoin('roles', 'roles.id', '=', 'model_has_roles.role_id')
-            ->where('users.property_id', $property->id)
-            ->whereNull('users.deactivated_at')
+            ->activeMemberOf($property)
             ->orderByRaw('coalesce(roles.default_role = ?, false) desc', [DefaultRoleEnum::Owner->value])
             ->orderBy('users.name')
             ->orderBy('users.id')

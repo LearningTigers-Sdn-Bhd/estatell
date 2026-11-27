@@ -8,6 +8,8 @@ type OptionProp =
     | 'folioDiscounts'
     | 'paymentOptions'
     | 'companies'
+    | 'salesPeople'
+    | 'marketSegments'
     | 'boatDepartures'
     | 'boatPicks'
     | 'boatSetup'
@@ -47,6 +49,8 @@ export const KEEP_OPTIONS = [
     'folioDiscounts',
     'paymentOptions',
     'companies',
+    'salesPeople',
+    'marketSegments',
     'boatDepartures',
     'boatPicks',
     'boatSetup',

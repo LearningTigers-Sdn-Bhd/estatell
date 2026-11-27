@@ -12,6 +12,7 @@ use App\Models\ChargeItem;
 use App\Models\Company;
 use App\Models\Discount;
 use App\Models\Guest;
+use App\Models\MarketSegment;
 use App\Models\Rate;
 use App\Models\RatePlan;
 use App\Models\Reservation;
@@ -140,9 +141,13 @@ test('the booking page query count stays the same however much the property has'
         $plan->roomTypes()->attach($setup['roomType']);
         ChargeItem::factory()->create(['property_id' => $setup['property']->id]);
         Discount::factory()->create(['property_id' => $setup['property']->id, 'scope' => DiscountScope::RoomOnly]);
+        User::factory()->for($setup['property'])->create();
+        MarketSegment::factory()->for($setup['property'])->create();
     }
 
-    expect($count())->toBe($few)->and($few)->toBeLessThanOrEqual(20);
+    // Property access adds 3: the user's active memberships (`EnsurePropertyAccess`) and their roles and permissions at
+    // this property, loaded fresh each request.
+    expect($count())->toBe($few)->and($few)->toBeLessThanOrEqual(25);
 });
 
 test('a booking is saved and the user lands on the reservation page', function () {
@@ -711,4 +716,50 @@ test('the Source select offers the Company source only to staff with company.vie
     actionsRoleWith($setup['user'], ['reservations.view', 'reservations.manage', 'guests.view']);
 
     expect($offered())->toBe(['Phone', 'Booking.com']);
+});
+
+test('a booking can name a sales person and a deactivated one saves nothing', function () {
+    $setup = bookingSetup();
+    $seller = User::factory()->for($setup['property'])->create(['name' => 'Jane']);
+    $gone = User::factory()->for($setup['property'])->deactivated()->create(['name' => 'Gone']);
+
+    $this->actingAs($setup['user'])
+        ->get(bookingFormUrl($setup, 'reservations.new'))
+        ->assertInertia(fn (Assert $page) => $page->where('salesPeople', fn ($people) => collect($people)->pluck('name')->contains('Jane') && ! collect($people)->pluck('name')->contains('Gone')));
+
+    $this->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['sales_person_id' => $gone->id]))
+        ->assertSessionHasErrors(['sales_person_id' => 'This staff member is not available. Pick an active staff member.']);
+
+    expect(Reservation::query()->count())->toBe(0);
+
+    $this->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['sales_person_id' => $seller->id]))->assertSessionHasNoErrors();
+
+    expect(Reservation::query()->sole()->sales_person_id)->toBe($seller->id);
+});
+
+test('a booking saves its market segment and remarks, and refuses a segment turned off', function () {
+    $setup = bookingSetup();
+    $leisure = MarketSegment::factory()->for($setup['property'])->create(['name' => 'Leisure']);
+    $off = MarketSegment::factory()->for($setup['property'])->inactive()->create(['name' => 'Crew']);
+
+    $this->actingAs($setup['user'])
+        ->get(bookingFormUrl($setup, 'reservations.new'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('marketSegments', fn ($segments) => collect($segments)->pluck('name')->all() === ['Leisure'])
+            ->has('remarkKinds', 4));
+
+    $this->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, ['market_segment_id' => $off->id]))
+        ->assertSessionHasErrors(['market_segment_id' => 'This market segment is not available. Pick an active segment.']);
+
+    expect(Reservation::query()->count())->toBe(0);
+
+    $this->post(bookingFormUrl($setup, 'reservations.store'), bookingBody($setup, [
+        'market_segment_id' => $leisure->id,
+        'remarks' => ['dietary' => '  Allergic to prawn ', 'housekeeping' => ''],
+    ]))->assertSessionHasNoErrors();
+
+    $reservation = Reservation::query()->sole();
+
+    expect($reservation->market_segment_id)->toBe($leisure->id)
+        ->and($reservation->remarks()->toBase()->pluck('body', 'kind')->all())->toBe(['dietary' => 'Allergic to prawn']);
 });

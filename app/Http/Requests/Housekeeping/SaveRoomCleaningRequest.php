@@ -32,7 +32,7 @@ class SaveRoomCleaningRequest extends FormRequest
         $property = $this->route('property');
 
         return [
-            'housekeeper_id' => ['required', 'integer', Rule::exists('users', 'id')->where('property_id', $property->id)->whereNull('deactivated_at')],
+            'housekeeper_id' => ['required', 'integer', Rule::exists('property_memberships', 'user_id')->where('property_id', $property->id)->whereNull('deactivated_at')],
             'in_time' => ['required', 'date_format:H:i'],
             'out_time' => ['nullable', 'date_format:H:i', 'after_or_equal:in_time'],
         ];

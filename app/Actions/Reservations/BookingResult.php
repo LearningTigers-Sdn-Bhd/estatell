@@ -8,7 +8,8 @@ use Carbon\CarbonInterface;
 /**
  * What `CreateBooking` returns: the saved reservation, or the refusal code of the step that failed. The code is one
  * of the codes of that step's Action, or one of the booking codes below. `lineIndex`, `guestIndex` and `unitIndex`
- * point at the line, guest tab or unit that caused it, and `date` at the night.
+ * point at the line, guest tab or unit that caused it, and `date` at the night. `boatDirection` and `transferDirection`
+ * name the boat trip or road transfer that was refused.
  */
 class BookingResult
 {
@@ -50,6 +51,7 @@ class BookingResult
         public readonly ?int $unitIndex,
         public readonly ?CarbonInterface $date,
         public readonly ?string $boatDirection = null,
+        public readonly ?string $transferDirection = null,
     ) {}
 
     public static function created(Reservation $reservation): self
@@ -57,9 +59,9 @@ class BookingResult
         return new self($reservation, null, null, null, null, null);
     }
 
-    public static function refused(string $refusal, ?int $lineIndex = null, ?int $guestIndex = null, ?int $unitIndex = null, ?CarbonInterface $date = null, ?string $boatDirection = null): self
+    public static function refused(string $refusal, ?int $lineIndex = null, ?int $guestIndex = null, ?int $unitIndex = null, ?CarbonInterface $date = null, ?string $boatDirection = null, ?string $transferDirection = null): self
     {
-        return new self(null, $refusal, $lineIndex, $guestIndex, $unitIndex, $date, $boatDirection);
+        return new self(null, $refusal, $lineIndex, $guestIndex, $unitIndex, $date, $boatDirection, $transferDirection);
     }
 
     public function isRefused(): bool

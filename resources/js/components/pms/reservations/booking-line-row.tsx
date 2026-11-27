@@ -1,8 +1,9 @@
 import { Trash2 } from 'lucide-react';
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { EnumSelect } from '@/components/pms/enum-select';
 import { BookingQuoteCell } from '@/components/pms/booking-quote-cell';
 import { BookingUnitPicker } from '@/components/pms/reservations/booking-unit-picker';
+import { WholeDormPicker } from '@/components/pms/reservations/whole-dorm-picker';
 import {
     chargeableQuote,
     isQuotable,
@@ -130,6 +131,20 @@ export function BookingLineRow({
     }, [line.key, quote, onQuote]);
 
     const bedCount = Number.parseInt(line.beds, 10) || 1;
+    const wholeDorm = isBed && (line.whole_room_id ?? '') !== '';
+    const onWholeDorm = useCallback(
+        (roomId: string, count: number) =>
+            onChange(
+                roomId === ''
+                    ? { whole_room_id: '', beds: '1', bed_ids: [''] }
+                    : {
+                          whole_room_id: roomId,
+                          beds: String(count),
+                          bed_ids: [],
+                      },
+            ),
+        [onChange],
+    );
     const agesError = Object.entries(errors).find(([key]) =>
         key.startsWith(`lines.${index}.child_ages`),
     )?.[1];
@@ -203,6 +218,7 @@ export function BookingLineRow({
                             placeholder="Beds"
                             aria-label="Number of beds"
                             value={line.beds}
+                            disabled={wholeDorm}
                             onChange={(event) =>
                                 onChange({
                                     beds: event.target.value,
@@ -219,7 +235,27 @@ export function BookingLineRow({
                         />
                         <FieldError>{error('beds')}</FieldError>
                     </Field>
-                    <div className="max-2xl:hidden 2xl:col-span-2" />
+                    <Field
+                        className="2xl:col-span-2"
+                        data-invalid={!!error('whole_room_id')}
+                    >
+                        <FieldLabel
+                            htmlFor={`line-${index}-whole_room_id`}
+                            className="2xl:sr-only"
+                        >
+                            Whole dorm
+                        </FieldLabel>
+                        <WholeDormPicker
+                            id={`line-${index}-whole_room_id`}
+                            roomTypeId={line.room_type_id}
+                            arrival={arrival}
+                            departure={departure}
+                            value={line.whole_room_id ?? ''}
+                            onChange={onWholeDorm}
+                            invalid={!!error('whole_room_id')}
+                        />
+                        <FieldError>{error('whole_room_id')}</FieldError>
+                    </Field>
                 </>
             ) : (
                 <>
@@ -314,6 +350,11 @@ export function BookingLineRow({
                     currency={currency}
                     overrideTotal={line.override_total}
                     overrideReason={line.override_reason}
+                    overrideLabel={
+                        wholeDorm
+                            ? 'Stay total of the whole dorm'
+                            : 'Stay total of one unit'
+                    }
                     onOverrideChange={onChange}
                     errors={errors}
                     index={index}
@@ -332,7 +373,7 @@ export function BookingLineRow({
                 </Button>
             </div>
 
-            {isBed && (
+            {isBed && !wholeDorm && (
                 <div className="grid gap-3 sm:grid-cols-2 2xl:col-span-full 2xl:grid-cols-3">
                     {beds.map((bedId, bed) => (
                         <Field

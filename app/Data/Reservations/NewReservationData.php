@@ -16,6 +16,7 @@ class NewReservationData extends Data
 {
     /**
      * @param  list<NewUnitData>  $units
+     * @param  array<string, string>  $remarks  The remark of each `RemarkKind` value that has one.
      */
     public function __construct(
         public int $bookerGuestId,
@@ -29,5 +30,9 @@ class NewReservationData extends Data
         public ?string $groupName = null,
         public ?string $notes = null,
         public ?string $creditOverrideReason = null,
+        public ?int $salesPersonId = null,
+        public ?int $marketSegmentId = null,
+        #[LiteralTypeScriptType('Partial<Record<App.Enums.RemarkKind, string>>')]
+        public array $remarks = [],
     ) {}
 }

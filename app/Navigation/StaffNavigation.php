@@ -81,6 +81,7 @@ class StaffNavigation
             NavigationContext::Settings => $this->settings->groups($property, $user),
             NavigationContext::Finance => $this->finance->groups($property, $user),
             NavigationContext::Reports => $this->reports->groups($property, $user),
+            NavigationContext::Group => [],
         };
     }
 }

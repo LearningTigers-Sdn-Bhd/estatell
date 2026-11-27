@@ -108,6 +108,6 @@ class StaffTemporaryPasswordController extends Controller
      */
     private function chosenUsers(TemporaryPasswordUsersRequest $request, Property $property): Collection
     {
-        return $property->users()->whereKey($request->validated('user_ids'))->with('roles')->orderBy('name')->get();
+        return $property->homeStaff()->whereKey($request->validated('user_ids'))->with('roles')->orderBy('name')->get();
     }
 }

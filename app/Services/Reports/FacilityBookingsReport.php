@@ -7,11 +7,15 @@ use App\Data\Reports\ReportFilters;
 use App\Data\Reports\ReportSection;
 use App\Data\Shared\BadgeData;
 use App\Enums\FacilityBookingStatus;
+use App\Enums\RemarkKind;
 use App\Enums\Tone;
 use App\Enums\UnitStatus;
 use App\Models\FacilityBooking;
+use App\Models\FacilitySlotCrew;
 use App\Models\Property;
 use App\Models\ReservationUnit;
+use App\Services\Facilities\ActivityRunSheet;
+use App\Services\Guests\GuestParty;
 use App\Services\Reservations\ReservationRoomBox;
 use Brick\Math\BigDecimal;
 use Carbon\CarbonImmutable;
@@ -25,7 +29,7 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class FacilityBookingsReport implements HasSections, Report
 {
-    public function __construct(private ReservationRoomBox $roomBox) {}
+    public function __construct(private ReservationRoomBox $roomBox, private ActivityRunSheet $runSheet, private GuestParty $guestParty) {}
 
     /**
      * @param  list<int|string>|null  $rowKeys  Booking ids.
@@ -42,7 +46,7 @@ class FacilityBookingsReport implements HasSections, Report
             ->whereIn('facility_bookings.status', $statuses)
             ->when($filters->facilityIds !== [], fn (Builder $query) => $query->whereIn('facility_bookings.facility_id', $filters->facilityIds))
             ->when($rowKeys !== null, fn (Builder $query) => $query->whereIn('facility_bookings.id', array_map(intval(...), $rowKeys)))
-            ->with(['facility', 'folio:id,number', 'event.payerGuest', 'event.payerCompany', 'reservation.booker', 'reservation.units:id,reservation_id,status'])
+            ->with(['facility', 'folio:id,number', 'event.payerGuest', 'event.payerCompany', 'reservation.booker', 'reservation.units:id,reservation_id,status,adults,children', 'reservation.units.guests.guest', 'reservation.remarks' => fn ($query) => $query->where('kind', RemarkKind::Dietary)])
             ->orderBy('facility_bookings.booking_date')
             ->orderBy('facilities.position')
             ->orderBy('facility_bookings.starts_at')
@@ -53,8 +57,9 @@ class FacilityBookingsReport implements HasSections, Report
             ->reject(fn (ReservationUnit $unit): bool => in_array($unit->status, [UnitStatus::Cancelled, UnitStatus::NoShow], true))
             ->modelKeys())->all();
         $rooms = $unitIds === [] ? [] : $this->roomBox->assignmentsForUnits(array_values($unitIds));
+        $crews = $this->runSheet->crews($property, CarbonImmutable::parse($filters->from), CarbonImmutable::parse($filters->to));
 
-        return array_values($bookings->map(fn (FacilityBooking $booking): FacilityBookingRow => $this->row($booking, $rooms))->all());
+        return array_values($bookings->map(fn (FacilityBooking $booking): FacilityBookingRow => $this->row($booking, $rooms, $crews))->all());
     }
 
     /**
@@ -77,7 +82,7 @@ class FacilityBookingsReport implements HasSections, Report
             $booked = array_sum(array_map(fn (FacilityBookingRow $row): int => $row->counts ? $row->quantity : 0, $group));
 
             return new ReportSection(
-                title: $first->facility.' · '.CarbonImmutable::parse($first->date)->format('j M').' · '.$first->time,
+                title: $first->facility.' · '.CarbonImmutable::parse($first->date)->format('j M').' · '.$first->time.($first->crew === null ? '' : ' · '.$first->crew),
                 rowKeys: array_map(fn (FacilityBookingRow $row): int => $row->key, $group),
                 subtotal: $booked.' / '.$first->capacity.' '.$first->unit,
                 tone: $booked > $first->capacity ? Tone::Warning : null,
@@ -87,14 +92,20 @@ class FacilityBookingsReport implements HasSections, Report
 
     /**
      * @param  array<int, string>  $rooms  The first night room of each live unit, by unit id.
+     * @param  array<string, FacilitySlotCrew>  $crews  The guide and boat of each slot (`ActivityRunSheet::crews()`).
      */
-    private function row(FacilityBooking $booking, array $rooms): FacilityBookingRow
+    private function row(FacilityBooking $booking, array $rooms, array $crews): FacilityBookingRow
     {
+        $slotCrew = $crews[$booking->booking_date->toDateString().'|'.$booking->facility_id.'|'.$booking->starts_at.'|'.$booking->ends_at] ?? null;
+        $crew = $slotCrew === null ? [] : array_values(array_filter([
+            $slotCrew->guide === null ? null : __('Guide: :name', ['name' => $slotCrew->guide->name]),
+            $slotCrew->boat === null ? null : __('Boat: :name', ['name' => $slotCrew->boat->name]),
+        ]));
         $facility = $booking->facility;
         $event = $booking->event;
         $reservation = $booking->reservation;
         $time = substr($booking->starts_at, 0, 5).'–'.substr($booking->ends_at, 0, 5);
-        $units = $facility->rate_basis->quantity($booking->starts_at, $booking->ends_at, $booking->quantity, $facility->booked_by);
+        $units = $facility->rate_basis->quantity($booking->starts_at, $booking->ends_at, $booking->quantity, $facility->booked_by, $booking->private);
         $roomList = $reservation === null ? [] : array_values(array_filter(array_map(
             fn (int $unitId): ?string => $rooms[$unitId] ?? null,
             $reservation->units->modelKeys(),
@@ -112,11 +123,18 @@ class FacilityBookingsReport implements HasSections, Report
             phone: $event !== null ? ($event->payerGuest->phone ?? $event->payerCompany->contact_phone ?? null) : $reservation?->booker->phone,
             folio: $booking->folio->number,
             amount: $booking->unit_amount === null ? null : (string) BigDecimal::of($booking->unit_amount)->multipliedBy($units)->toScale(2),
-            notes: $booking->notes,
+            notes: $booking->private ? trim(__('Private').' '.$booking->notes) : $booking->notes,
+            dietary: $reservation?->remarks->first()?->body,
             section: $facility->id.'|'.$booking->booking_date->toDateString().'|'.$time,
             capacity: $facility->capacity,
             unit: $facility->booked_by->unit($facility->capacity),
             counts: $booking->status !== FacilityBookingStatus::Cancelled,
+            crew: $crew === [] ? null : implode(' · ', $crew),
+            party: $reservation === null ? null : $this->guestParty->line(
+                $reservation->units->reject(fn (ReservationUnit $unit): bool => in_array($unit->status, [UnitStatus::Cancelled, UnitStatus::NoShow], true)),
+                $booking->booking_date,
+                $reservation->booker,
+            ),
         );
     }
 }

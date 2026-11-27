@@ -5,6 +5,7 @@ namespace App\Http\Controllers\DoorLocks;
 use App\Actions\DoorLocks\AdjustLockClock;
 use App\Actions\DoorLocks\CheckDoorLockHealth;
 use App\Actions\DoorLocks\DoorLockResult;
+use App\Actions\DoorLocks\FreshAccessToken;
 use App\Actions\DoorLocks\IssueDoorPasscode;
 use App\Actions\DoorLocks\LinkDoorLock;
 use App\Actions\DoorLocks\RemoveDoorCard;
@@ -34,9 +35,11 @@ use App\Models\DoorPasscode;
 use App\Models\Property;
 use App\Models\ReservationUnit;
 use App\Models\Room;
+use App\Services\DoorLocks\DoorLockLog;
 use App\Services\DoorLocks\StaysAwaitingCard;
 use App\Services\DoorLocks\TtlockException;
 use App\Services\Kiosk\KioskStays;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -192,6 +195,46 @@ class DoorLockSettingsController extends Controller
     public function health(Property $property, DoorLock $doorLock, CheckDoorLockHealth $checkDoorLockHealth): RedirectResponse
     {
         return $this->cloudOnly($property, $doorLock) ?? $this->flash($property, $checkDoorLockHealth($doorLock->load('property.doorLockConnection')), __('Lock checked.'));
+    }
+
+    /**
+     * The access log page of one lock, for the dates `from` to `to` (both included, property time zone, at most 31 days, the last
+     * 7 days by default). The events are read from TTLock after the page shows (deferred). A TTLock refusal shows on the page.
+     */
+    public function log(Request $request, Property $property, DoorLock $doorLock, FreshAccessToken $freshAccessToken, DoorLockLog $doorLockLog): Response|RedirectResponse
+    {
+        if ($redirect = $this->cloudOnly($property, $doorLock)) {
+            return $redirect;
+        }
+
+        $zone = $property->settings->time_zone ?? 'Asia/Kuala_Lumpur';
+        $today = CarbonImmutable::now($zone)->startOfDay();
+        $date = fn (string $key): ?CarbonImmutable => preg_match('/^\d{4}-\d{2}-\d{2}$/', $request->string($key)->toString()) === 1
+            ? CarbonImmutable::createFromFormat('!Y-m-d', $request->string($key)->toString(), $zone) ?: null
+            : null;
+        $to = min($date('to') ?? $today, $today);
+        $from = $date('from') ?? $to->subDays(6);
+        $from = $from->gt($to) || $from->lt($to->subDays(30)) ? $to->subDays(6) : $from;
+
+        return Inertia::render('settings/door-locks/log', [
+            'lock' => DoorLockData::fromModel($doorLock->load('room')),
+            'from' => $from->toDateString(),
+            'to' => $to->toDateString(),
+            'today' => $today->toDateString(),
+            'log' => Inertia::defer(function () use ($property, $doorLock, $freshAccessToken, $doorLockLog, $from, $to): array {
+                $connection = $property->doorLockConnection;
+
+                if ($connection === null) {
+                    return ['events' => [], 'error' => __('TTLock is not connected for this property.')];
+                }
+
+                try {
+                    return ['events' => $doorLockLog->for($doorLock, $freshAccessToken($connection), $from, min($to->endOfDay(), CarbonImmutable::now($from->timezone))), 'error' => null];
+                } catch (TtlockException $exception) {
+                    return ['events' => [], 'error' => $exception->getMessage()];
+                }
+            }),
+        ]);
     }
 
     public function storePasscode(IssuePasscodeRequest $request, Property $property, IssueDoorPasscode $issueDoorPasscode): RedirectResponse

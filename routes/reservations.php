@@ -20,16 +20,20 @@ use App\Http\Controllers\Reservations\ReservationFolioMoveController;
 use App\Http\Controllers\Reservations\ReservationGroupCheckOutController;
 use App\Http\Controllers\Reservations\ReservationGroupController;
 use App\Http\Controllers\Reservations\ReservationKeyCardController;
+use App\Http\Controllers\Reservations\ReservationMarketSegmentController;
 use App\Http\Controllers\Reservations\ReservationNightPriceController;
 use App\Http\Controllers\Reservations\ReservationOldFolioController;
 use App\Http\Controllers\Reservations\ReservationPaymentController;
 use App\Http\Controllers\Reservations\ReservationPaymentProofController;
+use App\Http\Controllers\Reservations\ReservationRemarksController;
 use App\Http\Controllers\Reservations\ReservationRoutingController;
+use App\Http\Controllers\Reservations\ReservationSalesPersonController;
 use App\Http\Controllers\Reservations\ReservationUnitAddOnController;
 use App\Http\Controllers\Reservations\ReservationUnitController;
 use App\Http\Controllers\Reservations\ReservationUnitPartyController;
 use App\Http\Controllers\Reservations\ReservationUnitStayController;
 use App\Http\Controllers\Reservations\ReservationUnitTaxWaiverController;
+use App\Http\Controllers\Transfers\ReservationTransferController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(function () {
@@ -63,6 +67,7 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
             Route::get('guests', [ReservationController::class, 'guests'])->name('guests');
             Route::get('add-ons', [ReservationController::class, 'addOns'])->name('add-ons');
             Route::get('facilities', [ReservationController::class, 'facilities'])->middleware('facilities')->name('facilities');
+            Route::get('transfers', [ReservationController::class, 'transfers'])->middleware('transfers')->name('transfers');
             Route::get('folio', [ReservationController::class, 'folio'])->name('folio');
             Route::get('activity', [ReservationController::class, 'activity'])->name('activity');
             Route::get('booking-summary', BookingSummaryController::class)->name('booking-summary');
@@ -198,6 +203,9 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
 
     Route::middleware('can:'.PermissionEnum::ReservationsManage->value)->prefix('{reservation}')->group(function () {
         Route::put('group', [ReservationGroupController::class, 'update'])->name('group.update');
+        Route::put('sales-person', [ReservationSalesPersonController::class, 'update'])->name('sales-person.update');
+        Route::put('market-segment', [ReservationMarketSegmentController::class, 'update'])->name('market-segment.update');
+        Route::put('remarks', [ReservationRemarksController::class, 'update'])->name('remarks.update');
         Route::put('booker', [ReservationBookerController::class, 'update'])->middleware('can:'.PermissionEnum::GuestsManage->value)->name('booker.update');
         Route::put('company', [ReservationCompanyController::class, 'update'])->middleware('can:'.PermissionEnum::CompanyView->value)->name('company.update');
         Route::middleware('boats')->put('boat-trips', [ReservationBoatTripController::class, 'setMany'])->name('boat-trips.set-many');
@@ -218,6 +226,10 @@ Route::prefix('reservations')->name('reservations.')->scopeBindings()->group(fun
                 Route::middleware('boats')->group(function () {
                     Route::put('boat-trips/{direction}', [ReservationBoatTripController::class, 'set'])->name('boat-trips.set');
                     Route::delete('boat-trips/{direction}', [ReservationBoatTripController::class, 'clear'])->name('boat-trips.clear');
+                });
+                Route::middleware('transfers')->group(function () {
+                    Route::put('transfers/{direction}', [ReservationTransferController::class, 'set'])->name('transfers.set');
+                    Route::delete('transfers/{direction}', [ReservationTransferController::class, 'clear'])->name('transfers.clear');
                 });
                 Route::post('add-ons', [ReservationUnitAddOnController::class, 'store'])->name('add-ons.store');
                 Route::delete('add-ons/{addOn}', [ReservationUnitAddOnController::class, 'destroy'])->name('add-ons.destroy');

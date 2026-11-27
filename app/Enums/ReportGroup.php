@@ -2,6 +2,17 @@
 
 namespace App\Enums;
 
+use App\Services\Reports\BookingPerformance\BookingDateGrouping;
+use App\Services\Reports\BookingPerformance\BookingPerformanceGrouping;
+use App\Services\Reports\BookingPerformance\CompanyGrouping;
+use App\Services\Reports\BookingPerformance\MarketSegmentGrouping;
+use App\Services\Reports\BookingPerformance\RatePlanGrouping;
+use App\Services\Reports\BookingPerformance\RoomTypeGrouping;
+use App\Services\Reports\BookingPerformance\SalesPersonGrouping;
+use App\Services\Reports\BookingPerformance\SourceGrouping;
+use App\Services\Reports\BookingPerformance\StatusGrouping;
+use LogicException;
+
 /**
  * How a report groups its rows, chosen with `?group` in the URL. Only the reports that list their groups in
  * `ReportKey::groups()` take it. See docs/22-reports/01-core-reports.md.
@@ -16,6 +27,9 @@ enum ReportGroup: string
     case Source = 'source';
     case RatePlan = 'rate_plan';
     case Status = 'status';
+    case SalesPerson = 'sales_person';
+    case MarketSegment = 'market_segment';
+    case Company = 'company';
 
     public function label(): string
     {
@@ -28,6 +42,9 @@ enum ReportGroup: string
             self::Source => __('Source'),
             self::RatePlan => __('Rate plan'),
             self::Status => __('Status'),
+            self::SalesPerson => __('Sales person'),
+            self::MarketSegment => __('Market segment'),
+            self::Company => __('Company'),
         };
     }
 
@@ -37,7 +54,7 @@ enum ReportGroup: string
     public function caption(): string
     {
         return match ($this) {
-            self::Day, self::Month, self::RoomType, self::Source, self::RatePlan, self::Status => __('By :group', ['group' => mb_strtolower($this->label())]),
+            self::Day, self::Month, self::RoomType, self::Source, self::RatePlan, self::Status, self::SalesPerson, self::MarketSegment, self::Company => __('By :group', ['group' => mb_strtolower($this->label())]),
             self::Method, self::Staff => $this->label(),
         };
     }
@@ -52,5 +69,25 @@ enum ReportGroup: string
             fn (self $group): array => ['value' => $group->value, 'label' => $group->label()],
             $groups,
         );
+    }
+
+    /**
+     * The Booking performance strategy of this tab. Only the groups `ReportKey::BookingPerformance->groups()` lists have one.
+     *
+     * @return class-string<BookingPerformanceGrouping>
+     */
+    public function bookingPerformanceGrouping(): string
+    {
+        return match ($this) {
+            self::RoomType => RoomTypeGrouping::class,
+            self::Source => SourceGrouping::class,
+            self::RatePlan => RatePlanGrouping::class,
+            self::SalesPerson => SalesPersonGrouping::class,
+            self::MarketSegment => MarketSegmentGrouping::class,
+            self::Company => CompanyGrouping::class,
+            self::Status => StatusGrouping::class,
+            self::Day => BookingDateGrouping::class,
+            self::Month, self::Method, self::Staff => throw new LogicException("Booking performance is not grouped by {$this->value}."),
+        };
     }
 }

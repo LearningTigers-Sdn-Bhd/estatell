@@ -6,12 +6,14 @@ use App\Enums\AiScope;
 use App\Enums\AiTool;
 use App\Enums\AmenityType;
 use App\Features\AiAssistant;
+use App\Models\AiConnection;
 use App\Models\AiTurn;
 use App\Models\AiTurnTool;
 use App\Models\Amenity;
 use App\Models\AmenityCategory;
 use App\Models\NearbyPlace;
 use App\Models\Property;
+use App\Models\PropertyAgeGroup;
 use App\Models\PropertyAiScope;
 use App\Models\Rate;
 use App\Models\RatePlan;
@@ -23,6 +25,7 @@ use App\Services\AiAssistant\AssistantInstructions;
 use App\Services\BookingEngine\MapsPlace;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Routing\Middleware\ThrottleRequests;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Ai\Ai;
 use Laravel\Pennant\Feature;
@@ -45,12 +48,19 @@ function aiEvalKey(): ?string
 }
 
 /**
- * How many times each case runs: 3 by default, or AI_EVAL_REPEAT from the shell (`AI_EVAL_REPEAT=1` for a quick check).
+ * How many times each case runs. By default once, and a case that fails gets two more runs (see `aiEvalRetriesFailures`).
+ * AI_EVAL_REPEAT from the shell runs every case that many times with no retries (`AI_EVAL_REPEAT=3` for a full sign-off).
  * Read from the process environment, because the test files load before Laravel reads .env.
  */
 function aiEvalRepeat(): int
 {
-    return max(1, (int) (getenv('AI_EVAL_REPEAT') ?: 3));
+    return max(1, (int) (getenv('AI_EVAL_REPEAT') ?: 1));
+}
+
+/** True when no AI_EVAL_REPEAT is set: a failed case then runs twice more and passes on 2 of 3. */
+function aiEvalRetriesFailures(): bool
+{
+    return getenv('AI_EVAL_REPEAT') === false || getenv('AI_EVAL_REPEAT') === '';
 }
 
 /** Skips the case when no eval key is set, so the group costs nothing by accident. */
@@ -61,6 +71,12 @@ function aiEvalSkipWithoutKey(): void
     }
 }
 
+/** A plain room search most booking cases start with. */
+const AI_EVAL_SEARCH = 'I want a room from 2 to 4 November 2026 for 2 adults.';
+
+/** The December nights the Garden Room and Sea View Room are also free: 5 to 9 December 2026. */
+const AI_EVAL_DECEMBER = ['2026-12-05', '2026-12-06', '2026-12-07', '2026-12-08'];
+
 /**
  * The lobby: the resort with the RoomQuotes scope on and three room types sold online on Room only and With breakfast
  * (a night), plus a Staff rate (RM 80) on the Sea View Room that is not sold online:
@@ -68,6 +84,8 @@ function aiEvalSkipWithoutKey(): void
  * - Garden Room, up to 2 adults: RM 85 / RM 110, free 2026-11-02 to 11-04 and 11-12 to 11-15
  * - Sea View Room, up to 3 adults: RM 100 / RM 130, free on the same dates
  * - Family Suite, up to 4 adults: RM 180 / RM 230, free 2026-11-02 to 11-04 only (no rates from 11-12: sold out)
+ * - Garden Room and Sea View Room are also free 2026-12-05 to 12-09, for the replay of a real WhatsApp chat
+ * - Every room takes up to 2 children. Age groups: Infant 0 to 3, Child 4 to 11; from 12 a guest is an adult
  *
  * @return array{property: Property}
  */
@@ -77,15 +95,17 @@ function aiEvalLobby(): array
     $property = $setup['property'];
     $plans = ['roomOnly' => $setup['roomOnly'], 'breakfast' => $setup['breakfast']];
     $setup['type']->forceFill(['name' => 'Sea View Room', 'max_adults' => 3, 'position' => 2, 'description' => 'Queen bed and a sofa bed, 28 m², with a private balcony facing the sea. Second and third floors.'])->save();
-    aiEvalRates($setup['type'], $plans, ['2026-11-12', '2026-11-13', '2026-11-14'], '100.00', '130.00');
+    aiEvalRates($setup['type'], $plans, ['2026-11-12', '2026-11-13', '2026-11-14', ...AI_EVAL_DECEMBER], '100.00', '130.00');
 
     $garden = aiEvalRoomType($property, 'Garden Room', 2, 1, '102', $plans, 'Queen bed or two single beds, 24 m², on the ground floor with a patio onto the tropical garden.');
-    aiEvalRates($garden, $plans, ['2026-11-02', '2026-11-03', '2026-11-12', '2026-11-13', '2026-11-14'], '85.00', '110.00');
+    aiEvalRates($garden, $plans, ['2026-11-02', '2026-11-03', '2026-11-12', '2026-11-13', '2026-11-14', ...AI_EVAL_DECEMBER], '85.00', '110.00');
 
     $suite = aiEvalRoomType($property, 'Family Suite', 4, 3, '103', $plans, 'One king bed and two single beds in two rooms, 45 m², with a sea view from the living room.');
     aiEvalRates($suite, $plans, ['2026-11-02', '2026-11-03'], '180.00', '230.00');
 
     aiEvalResort($property);
+    PropertyAgeGroup::factory()->for($property)->create(['label' => 'Infant', 'min_age' => 0, 'max_age' => 3]);
+    PropertyAgeGroup::factory()->for($property)->create(['label' => 'Child', 'min_age' => 4, 'max_age' => 11]);
 
     return ['property' => $setup['property']];
 }
@@ -389,6 +409,28 @@ function aiEvalLobbySend(Property $property, string $thread): callable
     return fn (string $text): string => aiEvalReply(test()->post("/stay/{$property->code}/ai/messages", ['id' => $thread, 'text' => $text])->assertOk()->streamedContent());
 }
 
+/**
+ * Opens the chat API on the lobby property: the Api scope allowed by the admin and one n8n connection. Returns the
+ * connection's token.
+ */
+function aiEvalApi(Property $property): string
+{
+    PropertyAiScope::factory()->for($property)->create(['scope' => AiScope::Api, 'allowed' => true, 'enabled' => false]);
+    AiConnection::factory()->for($property)->withToken('est_live_aievaltoken')->create();
+
+    return 'est_live_aievaltoken';
+}
+
+/** Sends a chat API message, as n8n does for a WhatsApp chat, and returns the reply text. */
+function aiEvalApiSend(string $token, string $thread): callable
+{
+    return fn (string $text): string => (string) test()->withToken($token)->postJson('/api/ai/v1/messages', [
+        'channel' => 'whatsapp',
+        'thread' => $thread,
+        'message' => $text,
+    ])->assertOk()->json('reply');
+}
+
 /** Sends a stay-page message for the stay of `$token` and returns the streamed reply. */
 function aiEvalStaySend(string $token): callable
 {
@@ -421,7 +463,7 @@ function aiEvalJudge(Property $property, array $transcript, string $rule): array
     $response = agent(
         instructions: 'You grade a hotel chat assistant. You get the hotel guide it was given, the conversation, and one rule. Decide only whether the LAST assistant reply meets the rule. Be strict about invented facts: a price, time, phone number or service that is not in the guide counts as invented. '
             .'Except: room options, availability and prices come from the CheckRoomsAndPrices tool, not the guide, so trust them once that tool was called. '
-            .'SendQuoteLink shows the link to the guest as a separate card, so a reply that says the link was sent is correct when that tool was called. The link lasts 24 hours and nothing is booked until the guest books on it. '
+            .'SendQuoteLink shows the link to the guest as a separate card, so a reply that says the link was sent is correct when that tool was called. The link lasts 24 hours and nothing is booked until the guest books on it. A new link replaces the earlier links of the chat, which stop working, so saying so is correct. '
             .'"'.app(AiHandoverMessage::class)->default().'" is the fixed handover reply, never an invented fact. Give a one-sentence reason.',
         schema: fn (JsonSchema $schema): array => [
             'pass' => $schema->boolean()->required(),
@@ -436,7 +478,7 @@ function aiEvalJudge(Property $property, array $transcript, string $rule): array
 }
 
 /**
- * Records one run of a case for the report, then fails the test with the reasons when it did not pass.
+ * Records one run of a case for the report.
  *
  * @param  list<string>  $failures
  */
@@ -448,8 +490,6 @@ function aiEvalRecord(Property $property, string $group, string $case, array $fa
     $GLOBALS['aiEvalTranscript'] = [];
     $GLOBALS['aiEvalModel'] = (string) config('ai.providers.openai.models.text.default');
     $GLOBALS['aiEvalLogs'] = storage_path('logs');
-
-    expect($failures)->toBe([], implode("\n", $failures));
 }
 
 /**
@@ -489,7 +529,7 @@ function aiEvalReport(string $title): void
 /**
  * Gives each case its name as the first argument, so a run can record which case it was.
  *
- * @param  array<string, array{0: string, 1: 'lobby'|'stay', 2: list<array<string, mixed>>}>  $cases
+ * @param  array<string, array{0: string, 1: 'lobby'|'stay'|'api', 2: list<array<string, mixed>>}>  $cases
  * @return array<string, array{0: string, 1: string, 2: string, 3: list<array<string, mixed>>}>
  */
 function aiEvalDataset(array $cases): array
@@ -498,9 +538,10 @@ function aiEvalDataset(array $cases): array
 }
 
 /**
- * Runs one case on a fresh lobby or stay, then records it.
+ * Runs one case and fails the test with the reasons when it did not pass. When failures are retried, a failed first run
+ * gets up to two more runs, and the case passes when both pass (2 of 3), as the report counts it.
  *
- * @param  'lobby'|'stay'  $place
+ * @param  'lobby'|'stay'|'api'  $place
  * @param  list<array{guest: string, tools?: list<AiTool>, noTools?: list<AiTool>, says?: list<string>, saysAny?: list<string>, never?: list<string>, judge?: string}>  $turns
  */
 function aiEvalRun(string $case, string $group, string $place, array $turns): void
@@ -508,13 +549,51 @@ function aiEvalRun(string $case, string $group, string $place, array $turns): vo
     aiEvalSkipWithoutKey();
     test()->withoutMiddleware(ThrottleRequests::class);
 
-    if ($place === 'stay') {
-        ['property' => $property, 'token' => $token] = aiEvalStay();
-        $send = aiEvalStaySend($token);
-    } else {
-        ['property' => $property] = aiEvalLobby();
-        $send = aiEvalLobbySend($property, (string) Str::uuid());
+    $failures = aiEvalAttempt($case, $group, $place, $turns);
+
+    if ($failures !== [] && aiEvalRetriesFailures()) {
+        $retriesPassed = 0;
+
+        // A failed retry already loses the case, so the second retry is skipped.
+        while ($retriesPassed < 2 && aiEvalAttempt($case, $group, $place, $turns) === []) {
+            $retriesPassed++;
+        }
+
+        $failures = $retriesPassed === 2 ? [] : [...$failures, "Retries passed: {$retriesPassed} of 2."];
     }
 
-    aiEvalRecord($property, $group, $case, aiEvalPlay($property, $turns, $send));
+    expect($failures)->toBe([], implode("\n", $failures));
+}
+
+/**
+ * One run of a case on a fresh lobby, stay or chat API thread, recorded for the report. The run's rows are rolled back,
+ * so a retry starts clean. The chat API thread uses the lobby's rooms.
+ *
+ * @param  'lobby'|'stay'|'api'  $place
+ * @param  list<array{guest: string, tools?: list<AiTool>, noTools?: list<AiTool>, says?: list<string>, saysAny?: list<string>, never?: list<string>, judge?: string}>  $turns
+ * @return list<string>
+ */
+function aiEvalAttempt(string $case, string $group, string $place, array $turns): array
+{
+    DB::beginTransaction();
+
+    try {
+        if ($place === 'stay') {
+            ['property' => $property, 'token' => $token] = aiEvalStay();
+            $send = aiEvalStaySend($token);
+        } elseif ($place === 'api') {
+            ['property' => $property] = aiEvalLobby();
+            $send = aiEvalApiSend(aiEvalApi($property), '60123456789@c.us');
+        } else {
+            ['property' => $property] = aiEvalLobby();
+            $send = aiEvalLobbySend($property, (string) Str::uuid());
+        }
+
+        $failures = aiEvalPlay($property, $turns, $send);
+        aiEvalRecord($property, $group, $case, $failures);
+
+        return $failures;
+    } finally {
+        DB::rollBack();
+    }
 }

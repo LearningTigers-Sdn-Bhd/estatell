@@ -40,7 +40,8 @@ class TeamController extends Controller
             'owner' => ['name' => $owner->name, 'email' => $owner->email],
             'staff' => $property->users()
                 ->whereKeyNot($owner->getKey())
-                ->whereNull('deactivated_at')
+                ->wherePivotNull('deactivated_at')
+                ->whereNull('users.deactivated_at')
                 ->with('roles')
                 ->orderBy('name')
                 ->get()

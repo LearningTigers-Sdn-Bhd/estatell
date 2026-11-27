@@ -23,7 +23,9 @@ use App\Http\Controllers\CityLedger\AgentPaymentTermsController;
 use App\Http\Controllers\Concierge\ConciergeSettingsController;
 use App\Http\Controllers\DoorLocks\DoorLockSettingsController;
 use App\Http\Controllers\DoorLocks\KeyportSettingsController;
+use App\Http\Controllers\Facilities\FacilityBoatController;
 use App\Http\Controllers\Facilities\FacilityController;
+use App\Http\Controllers\Facilities\FacilityGuideController;
 use App\Http\Controllers\Facilities\FacilitySessionController;
 use App\Http\Controllers\Meals\MealPeriodController;
 use App\Http\Controllers\Onboarding\RecommendedItemDismissalController;
@@ -40,6 +42,7 @@ use App\Http\Controllers\Rates\RatePlanController;
 use App\Http\Controllers\Registration\RegistrationCardController;
 use App\Http\Controllers\Registration\RegistrationTermsController;
 use App\Http\Controllers\Reservations\BookingSourceController;
+use App\Http\Controllers\Reservations\MarketSegmentController;
 use App\Http\Controllers\Rooms\BedController;
 use App\Http\Controllers\Rooms\RoomController;
 use App\Http\Controllers\Rooms\RoomGroupController;
@@ -47,12 +50,16 @@ use App\Http\Controllers\Rooms\RoomTypeAmenityController;
 use App\Http\Controllers\Rooms\RoomTypeController;
 use App\Http\Controllers\Rooms\RoomTypePhotoController;
 use App\Http\Controllers\Staff\RoleController;
+use App\Http\Controllers\Staff\StaffAccessController;
 use App\Http\Controllers\Staff\StaffBulkAddController;
 use App\Http\Controllers\Staff\StaffController;
 use App\Http\Controllers\Staff\StaffInvitationController;
 use App\Http\Controllers\Staff\StaffRoleController;
 use App\Http\Controllers\Staff\StaffStatusController;
 use App\Http\Controllers\Staff\StaffTemporaryPasswordController;
+use App\Http\Controllers\Transfers\TransferDriverController;
+use App\Http\Controllers\Transfers\TransferRouteController;
+use App\Http\Controllers\Transfers\TransferVehicleController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('settings')->name('settings.')->group(function () {
@@ -213,10 +220,39 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::put('monthly-cap', [AiAssistantSettingsController::class, 'monthlyCap'])->name('monthly-cap.update');
     });
 
+    Route::middleware(['transfers', 'can:'.PermissionEnum::SettingsManage->value])->scopeBindings()->group(function () {
+        Route::get('transfers', [TransferRouteController::class, 'redirectToRoutes'])->name('transfers');
+        Route::prefix('transfers/routes')->name('transfers.routes.')->group(function () {
+            Route::get('/', [TransferRouteController::class, 'index'])->name('index');
+            Route::post('/', [TransferRouteController::class, 'store'])->name('store');
+            Route::put('{transferRoute}', [TransferRouteController::class, 'update'])->name('update');
+        });
+        Route::prefix('transfers/vehicles')->name('transfers.vehicles.')->group(function () {
+            Route::get('/', [TransferVehicleController::class, 'index'])->name('index');
+            Route::post('/', [TransferVehicleController::class, 'store'])->name('store');
+            Route::put('{transferVehicle}', [TransferVehicleController::class, 'update'])->name('update');
+        });
+        Route::prefix('transfers/drivers')->name('transfers.drivers.')->group(function () {
+            Route::get('/', [TransferDriverController::class, 'index'])->name('index');
+            Route::post('/', [TransferDriverController::class, 'store'])->name('store');
+            Route::put('{transferDriver}', [TransferDriverController::class, 'update'])->name('update');
+        });
+    });
+
     Route::middleware(['facilities', 'can:'.PermissionEnum::SettingsManage->value])->prefix('facilities')->name('facilities.')->scopeBindings()->group(function () {
         Route::get('/', [FacilityController::class, 'index'])->name('index');
         Route::post('/', [FacilityController::class, 'store'])->name('store');
         Route::put('order', [FacilityController::class, 'reorder'])->name('reorder');
+        Route::prefix('guides')->name('guides.')->group(function () {
+            Route::get('/', [FacilityGuideController::class, 'index'])->name('index');
+            Route::post('/', [FacilityGuideController::class, 'store'])->name('store');
+            Route::put('{facilityGuide}', [FacilityGuideController::class, 'update'])->name('update');
+        });
+        Route::prefix('boats')->name('boats.')->group(function () {
+            Route::get('/', [FacilityBoatController::class, 'index'])->name('index');
+            Route::post('/', [FacilityBoatController::class, 'store'])->name('store');
+            Route::put('{facilityBoat}', [FacilityBoatController::class, 'update'])->name('update');
+        });
         Route::get('{facility}', [FacilityController::class, 'show'])->whereNumber('facility')->name('show');
         Route::put('{facility}', [FacilityController::class, 'update'])->whereNumber('facility')->name('update');
         Route::prefix('{facility}/sessions')->whereNumber('facility')->name('sessions.')->group(function () {
@@ -273,6 +309,7 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::post('locks/{doorLock}/unlock', [DoorLockSettingsController::class, 'unlock'])->name('unlock')->middleware('door-locks:ttlock');
         Route::post('locks/{doorLock}/clock', [DoorLockSettingsController::class, 'clock'])->name('clock')->middleware('door-locks:ttlock');
         Route::post('locks/{doorLock}/health', [DoorLockSettingsController::class, 'health'])->name('health')->middleware('door-locks:ttlock');
+        Route::get('locks/{doorLock}/log', [DoorLockSettingsController::class, 'log'])->name('log')->middleware('door-locks:ttlock');
         Route::post('passcodes', [DoorLockSettingsController::class, 'storePasscode'])->name('passcodes.store')->middleware('door-locks:ttlock');
         Route::post('passcodes/{doorPasscode}/revoke', [DoorLockSettingsController::class, 'revoke'])->name('passcodes.revoke')->middleware('door-locks:ttlock');
         Route::post('passcodes/{doorPasscode}/retry', [DoorLockSettingsController::class, 'retry'])->name('passcodes.retry')->middleware('door-locks:ttlock');
@@ -413,6 +450,12 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::delete('{bookingSource}', [BookingSourceController::class, 'destroy'])->name('destroy');
     });
 
+    Route::prefix('market-segments')->name('market-segments.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {
+        Route::get('/', [MarketSegmentController::class, 'index'])->name('index');
+        Route::post('/', [MarketSegmentController::class, 'store'])->name('store');
+        Route::put('{marketSegment}', [MarketSegmentController::class, 'update'])->name('update');
+    });
+
     Route::prefix('discounts')->name('discounts.')->middleware('can:'.PermissionEnum::SettingsManage->value)->scopeBindings()->group(function () {
         Route::get('/', [DiscountController::class, 'index'])->name('index');
         Route::post('/', [DiscountController::class, 'store'])->name('store');
@@ -478,6 +521,7 @@ Route::prefix('settings')->name('settings.')->group(function () {
             Route::post('temp-passwords/reset', [StaffTemporaryPasswordController::class, 'reset'])->name('temp-passwords.reset');
             Route::post('temp-passwords/message', [StaffTemporaryPasswordController::class, 'message'])->name('temp-passwords.message');
             Route::post('temp-passwords/export', [StaffTemporaryPasswordController::class, 'export'])->name('temp-passwords.export');
+            Route::post('access', [StaffAccessController::class, 'store'])->name('access.store');
             Route::post('invitations', [StaffInvitationController::class, 'store'])->name('invitations.store');
             Route::post('invitations/{staffInvitation}/resend', [StaffInvitationController::class, 'resend'])->name('invitations.resend');
             Route::delete('invitations/{staffInvitation}', [StaffInvitationController::class, 'destroy'])->name('invitations.destroy');

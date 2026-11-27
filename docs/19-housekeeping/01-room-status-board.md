@@ -88,6 +88,7 @@ It disappears when the room is Clean, so it can never be stale. For a Blocked ro
 
 - One remark for each room, plain text, 500 characters. Click the cell, type, and it saves when the cell loses focus. An empty value removes it.
 - A remark is **kept until someone removes it**. Making the room Clean does not clear it.
+- **Booking note** (added 2026-11-26): the Notes cell also shows, read only, the [housekeeping remark](../12-reservations/16-remarks.md) of the bookings sleeping in the room tonight (or arriving), each once (`HousekeepingRoomData.guestRemark`). Staff write it on the reservation, not here. A dorm shows it on each bed instead ([dorm beds](04-dorm-beds.md#board)). The printed sheet's Notes add "Booking: Extra pillow".
 - `SetRoomRemark` is the only writer, and the activity log keeps the old and new value.
 
 ## Needs maintenance
@@ -103,7 +104,8 @@ An open `room_blocks` row that covers the business date makes the room **Blocked
 
 - The red badge replaces the status badge. The status cell also shows the reason and the last night, for example "Maintenance · until 18 Oct", and the block notes show as the grey line.
 - The stored room status stays under the block and comes back when the block ends.
-- A **bed block** does not take the room out of service. The room row stays workable and shows a neutral badge in the Status cell, for example "Bed A3 blocked", with the reason and last night on hover.
+- A **bed block** does not take the room out of service. The room row stays workable and shows a neutral badge in the Status cell, for example "Bed A3 blocked", with the reason and last night on hover. The blocked bed cannot change status.
+- A **dorm** has a status per bed; its room status is their summary. See [Dorm beds](04-dorm-beds.md).
 - The **Needs maintenance** flag shows as an amber badge with a wrench under the status, in the same cell.
 - The row ⋯ menu has **Block room** for a user with `rooms.block`. It opens the Room blocks sheet and calls `CreateRoomBlock`. Ending a block stays on the Room blocks page.
 - Blocked rows have no tick box, and the bulk bar skips them.

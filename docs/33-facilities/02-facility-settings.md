@@ -41,6 +41,14 @@ Facilities follow rooms: staff answer **Booked by** and **How many**. This repla
 - A "private" facility is an Item facility with 1: one group takes it and nobody else can book that time.
 - An Item booking does not record the group size. Staff write it in the booking's Notes.
 
+## Private bookings (decided 2026-11-23)
+
+A Person facility can also be booked **privately**: one group takes the whole facility at that time, at one price, such as a private boat on a river cruise (a charter). Tanini sells shared cruises per person and private boats per boat, and other lodges and dive resorts do the same.
+
+- `facilities.private_amount` (decimal, null) is the **Private price**, one price for a private booking. Null means the facility cannot be booked privately. Only a Person facility has one; an Item facility already takes a whole item. Set on the facility page under Per, with "e.g. 700".
+- The private price uses the facility's own charge item, so the transaction code and taxes are the same as a shared booking.
+- The cap is still **How many**: a private boat of 12 seats takes at most 12 people. A hotel that does not want a cap sets a high number.
+
 ## Enums
 
 | Enum                  | Cases (label)                                            | Notes                                                                                                                                                                                                                                                                                                                                                                         |

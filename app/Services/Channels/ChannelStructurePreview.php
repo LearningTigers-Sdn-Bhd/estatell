@@ -2,6 +2,7 @@
 
 namespace App\Services\Channels;
 
+use App\Models\Bed;
 use App\Models\Property;
 use App\Models\RoomType;
 
@@ -23,6 +24,8 @@ class ChannelStructurePreview
             ->active()
             ->ordered()
             ->withCount(['rooms as active_rooms_count' => fn ($rooms) => $rooms->active()])
+            ->addSelect(['active_beds_count' => Bed::query()->active()->selectRaw('COUNT(*)')
+                ->whereHas('room', fn ($rooms) => $rooms->active()->whereColumn('rooms.room_type_id', 'room_types.id'))])
             ->with(['ratePlans' => fn ($plans) => $plans->active()->ordered()->with(['packagePrices', 'arrivalWeekdays'])])
             ->get();
 

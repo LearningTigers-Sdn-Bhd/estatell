@@ -17,7 +17,7 @@ class StaffRoleController extends Controller
     {
         $role = Role::query()->findOrFail($request->integer('role_id'));
 
-        Inertia::flash('toast', $assignStaffRole($request->user(), $user, $role)
+        Inertia::flash('toast', $assignStaffRole($request->user(), $property, $user, $role)
             ? ['type' => 'success', 'message' => __(':name is now :role.', ['name' => $user->name, 'role' => $role->name])]
             : ['type' => 'error', 'message' => __('The role of :name cannot be changed.', ['name' => $user->name])]);
 

@@ -46,6 +46,22 @@ class UserFactory extends Factory
     }
 
     /**
+     * Every staff user (one with a home property) gets a membership there, deactivated with the user, as
+     * `AcceptStaffInvitation` and onboarding create one.
+     */
+    public function configure(): static
+    {
+        return $this->afterCreating(function (User $user): void {
+            if ($user->property_id !== null) {
+                $user->memberships()->firstOrCreate(
+                    ['property_id' => $user->property_id],
+                    ['deactivated_at' => $user->deactivated_at],
+                );
+            }
+        });
+    }
+
+    /**
      * Indicate that the model's email address should be unverified.
      */
     public function unverified(): static

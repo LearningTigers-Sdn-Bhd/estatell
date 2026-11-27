@@ -6,31 +6,37 @@ The reports a small property needs daily and monthly, with a shared frame: a dat
 
 ## Reports
 
-| Report                        | `ReportKey`          | Source                                                 | Dates    | Default orientation | Longest range |
-| ----------------------------- | -------------------- | ------------------------------------------------------ | -------- | ------------------- | ------------- |
-| Arrivals                      | `Arrivals`           | `reservation_units`                                    | Range    | Portrait            | 31 days       |
-| Departures                    | `Departures`         | `reservation_units`                                    | Range    | Portrait            | 31 days       |
-| In-house                      | `InHouse`            | `reservation_units`, `unit_nights`                     | One date | Portrait            | –             |
-| Occupancy, ADR, RevPAR        | `Occupancy`          | `daily_statistics`                                     | Range    | Portrait            | 366 days      |
-| Revenue by transaction code   | `Revenue`            | `DailyRevenueQuery` (live)                             | Range    | Portrait            | 366 days      |
-| Payments by method            | `Payments`           | `payments`, `ar_payments`                              | Range    | Landscape           | 366 days      |
-| Folio ledger                  | `FolioLedger`        | `folio_lines`                                          | Range    | Landscape           | 31 days       |
-| Tax report (SST, tourism tax) | `Tax`                | `folio_lines` of kind Tax                              | Range    | Landscape           | 366 days      |
-| Kitchen meal counts           | `MealCounts`         | `MealCounts::between()` (`MealEntitlementResolver`)    | Range    | Portrait            | 31 days       |
-| Night audit history           | `NightAuditHistory`  | `night_audits`, `daily_statistics`                     | Range    | Landscape           | 366 days      |
-| Outstanding balance           | `OutstandingBalance` | `FolioBalancesOnDate` (the folio balance on the date)  | One date | Landscape           | –             |
-| Deposit liability             | `DepositLiability`   | `FolioBalancesOnDate` (every credit balance)           | One date | Landscape           | –             |
-| Non-national guests           | `NonNationalGuests`  | foreign units that stayed, and their tourism tax lines | Range    | Landscape           | 31 days       |
-| Police report                 | `PoliceReport`       | every guest of a unit that stayed (`unit_guests`)      | Range    | Landscape           | 31 days       |
-| Boat manifest                 | `BoatManifest`       | `unit_boat_trips` (only with the Boats feature)        | One date | Portrait            | –             |
-| Housekeeping tasks            | `HousekeepingTasks`  | `room_statuses`, `unit_nights`, `room_blocks`          | One date | Landscape           | –             |
-| Checked out                   | `CheckedOut`         | `reservation_units`                                    | Range    | Portrait            | 31 days       |
-| Daily revenue                 | `DailyRevenue`       | `DailyRevenueQuery` (live)                             | Range    | Landscape           | 366 days      |
-| Daily charges                 | `DailyCharges`       | `folio_lines` through `DailyRevenueQuery`              | Range    | Landscape           | 31 days       |
-| Booking performance (planned) | `BookingPerformance` | reservations by booking date                           | Range    | Portrait            | 366 days      |
+| Report                        | `ReportKey`          | Source                                                                           | Dates    | Default orientation | Longest range |
+| ----------------------------- | -------------------- | -------------------------------------------------------------------------------- | -------- | ------------------- | ------------- |
+| Arrivals                      | `Arrivals`           | `reservation_units`                                                              | Range    | Portrait            | 31 days       |
+| Departures                    | `Departures`         | `reservation_units`                                                              | Range    | Portrait            | 31 days       |
+| In-house                      | `InHouse`            | `reservation_units`, `unit_nights`                                               | One date | Portrait            | –             |
+| Occupancy, ADR, RevPAR        | `Occupancy`          | `daily_statistics`                                                               | Range    | Portrait            | 366 days      |
+| History & forecast            | `HistoryForecast`    | `daily_statistics`, the ledger, the books (see [04](04-history-and-forecast.md)) | Range    | Landscape           | 366 days      |
+| Rooms on books › On the books | `OnTheBooks`         | The books (see [05](05-rooms-on-books.md))                                       | Range    | Landscape           | 366 days      |
+| Rooms on books › Changes      | `BookingChanges`     | New units and the activity log (see [05](05-rooms-on-books.md))                  | Range    | Landscape           | 366 days      |
+| Revenue by transaction code   | `Revenue`            | `DailyRevenueQuery` (live)                                                       | Range    | Portrait            | 366 days      |
+| Payments by method            | `Payments`           | `payments`, `ar_payments`                                                        | Range    | Landscape           | 366 days      |
+| Folio ledger                  | `FolioLedger`        | `folio_lines`                                                                    | Range    | Landscape           | 31 days       |
+| Tax report (SST, tourism tax) | `Tax`                | `folio_lines` of kind Tax                                                        | Range    | Landscape           | 366 days      |
+| Kitchen meal counts           | `MealCounts`         | `MealCounts::between()` (`MealEntitlementResolver`)                              | Range    | Portrait            | 31 days       |
+| Night audit history           | `NightAuditHistory`  | `night_audits`, `daily_statistics`                                               | Range    | Landscape           | 366 days      |
+| Outstanding balance           | `OutstandingBalance` | `FolioBalancesOnDate` (the folio balance on the date)                            | One date | Landscape           | –             |
+| Deposit liability             | `DepositLiability`   | `FolioBalancesOnDate` (every credit balance)                                     | One date | Landscape           | –             |
+| Non-national guests           | `NonNationalGuests`  | foreign units that stayed, and their tourism tax lines                           | Range    | Landscape           | 31 days       |
+| Police report                 | `PoliceReport`       | every guest of a unit that stayed (`unit_guests`)                                | Range    | Landscape           | 31 days       |
+| Boat manifest                 | `BoatManifest`       | `unit_boat_trips` (only with the Boats feature)                                  | One date | Landscape           | –             |
+| Transfer manifest             | `TransferManifest`   | `unit_transfers` (only with the Transfers feature)                               | One date | Landscape           | –             |
+| Housekeeping tasks            | `HousekeepingTasks`  | `room_statuses`, `unit_nights`, `room_blocks`                                    | One date | Landscape           | –             |
+| Checked out                   | `CheckedOut`         | `reservation_units`                                                              | Range    | Portrait            | 31 days       |
+| Daily revenue                 | `DailyRevenue`       | `DailyRevenueQuery` (live)                                                       | Range    | Landscape           | 366 days      |
+| Daily charges                 | `DailyCharges`       | `folio_lines` through `DailyRevenueQuery`                                        | Range    | Landscape           | 31 days       |
+| Booking performance           | `BookingPerformance` | reservations by booking date                                                     | Range    | Landscape           | 366 days      |
 
+- Occupancy, History & forecast and Revenue by transaction code show a chart of the whole range above the table. See [Report charts](06-report-charts.md).
 - Revenue by transaction code is live for every date, open or closed, from `DailyRevenueQuery` (`app/Services/Reports/`), with grouping by day or month and drill-down to the lines. The night audit copies one closed date of the same query into `daily_revenue`.
 - **Boat manifest** belongs to the Boats module and is exported from the [Boat Trips board](../24-boats/05-boats-board.md#export-boat-manifest), not from the Reports menu. It has no report page. Its export routes sit under `reservations.view`, and its Columns Sheet uses the shared layout routes. See [Boat manifest](../24-boats/03-boat-manifest.md).
+- **Transfer manifest** belongs to the Transfers module and is exported from the [run sheet](../35-transfers/01-land-transfers.md#transfer-manifest), not from the Reports menu. It has no report page. Its export routes sit under `reservations.view`, and its Columns Sheet uses the shared layout routes.
 - **Guest list** and **Daily report** are pages with tabs over these reports. Guest list takes Arrivals, In-house, Departures and Checked out off the sidebar. See [Guest list, Daily report and Booking performance](02-guest-list-and-daily-report.md).
 - **Housekeeping tasks** belongs to the Housekeeping module and is printed from the board, not from the Reports menu. It has no report page. Its export routes sit under `housekeeping.view`, and its Layout Sheet uses the shared layout routes. See [Print, export and layout](../19-housekeeping/02-print-and-layout.md).
 - The core reports (item 20) are complete. The last six reports come from wastays (step 7 of the build order). Payments also gets a **Received by** grouping with a cash-up total per staff member, and a **Refunds only** filter, in place of the wastays cashier activity and refund reports. Extra charges are covered by Revenue by transaction code.
@@ -74,44 +80,60 @@ Reports → Audit → Activity log opens `GET /p/{code}/reports/activity-log` (`
 
 Arrivals lists the reservation units that arrive in the range. The row `key` is the reservation unit id.
 
-| Key            | Label             | Align | Default visible |
-| -------------- | ----------------- | ----- | --------------- |
-| `reservation`  | Reservation no.   | left  | ✓               |
-| `guest`        | Guest             | left  | ✓               |
-| `phone`        | Phone             | left  |                 |
-| `arrival`      | Arrival           | left  | ✓               |
-| `arrival_time` | Arrival time      | left  | ✓               |
-| `boat`         | Boat              | left  | ✓               |
-| `nights`       | Nights            | right | ✓               |
-| `unit`         | Room type / room  | left  | ✓               |
-| `room_type`    | Room type         | left  |                 |
-| `room`         | Room              | left  |                 |
-| `guests`       | Adults / children | right |                 |
-| `adults`       | Adults            | right |                 |
-| `children`     | Children          | right |                 |
-| `company`      | Company           | left  |                 |
-| `status`       | Status            | left  | ✓               |
-| `total`        | Total             | right | ✓               |
-| `paid`         | Paid              | right | ✓               |
-| `balance`      | Balance           | right | ✓               |
+| Key                    | Label                | Align | Default visible |
+| ---------------------- | -------------------- | ----- | --------------- |
+| `reservation`          | Reservation no.      | left  | ✓               |
+| `guest`                | Guest                | left  | ✓               |
+| `phone`                | Phone                | left  |                 |
+| `arrival`              | Arrival              | left  | ✓               |
+| `arrival_time`         | Arrival time         | left  | ✓               |
+| `departure`            | Departure            | left  |                 |
+| `departure_time`       | Departure time       | left  |                 |
+| `boat`                 | Boat                 | left  | ✓               |
+| `pick_up`              | Pick-up              | left  |                 |
+| `drop_off`             | Drop-off             | left  |                 |
+| `nights`               | Nights               | right | ✓               |
+| `unit`                 | Room type / room     | left  | ✓               |
+| `room_type`            | Room type            | left  |                 |
+| `room`                 | Room                 | left  |                 |
+| `rate`                 | Rate                 | right |                 |
+| `rate_plan`            | Rate plan            | left  |                 |
+| `meal_plan`            | Meal plan            | left  |                 |
+| `guests`               | Adults / children    | right |                 |
+| `adults`               | Adults               | right |                 |
+| `children`             | Children             | right |                 |
+| `company`              | Company              | left  |                 |
+| `source`               | Booking source       | left  |                 |
+| `market_segment`       | Market segment       | left  |                 |
+| `sales_person`         | Sales person         | left  |                 |
+| `booked_by`            | Booked by            | left  |                 |
+| `status`               | Status               | left  | ✓               |
+| `total`                | Total                | right | ✓               |
+| `paid`                 | Paid                 | right | ✓               |
+| `balance`              | Balance              | right | ✓               |
+| `housekeeping_remarks` | Housekeeping remarks | left  |                 |
+| `dietary_remarks`      | Dietary remarks      | left  |                 |
+| `package_remarks`      | Package remarks      | left  |                 |
+| `payment_remarks`      | Payment remarks      | left  |                 |
 
 - Units that hold inventory count (Confirmed, Checked in, Checked out). Cancelled and no-show units are left out, because nobody arrives. **Guest** and **Phone** are the primary guest of the unit, or the booker when the unit has none. **Room type / room** shows the room or bed of the first night when one is assigned. **Total**, **Paid** and **Balance** are the figures of the reservation (its folios that are not Voided), from `FolioBalance::figuresForReservations()`. Total is the Charge, Tax and Adjustment lines of the whole stay, not the revenue earned in the date range (use Revenue for that). Paid is the Payment lines shown positive, so refunds reduce it and a city ledger settlement counts as paid. `Total - Paid = Balance`.
+- **Tanini columns** (hidden by default, added 2026-11-22 for requirement 7.1; a property turns them on in the Layout Sheet): **Departure** and **Departure time** of the unit. **Rate** is the average room price per night of the unit (`unit_nights.amount`, before tax; a money column, not summed). **Rate plan** is the unit's plan name (Tanini's "Rate type"). **Meal plan** lists the meal periods the plan includes, in meal time order ("Breakfast, Lunch, Dinner"), from the same inclusions as Meal counts (`MealPlanLabel`); empty when it includes none. **Booking source**, [Market segment](../12-reservations/15-market-segments.md), [Sales person](../12-reservations/12-sales-person.md) and **Booked by** (`created_by`, empty for channel and online bookings) are the reservation's. The four [remark](../12-reservations/16-remarks.md) columns go after Balance. Tanini's Deposit and Balance Due are **Paid** and **Balance**; Res. Type is **Status**. **Pick-up** and **Drop-off** (added 2026-11-26, shown only while the [Transfers](../35-transfers/01-land-transfers.md) feature is on) are the unit's road transfer in and out in one line, "10:30 · Sandakan Airport · AK 6231 · Shared" (`TransferLabel`); the **Boat** column covers boats.
 - **Split columns** (hidden by default): `room_type` and `room` split **Room type / room**; `room` is empty when no room is assigned. `adults` and `children` split **Adults / children** and are whole numbers. **Arrival time** is `reservation_units.arrival_time` as `H:i`. It is visible by default. Arrivals has a total row that sums `nights`, `adults` and `children` and counts the total, paid and balance of each reservation once (see **Money totals** below).
 
 ## Other report columns
 
 Each report has a stable column list like Arrivals. Proposed in the overview and settled in each build step:
 
-| Report       | Row is                        | Columns                                                                                                                                                                                                                    |
-| ------------ | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Departures   | a unit departing in the range | as Arrivals, with Departure in place of Arrival                                                                                                                                                                            |
-| In-house     | a unit staying on the date    | Reservation, Guest, Room, Arrival, Arrival time (hidden), Departure, Departure time (hidden), Guests, Adults (hidden), Children (hidden), Company, Total, Paid, Balance                                                    |
-| Occupancy    | a date                        | Date, Rooms available, Rooms sold, Occupancy %, ADR, RevPAR, Room revenue, Arrivals, Departures, No-shows, In-house guests. The open date is marked **Live**; dates after it are left out.                                 |
-| Revenue      | a date (or month) and a code  | Date, Code, Description, Lines, Amount                                                                                                                                                                                     |
-| Payments     | a payment                     | Posted on, Received on, Receipt no., Room, Reservation or company, Folio no., Invoice no., Guest or company, Method, Reference / notes, Status, Staff, Amount, Reference, Notes and Original receipt (hidden by default)   |
-| Folio ledger | a folio line                  | Posting date, Folio, Reservation, Guest / payer, Code, Description, Kind, Staff, Amount                                                                                                                                    |
-| Tax          | a date and a tax              | Date / month, Tax, Registration no. (hidden by default), Lines, Base, Tax amount. Base is the parent charge plus its inline discounts, "—" for a flat tax; see [Tax split](02-guest-list-and-daily-report.md#1-tax-split). |
-| Meal counts  | a date and a meal period      | Date, Meal, Adults, Children, Total                                                                                                                                                                                        |
+| Report       | Row is                        | Columns                                                                                                                                                                                                                                                                          |
+| ------------ | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Departures   | a unit departing in the range | as Arrivals, with Departure in place of Arrival                                                                                                                                                                                                                                  |
+| In-house     | a unit staying on the date    | Reservation, Guest, Room, Arrival, Arrival time (hidden), Departure, Departure time (hidden), Guests, Adults (hidden), Children (hidden), Company, Total, Paid, Balance                                                                                                          |
+| Occupancy    | a date                        | Date, Rooms available, Rooms sold, Occupancy %, ADR, RevPAR, Room revenue, Arrivals, Departures, No-shows, In-house guests. The open date is marked **Live**; dates after it are left out.                                                                                       |
+| Revenue      | a date (or month) and a code  | Date, Code, Description, Lines, Quantity sold, Amount. Quantity sold is the net quantity of the Charge lines (a reversal takes its quantity back; adjustments and tax are left out). An item charged per guest posts one per guest, so for packages and activities it is the pax |
+| Payments     | a payment                     | Posted on, Received on, Receipt no., Room, Reservation or company, Folio no., Invoice no., Guest or company, Method, Reference / notes, Status, Staff, Amount, Reference, Notes and Original receipt (hidden by default)                                                         |
+| Folio ledger | a folio line                  | Posting date, Folio, Reservation, Guest / payer, Code, Description, Kind, Staff, Amount                                                                                                                                                                                          |
+| Tax          | a date and a tax              | Date / month, Tax, Registration no. (hidden by default), Lines, Base, Tax amount. Base is the parent charge plus its inline discounts, "—" for a flat tax; see [Tax split](02-guest-list-and-daily-report.md#1-tax-split).                                                       |
+| Meal counts  | a date and a meal period      | Date, Meal, Adults, Children, Total                                                                                                                                                                                                                                              |
 
 ### Built: Departures and In-house
 
@@ -150,7 +172,7 @@ Each report has a stable column list like Arrivals. Proposed in the overview and
     - **By staff** (the cash-up): Staff, Method, Count, In, Out, Net. Online payments are left out, because no staff member took the money. The main table and the By method total still show them, with "Booking Engine" as the staff name. Each staff member has a row for each method and then a "{name} subtotal" row, and the Total row comes last. Staff are grouped by user id (`PaymentRow::staff_id`, not a column), so two people with the same name stay apart.
 - **Subtotal rows.** `ReportBreakdown` has `subtotalRows`, the indexes of the subtotal rows in `rows`. The screen shows them bold on a muted background and the PDF prints them bold and muted.
 - **Sort.** `ReportKey::defaultSort(?ReportGroup)` returns `staff` for Payments with the Staff group, else `date`. `rows()` returns the rows in date order and the sort is stable, so the rows of each staff member stay in date order. The page and the exports pass `filters->group`.
-- **Filter `staff`.** `ReportFilters` has `?int $staff`. `ReportKey::hasPaymentFilters()` is true for Payments only. `ReportFiltersRequest` checks that `staff` is a user with `users.property_id` of this property; any other value is a validation error. A Select with **All staff** first sets it in the toolbar. `PaymentsReport::staffOptions()` lists the users who received a folio or city ledger payment in the dates, by name, and ignores the `staff` and `refunds` filters so the list does not shrink after a pick. The filter narrows the rows, the total row and both summaries, and travels in the page URL, the exports and the layout preview. Other reports ignore it.
+- **Filter `staff`.** `ReportFilters` has `?int $staff`. `ReportKey::hasPaymentFilters()` is true for Payments only. `ReportFiltersRequest` checks that `staff` is a member of this property (`property_memberships`, active or not); any other value is a validation error. A Select with **All staff** first sets it in the toolbar. `PaymentsReport::staffOptions()` lists the users who received a folio or city ledger payment in the dates, by name, and ignores the `staff` and `refunds` filters so the list does not shrink after a pick. The filter narrows the rows, the total row and both summaries, and travels in the page URL, the exports and the layout preview. Other reports ignore it.
 - **Filter `refunds`.** `?refunds=1` shows only the refund rows (folio `payments` with `refund_of_id`) and leaves out city ledger rows. A checkbox "Refunds only" in the toolbar sets it. It travels like `staff`. Changing `staff`, `refunds`, `group` or the dates clears the row selection.
 - **Column `refund_of`** ("Original receipt", hidden by default): the receipt number of the refunded payment, empty for any other row. The `refundOf` relation is eager-loaded, so there is no N+1.
 - **No shift time window.** A cash-up is by business date and staff member only.

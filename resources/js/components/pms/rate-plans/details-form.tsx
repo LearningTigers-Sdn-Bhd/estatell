@@ -103,6 +103,7 @@ export function DetailsForm({
                 ? ''
                 : String(ratePlan.groupRatePlanId),
         bookable_online: ratePlan.bookableOnline,
+        is_complimentary: ratePlan.isComplimentary,
     });
     const guard = useUnsavedChanges(form.isDirty);
     const basis = ratePlan.pricingBasis;
@@ -432,6 +433,25 @@ export function DetailsForm({
                         }
                     />
                 )}
+                <Field orientation="horizontal">
+                    <Switch
+                        id="rate-plan-complimentary"
+                        checked={form.data.is_complimentary}
+                        onCheckedChange={(checked) =>
+                            form.setData('is_complimentary', checked)
+                        }
+                    />
+                    <FieldContent>
+                        <FieldLabel htmlFor="rate-plan-complimentary">
+                            Complimentary
+                        </FieldLabel>
+                        <FieldDescription>
+                            The room is given free, for example house use or
+                            staff. Its nights count as sold but stay out of ADR
+                            in History &amp; forecast.
+                        </FieldDescription>
+                    </FieldContent>
+                </Field>
                 {onlineBooking && (
                     <Field orientation="horizontal">
                         <Switch

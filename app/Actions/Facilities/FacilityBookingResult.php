@@ -37,6 +37,9 @@ final class FacilityBookingResult
 
     public const string REFUSAL_CHARGED_BY_HAND = 'facility_charged_by_hand';
 
+    /** A private booking of a facility that has no private price, or is booked by item. */
+    public const string REFUSAL_PRIVATE_NOT_OFFERED = 'facility_private_not_offered';
+
     private function __construct(
         public readonly ?FacilityBooking $booking,
         public readonly ?string $refusal,

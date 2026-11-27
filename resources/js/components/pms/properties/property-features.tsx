@@ -3,21 +3,22 @@ import {
     AppWindow,
     BedSingle,
     Bot,
+    Bus,
     Cable,
     Calculator,
     CircleCheck,
     CircleMinus,
-    CornerDownRight,
     CodeXml,
     ConciergeBell,
+    CornerDownRight,
     FileText,
     Globe,
     Lock,
     Ship,
-    Utensils,
     Tablet,
     Tent,
     ToggleRight,
+    Utensils,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Fragment, useState } from 'react';
@@ -72,6 +73,7 @@ const featureIcons: Record<App.Enums.PlatformFeature, LucideIcon> = {
     pos: Utensils,
     facilities: Tent,
     'ai-assistant': Bot,
+    transfers: Bus,
 };
 
 /** On and Off for the partner's read-only rows. */

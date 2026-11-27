@@ -14,6 +14,7 @@ use App\Features\EInvoicing;
 use App\Features\Facilities;
 use App\Features\Kiosks;
 use App\Features\Pos;
+use App\Features\Transfers;
 
 /**
  * Per-property features that platform admins turn on or off. Each case maps to a Pennant feature class.
@@ -32,6 +33,7 @@ enum PlatformFeature: string
     case Pos = 'pos';
     case Facilities = 'facilities';
     case AiAssistant = 'ai-assistant';
+    case Transfers = 'transfers';
 
     public function label(): string
     {
@@ -48,6 +50,7 @@ enum PlatformFeature: string
             self::Pos => __('Point of sale'),
             self::Facilities => __('Facilities and events'),
             self::AiAssistant => __('AI assistant'),
+            self::Transfers => __('Land transfers'),
         };
     }
 
@@ -66,6 +69,7 @@ enum PlatformFeature: string
             self::Pos => __('Built-in point of sale (registers, shifts, menu, orders, KDS, QR ordering, inventory), restaurant meal check-in and POS API room charges.'),
             self::Facilities => __('Halls, equipment and activities staff book by date and time, and event folios for guests who do not stay.'),
             self::AiAssistant => __('A chat that answers guests and staff, and hands over to staff when it cannot help. Choose its places and capabilities below.'),
+            self::Transfers => __('Road transfers for guests: airport and jetty pick-ups, prices, vans, drivers and a daily run sheet.'),
         };
     }
 
@@ -87,6 +91,7 @@ enum PlatformFeature: string
             self::Pos => Pos::class,
             self::Facilities => Facilities::class,
             self::AiAssistant => AiAssistant::class,
+            self::Transfers => Transfers::class,
         };
     }
 }

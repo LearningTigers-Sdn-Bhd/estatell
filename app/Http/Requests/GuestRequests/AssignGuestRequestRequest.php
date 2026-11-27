@@ -43,7 +43,7 @@ class AssignGuestRequestRequest extends FormRequest
     {
         /** @var Property $property */
         $property = $this->route('property');
-        $user = $this->filled('user_id') ? User::query()->where('property_id', $property->id)->find($this->integer('user_id')) : null;
+        $user = $this->filled('user_id') ? User::query()->activeMemberOf($property)->find($this->integer('user_id')) : null;
 
         return $user?->can(PermissionEnum::GuestRequestsResolve->value) ? $user : null;
     }

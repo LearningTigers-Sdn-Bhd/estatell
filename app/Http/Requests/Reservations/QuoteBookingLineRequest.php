@@ -36,6 +36,7 @@ class QuoteBookingLineRequest extends FormRequest
             'child_ages' => ['nullable', 'array', 'max:20'],
             'child_ages.*' => ['integer', 'between:0,17'],
             'beds' => ['nullable', 'integer', 'min:1', 'max:99'],
+            'whole_room' => ['nullable', 'boolean'],
             'override_total' => ['nullable', 'string', 'regex:/^\d+(\.\d{1,2})?$/'],
             'add_ons' => ['nullable', 'array', 'max:20'],
             'add_ons.*.charge_item_id' => ['required', 'integer'],

@@ -32,6 +32,7 @@ class FacilityData extends Data
         public string $bookedByLabel,
         public string $unitLabel,
         public string $rateBasisLabel,
+        public ?string $privateAmount = null,
     ) {}
 
     /**
@@ -55,6 +56,7 @@ class FacilityData extends Data
             bookedByLabel: $facility->booked_by->label(),
             unitLabel: $facility->booked_by->unit($facility->capacity),
             rateBasisLabel: $facility->rate_basis->label($facility->booked_by),
+            privateAmount: $facility->private_amount,
         );
     }
 }

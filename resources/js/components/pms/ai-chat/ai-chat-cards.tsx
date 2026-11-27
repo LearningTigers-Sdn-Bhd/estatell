@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { BedDouble, CircleCheck, Clock, ExternalLink } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 
 type Room = {
@@ -9,6 +10,7 @@ type Room = {
     plan: string;
     total: string;
     currency: string;
+    current_choice?: boolean;
 };
 
 type Rooms = {
@@ -25,9 +27,19 @@ type Quote = {
     arrival_date: string;
     departure_date: string;
     adults: number;
+    child_ages?: number[];
     total: string;
     currency: string;
 };
+
+/** "2 adults" or "3 adults, 2 children". */
+function party(adults: number, childAges: number[] = []): string {
+    const grown = `${adults} ${adults === 1 ? 'adult' : 'adults'}`;
+
+    return childAges.length === 0
+        ? grown
+        : `${grown}, ${childAges.length} ${childAges.length === 1 ? 'child' : 'children'}`;
+}
 
 type SentRequest = {
     sent: boolean;
@@ -91,7 +103,12 @@ export function RoomOptionsCard({
                     className="flex items-center gap-3 p-3"
                 >
                     <div className="min-w-0 flex-1">
-                        <p className="font-medium text-pretty">{room.room}</p>
+                        <p className="flex flex-wrap items-center gap-2 font-medium text-pretty">
+                            {room.room}
+                            {room.current_choice && (
+                                <Badge variant="secondary">Your choice</Badge>
+                            )}
+                        </p>
                         <p className="text-sm text-muted-foreground">
                             {room.plan} · {stay}
                         </p>
@@ -142,8 +159,8 @@ export function QuoteLinkCard({ output }: { output: unknown }) {
                     </p>
                     <p className="text-sm text-muted-foreground tabular-nums">
                         {shortDate(quote.arrival_date)} to{' '}
-                        {shortDate(quote.departure_date)} · {quote.adults}{' '}
-                        {quote.adults === 1 ? 'adult' : 'adults'}
+                        {shortDate(quote.departure_date)} ·{' '}
+                        {party(quote.adults, quote.child_ages)}
                     </p>
                 </div>
                 <p className="font-medium tabular-nums">

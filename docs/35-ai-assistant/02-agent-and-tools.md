@@ -20,11 +20,12 @@ A new top-level folder `app/Ai/` holds `Agents/`, `Tools/` and `Middleware/`, wh
 
 Built per turn by `AssistantInstructions` (a Service), from:
 
-1. The rules: answer only about this property, never invent a price or a free room, use the tools for both, hand over when unsure, sum up the key facts for a broad question instead of handing over, number a room list, one room and plan per line, so a number picks a line, end it with one short line on why the stay is worth it (from the facts only), read a date without a year as the next time it comes and write that year, never promise a cancel or a refund.
+1. The rules: answer only about this property, never invent a price or a free room, use the tools for both, hand over when unsure, sum up the key facts for a broad question instead of handing over, number a room list, one room and plan per line, so a number picks a line, end it with one short line on why the stay is worth it (from the facts only), never promise a cancel, a refund or a change to a booked stay, treat new dates or a new party for a quote link as a new check (the current choice first, then the others, and a confirm before a new link), and write only the message the guest reads, never its rules, steps or thoughts.
 2. The place and who is asking (a lobby visitor, a guest with a stay, a staff member).
 3. The [knowledge](#knowledge).
 4. The language rule: reply in the language the person writes in. When unsure, use the property's default language.
 5. The handover message from Settings.
+6. Today at the property, last so the parts before it stay the same all day for the prompt cache. It carries worked examples of a date without a year, built from today: a month still to come is this year's, a month already gone is next year's (on 27 November 2026, "dec" is December 2026 and "aug" is August 2027). The model never asks the year and writes it in the reply. Decided 2026-11-27, after a reply on WhatsApp showed the model arguing the year out loud.
 
 ## Knowledge
 
@@ -64,7 +65,7 @@ Scopes: `CheckRoomsAndPrices` and `SendQuoteLink` need RoomQuotes, `ReadMyStay` 
 Rules for every tool:
 
 - **Prices and rooms come only from `CheckRoomsAndPrices`.** The model may repeat them, never work them out.
-- **`CheckRoomsAndPrices` needs the number of adults.** When a guest gives only a total ("4 people"), the model asks how many are adults first and never assumes everyone is. A number of adults means no children unless the guest says so. Children still mean a handover.
+- **`CheckRoomsAndPrices` needs the number of adults.** When a guest gives only a total ("4 people"), the model asks how many are adults first and never assumes everyone is. A number of adults means no children unless the guest says so. Any mention of a baby, kid or child (anak, bayi, 小孩 and so on) means children: the model asks each age and passes `child_ages` to both quote tools. See [Quote links](03-places-and-routes.md#quote-links).
 - **`ReadMyStay` reads only the stay of its own thread.** The thread's `reservation_unit_id` is set from the token; the model cannot pass another id. A lobby or API thread has no stay, so the tool is not given.
 - **`ReadMyStay` takes no input.** It returns the reference, status, dates, nights, room type, guests and the balance due (`ConciergeBill::due`). The room number is given only once the guest is checked in, as on the stay page, and is the room of the latest night so far.
 - **`MakeGuestRequest` sends only housekeeping, maintenance or a complaint**, through `SubmitConciergeRequest`, so the limits of the stay page's request form apply (5 open requests, a checked-in guest for room work). The model repeats the request and sends it only after the guest says yes. A refusal returns its own sentence for the guest. A sent request shows as a card in the chat, with a link to the stay's requests. The turn stays Answered; `ai_turn_tools` records the tool.
@@ -74,7 +75,7 @@ Rules for every tool:
 
 ## Handover
 
-`EscalateAiThread` (an Action) marks the thread Escalated (built with guest questions), sends the staff notification `AiThreadEscalated` (to staff with `front-desk.view`) and queues the `ai.escalated` webhook (a new `WebhookEvent`). The guest sees the handover message from Settings. An escalated thread keeps answering questions, and staff see it in the [Chat handovers inbox](03-places-and-routes.md#chat-handovers-inbox). See [Handover](03-places-and-routes.md#handover).
+`EscalateAiThread` (an Action) marks the thread Escalated (built with guest questions), sends the staff notification `AiThreadEscalated` (to staff with `front-desk.view`) and queues the `ai.escalated` webhook (a new `WebhookEvent`). The guest sees the handover message from Settings, written by the model in the language the guest writes in (it keeps the meaning, and leaves out an opening such as "Good question!" when the guest did not ask a question). The fixed fallback replies that need no model call (cap, failing key, held-back reply) send the message as written. When the thread is already handed over, `HandOver` calls `AddToAiHandover` instead: the new question goes on a new line of the handover summary (staff are not alerted again), and the guest gets one short line that the front desk has this question too, not the handover message again. An escalated thread keeps answering questions, and staff see it in the [Chat handovers inbox](03-places-and-routes.md#chat-handovers-inbox). See [Handover](03-places-and-routes.md#handover).
 
 ## Safety in the instructions is not enough
 

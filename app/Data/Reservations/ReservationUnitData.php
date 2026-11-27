@@ -86,7 +86,7 @@ class ReservationUnitData extends Data
 
         return new self(
             id: $unit->id,
-            roomType: $unit->roomType->name,
+            roomType: $unit->whole_room_id === null ? $unit->roomType->name : __(':type · Whole dorm :room', ['type' => $unit->roomType->name, 'room' => $unit->loadMissing('wholeRoom')->wholeRoom?->number]),
             ratePlan: app(StayLabel::class)->planForUnit($unit),
             status: BadgeData::fromUnitStatus($unit->status),
             arrival: $unit->arrival_date->toDateString(),

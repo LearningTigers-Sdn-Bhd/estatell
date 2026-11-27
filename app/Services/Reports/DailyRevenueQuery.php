@@ -3,6 +3,7 @@
 namespace App\Services\Reports;
 
 use App\Enums\SystemTransactionCode;
+use App\Enums\TransactionCategory;
 use App\Enums\TransactionKind;
 use App\Models\FolioLine;
 use App\Models\Property;
@@ -37,13 +38,14 @@ class DailyRevenueQuery
             ->groupBy('folio_lines.posting_date', 'folio_lines.transaction_code_id')
             ->orderBy('folio_lines.posting_date')
             ->orderBy('folio_lines.transaction_code_id')
-            ->selectRaw('folio_lines.posting_date as date, folio_lines.transaction_code_id, SUM(folio_lines.amount) as amount, COUNT(*) as line_count')
+            ->selectRaw('folio_lines.posting_date as date, folio_lines.transaction_code_id, SUM(folio_lines.amount) as amount, COUNT(*) as line_count, SUM(CASE WHEN folio_lines.kind = ? THEN (CASE WHEN folio_lines.reversal_of_id IS NULL THEN folio_lines.quantity ELSE -folio_lines.quantity END) ELSE 0 END) as quantity', [TransactionKind::Charge->value])
             ->get()
             ->map(fn (FolioLine $row): DailyRevenueRow => new DailyRevenueRow(
                 CarbonImmutable::parse((string) $row->getAttribute('date')),
                 (int) $row->getAttribute('transaction_code_id'),
                 Money::of((string) $row->getAttribute('amount'), $currency),
                 (int) $row->getAttribute('line_count'),
+                (int) $row->getAttribute('quantity'),
             ))
             ->values();
     }
@@ -195,6 +197,26 @@ class DailyRevenueQuery
         }
 
         return $byDate;
+    }
+
+    /**
+     * The money received on each date of the range, keyed by `Y-m-d`: the payment lines shown positive, so a refund
+     * reduces it. A City ledger settlement is left out: it moves the debt to a company and receives no money. Same line
+     * filter as the revenue. A date with no payment is not in the list.
+     *
+     * @return array<string, string>
+     */
+    public function receiptsBetween(Property $property, CarbonInterface $from, CarbonInterface $to): array
+    {
+        return $this->ledgerLinesBetween($property, $from, $to)
+            ->join('transaction_codes', 'transaction_codes.id', '=', 'folio_lines.transaction_code_id')
+            ->where('folio_lines.kind', TransactionKind::Payment->value)
+            ->where('transaction_codes.category', '!=', TransactionCategory::DirectBill->value)
+            ->groupBy('folio_lines.posting_date')
+            ->selectRaw('folio_lines.posting_date as date, -SUM(folio_lines.amount) as amount')
+            ->get()
+            ->mapWithKeys(fn (FolioLine $row): array => [CarbonImmutable::parse((string) $row->getAttribute('date'))->toDateString() => (string) $row->getAttribute('amount')])
+            ->all();
     }
 
     /**

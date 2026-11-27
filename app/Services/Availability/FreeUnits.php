@@ -3,6 +3,7 @@
 namespace App\Services\Availability;
 
 use App\Data\Reservations\FreeUnitData;
+use App\Data\Reservations\WholeRoomData;
 use App\Enums\HousekeepingStatus;
 use App\Enums\SellUnit;
 use App\Enums\UnitStatus;
@@ -74,6 +75,40 @@ class FreeUnits
         }
 
         return $free;
+    }
+
+    /**
+     * The dorms of a Bed room type whose every active bed is free on every night of the stay: the dorms that can be
+     * booked whole. A dorm with no active bed is left out, and a Room room type has none.
+     *
+     * @return list<WholeRoomData>
+     */
+    public function wholeRooms(RoomType $roomType, CarbonInterface $arrival, CarbonInterface $departure): array
+    {
+        $stay = $this->stay($arrival, $departure);
+
+        if ($stay === null || $roomType->sell_unit !== SellUnit::Bed) {
+            return [];
+        }
+
+        $unitsByRoom = array_filter($this->availability->unitsByRoom($roomType), fn (array $bedIds): bool => $bedIds !== []);
+        $taken = $this->takenNights($roomType, $unitsByRoom, $stay, null, null, null);
+        $beds = Bed::query()->whereIn('room_id', array_keys($unitsByRoom))->orderBy('label')->orderBy('id')->get(['id', 'room_id'])->groupBy('room_id');
+        $rooms = Room::query()->whereIn('id', array_keys($unitsByRoom))->orderBy('position')->orderBy('id')->get(['id', 'number']);
+        $whole = [];
+
+        foreach ($rooms as $room) {
+            $bedIds = $unitsByRoom[$room->id];
+
+            if (array_any($bedIds, fn (int $bedId): bool => isset($taken[$bedId]))) {
+                continue;
+            }
+
+            $ordered = array_values(array_filter(array_map(intval(...), $beds->get($room->id, collect())->pluck('id')->all()), fn (int $id): bool => in_array($id, $bedIds, true)));
+            $whole[] = new WholeRoomData($room->id, $room->number, $ordered);
+        }
+
+        return $whole;
     }
 
     /**

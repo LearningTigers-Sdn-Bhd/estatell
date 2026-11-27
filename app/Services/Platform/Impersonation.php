@@ -98,6 +98,15 @@ class Impersonation
     }
 
     /**
+     * The property the open session views, or null when nobody is impersonating. A staff user can be a member of
+     * several properties; the session covers only this one.
+     */
+    public function property(): ?Property
+    {
+        return $this->isActive() ? Property::query()->find($this->session()['property_id']) : null;
+    }
+
+    /**
      * The admin or partner user behind the session, or null when nobody is impersonating.
      */
     public function supportUser(): ?User

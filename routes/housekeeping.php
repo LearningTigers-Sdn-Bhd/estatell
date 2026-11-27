@@ -24,6 +24,7 @@ Route::prefix('housekeeping')->name('housekeeping.')->scopeBindings()->group(fun
 
     Route::prefix('rooms/{room}')->name('rooms.')->middleware('can:'.PermissionEnum::HousekeepingUpdate->value)->group(function () {
         Route::put('status', [HousekeepingBoardController::class, 'status'])->name('status');
+        Route::put('beds/{bed}/status', [HousekeepingBoardController::class, 'bedStatus'])->name('beds.status');
         Route::put('assignee', [HousekeepingBoardController::class, 'assignee'])->name('assignee');
         Route::put('priority', [HousekeepingBoardController::class, 'priority'])->name('priority');
         Route::put('dnd', [HousekeepingBoardController::class, 'dnd'])->name('dnd');

@@ -53,7 +53,7 @@ class GuestRequestListBuilder
      */
     public function assignees(Property $property): array
     {
-        return User::query()->where('property_id', $property->id)->orderBy('name')->get()
+        return User::query()->activeMemberOf($property)->orderBy('name')->get()
             ->filter(fn (User $user): bool => $user->can(PermissionEnum::GuestRequestsResolve->value))
             ->map(fn (User $user): array => ['value' => (string) $user->id, 'label' => $user->name])
             ->values()

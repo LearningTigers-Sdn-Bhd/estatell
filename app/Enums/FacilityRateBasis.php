@@ -27,18 +27,27 @@ enum FacilityRateBasis: string
     /**
      * How many units of the price a booking is charged for. A facility booked by item charges every item it takes:
      * 3 kayaks for 2 hours is 6 hours. A facility booked by person charges Day, Session and Hour once for the group,
-     * and Each per person. Hours are rounded up. Times are `HH:MM` or `HH:MM:SS` on one day.
+     * and Each per person. Hours are rounded up. Times are `HH:MM` or `HH:MM:SS` on one day. A private booking (a charter)
+     * has one price for the booking, so it is charged once.
      */
-    public function quantity(string $startsAt, string $endsAt, int $quantity, FacilityBookedBy $bookedBy): int
+    public function quantity(string $startsAt, string $endsAt, int $quantity, FacilityBookedBy $bookedBy, bool $private = false): int
     {
+        if ($private) {
+            return 1;
+        }
+
         return $this->timeUnits($startsAt, $endsAt) * ($this->countsQuantity($bookedBy) ? $quantity : 1);
     }
 
     /**
-     * How the charge adds up, without the price, for example "3 items × 2 hours" or "4 people".
+     * How the charge adds up, without the price, for example "3 items × 2 hours", "4 people" or "Private · 6 people".
      */
-    public function breakdown(string $startsAt, string $endsAt, int $quantity, FacilityBookedBy $bookedBy): string
+    public function breakdown(string $startsAt, string $endsAt, int $quantity, FacilityBookedBy $bookedBy, bool $private = false): string
     {
+        if ($private) {
+            return __('Private · :count :unit', ['count' => $quantity, 'unit' => $bookedBy->unit($quantity)]);
+        }
+
         $parts = [];
 
         if ($this->countsQuantity($bookedBy)) {

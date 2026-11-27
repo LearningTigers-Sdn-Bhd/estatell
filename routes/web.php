@@ -12,6 +12,7 @@ use App\Http\Controllers\Platform\DocsAuthController;
 use App\Http\Controllers\Platform\ImpersonationController;
 use App\Http\Controllers\Platform\ViewAsController;
 use App\Http\Controllers\Property\PropertyLogoController;
+use App\Http\Middleware\EnsureGroupAccess;
 use App\Http\Middleware\EnsurePropertyAccess;
 use App\Services\Landing\ServicePages;
 use Illuminate\Http\Request;
@@ -73,12 +74,14 @@ Route::prefix('p/{property:code}')->where(['property' => '[A-Za-z]{2}[0-9]{4,}']
         Route::get('logo', [PropertyLogoController::class, 'show'])->name('property.logo');
 
         require __DIR__.'/ai-chats.php';
+        require __DIR__.'/activities.php';
         require __DIR__.'/boats.php';
         require __DIR__.'/events.php';
         require __DIR__.'/facilities.php';
         require __DIR__.'/night-audit.php';
         require __DIR__.'/rates.php';
         require __DIR__.'/settings.php';
+        require __DIR__.'/transfers.php';
         require __DIR__.'/finance.php';
         require __DIR__.'/front-desk.php';
         require __DIR__.'/guest-requests.php';
@@ -89,6 +92,10 @@ Route::prefix('p/{property:code}')->where(['property' => '[A-Za-z]{2}[0-9]{4,}']
         require __DIR__.'/pos.php';
         require __DIR__.'/reservations.php';
     });
+});
+
+Route::prefix('g/{propertyGroup}')->whereNumber('propertyGroup')->name('group.')->middleware(['auth', EnsureGroupAccess::class, 'verified'])->group(function () {
+    require __DIR__.'/group.php';
 });
 
 require __DIR__.'/account.php';

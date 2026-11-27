@@ -10,11 +10,13 @@ use App\Models\User;
 use App\Services\Guests\GuestCommandSearch;
 use App\Services\Reservations\ReservationCommandSearch;
 use App\Services\Rooms\RoomCommandSearch;
+use App\Services\Staff\StaffProperties;
 use Illuminate\Support\Facades\Gate;
 
 class CommandSearch
 {
     public function __construct(
+        private StaffProperties $staffProperties,
         private PropertyCommandSearch $properties,
         private GuestCommandSearch $guests,
         private RoomCommandSearch $rooms,
@@ -36,7 +38,7 @@ class CommandSearch
             return $results;
         }
 
-        $property = $user->property;
+        $property = $this->staffProperties->defaultFor($user);
         abort_unless($property !== null, 404);
 
         if ($property->status !== PropertyStatus::Live) {

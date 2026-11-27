@@ -8,8 +8,8 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * Finds each property's owner: the first active user with the Owner role, or the first deactivated one
- * when none is active. Works without a permission team, so admin pages can use it across properties.
+ * Finds each property's owner: the first user with the Owner role there whose membership is active, or the first
+ * deactivated one when none is active. Works without a permission team, so admin pages can use it across properties.
  */
 class PropertyOwners
 {
@@ -32,6 +32,27 @@ class PropertyOwners
     }
 
     /**
+     * Whether the user holds the property's Owner role, active there or not.
+     */
+    public function isOwner(Property $property, User $user): bool
+    {
+        return $this->ownersQuery()->where('roles.property_id', $property->id)->where('users.id', $user->id)->exists();
+    }
+
+    /**
+     * Whether the property keeps an Owner with an active membership other than the user given.
+     */
+    public function hasActiveOwnerOtherThan(Property $property, User $user): bool
+    {
+        return $this->ownersQuery()
+            ->where('roles.property_id', $property->id)
+            ->where('users.id', '<>', $user->id)
+            ->whereNotNull('property_memberships.id')
+            ->whereNull('property_memberships.deactivated_at')
+            ->exists();
+    }
+
+    /**
      * @return Builder<User>
      */
     private function ownersQuery(): Builder
@@ -41,8 +62,11 @@ class PropertyOwners
                 ->on('model_has_roles.model_id', '=', 'users.id')
                 ->where('model_has_roles.model_type', (new User)->getMorphClass()))
             ->join('roles', 'roles.id', '=', 'model_has_roles.role_id')
+            ->leftJoin('property_memberships', fn ($join) => $join
+                ->on('property_memberships.user_id', '=', 'users.id')
+                ->whereColumn('property_memberships.property_id', 'roles.property_id'))
             ->where('roles.default_role', DefaultRoleEnum::Owner->value)
-            ->orderByRaw('users.deactivated_at IS NOT NULL')
+            ->orderByRaw('property_memberships.deactivated_at IS NOT NULL')
             ->orderBy('users.id');
     }
 }

@@ -15,7 +15,7 @@ class StaffStatusController extends Controller
 {
     public function deactivate(Request $request, Property $property, User $user, DeactivateStaff $deactivateStaff): RedirectResponse
     {
-        Inertia::flash('toast', $deactivateStaff($request->user(), $user)
+        Inertia::flash('toast', $deactivateStaff($request->user(), $property, $user)
             ? ['type' => 'success', 'message' => __(':name was deactivated.', ['name' => $user->name])]
             : ['type' => 'error', 'message' => __(':name cannot be deactivated.', ['name' => $user->name])]);
 
@@ -24,7 +24,7 @@ class StaffStatusController extends Controller
 
     public function reactivate(Request $request, Property $property, User $user, ReactivateStaff $reactivateStaff): RedirectResponse
     {
-        Inertia::flash('toast', $reactivateStaff($request->user(), $user)
+        Inertia::flash('toast', $reactivateStaff($request->user(), $property, $user)
             ? ['type' => 'success', 'message' => __(':name was reactivated.', ['name' => $user->name])]
             : ['type' => 'error', 'message' => __(':name cannot be reactivated.', ['name' => $user->name])]);
 

@@ -87,7 +87,7 @@ class ViewAsController extends Controller
      */
     private function switchFrom(Request $request, Impersonation $impersonation): ?array
     {
-        $current = $impersonation->isActive() ? $request->user()->property : null;
+        $current = $impersonation->property();
 
         return $current === null ? null : ['name' => $current->name, 'code' => $current->code];
     }
@@ -98,8 +98,10 @@ class ViewAsController extends Controller
      */
     private function cancelUrl(Request $request, Property $property, Impersonation $impersonation): string
     {
-        if ($impersonation->isActive()) {
-            return route('dashboard', ['property' => $request->user()->property->code], absolute: false);
+        $current = $impersonation->property();
+
+        if ($current !== null) {
+            return route('dashboard', ['property' => $current->code], absolute: false);
         }
 
         return $request->user()->is_admin

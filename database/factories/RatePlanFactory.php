@@ -62,6 +62,11 @@ class RatePlanFactory extends Factory
         return $this->state(fn (array $attributes) => ['bookable_online' => true]);
     }
 
+    public function complimentary(): static
+    {
+        return $this->state(fn (array $attributes) => ['is_complimentary' => true]);
+    }
+
     public function archived(): static
     {
         return $this->state(fn (array $attributes) => ['archived_at' => now()]);

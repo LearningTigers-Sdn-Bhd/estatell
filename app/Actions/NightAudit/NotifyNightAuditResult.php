@@ -10,11 +10,14 @@ use App\Notifications\NightAuditCompleted;
 use App\Notifications\NightAuditExceptions;
 use App\Notifications\NightAuditFailed;
 use App\Notifications\NightAuditResultNotification;
+use App\Services\Staff\PropertyStaff;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Notification;
 
 class NotifyNightAuditResult
 {
+    public function __construct(private PropertyStaff $propertyStaff) {}
+
     /**
      * Tell the property's staff how a night audit ended: `NightAuditFailed` for a failed audit, `NightAuditExceptions`
      * for a completed audit with an open exception, and `NightAuditCompleted` otherwise. A Running audit sends nothing.
@@ -45,18 +48,7 @@ class NotifyNightAuditResult
     private function recipients(NightAudit $audit, NightAuditResultNotification $notification): Collection
     {
         $permission = $notification->type->recipientPermission();
-        $previousTeamId = getPermissionsTeamId();
-        setPermissionsTeamId($audit->property_id);
 
-        try {
-            return User::query()
-                ->where('property_id', $audit->property_id)
-                ->where('is_admin', false)
-                ->whereNull('deactivated_at')
-                ->permission((string) $permission)
-                ->get();
-        } finally {
-            setPermissionsTeamId($previousTeamId);
-        }
+        return $this->propertyStaff->withPermission($audit->property_id, (string) $permission);
     }
 }

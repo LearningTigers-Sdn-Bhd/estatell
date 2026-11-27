@@ -4,6 +4,7 @@ namespace App\Actions\Facilities;
 
 use App\Actions\Catalogues\CreateChargeItem;
 use App\Enums\ChargingUnit;
+use App\Enums\FacilityBookedBy;
 use App\Enums\TransactionCategory;
 use App\Models\Facility;
 use App\Models\Property;
@@ -24,7 +25,7 @@ class CreateFacility
      * price, and it is never added to bookings on its own. A null `default_amount` is "Charge by hand". Logs
      * `facility.created`. See docs/33-facilities/02-facility-settings.md.
      *
-     * @param  array{name: string, booked_by: string, capacity: int, default_amount: ?string, rate_basis: string, active: bool, tax_ids?: ?list<int>}  $attributes
+     * @param  array{name: string, booked_by: string, capacity: int, default_amount: ?string, rate_basis: string, active: bool, tax_ids?: ?list<int>, private_amount?: ?string}  $attributes
      */
     public function __invoke(Property $property, User $actor, array $attributes): Facility
     {
@@ -46,6 +47,7 @@ class CreateFacility
                 'booked_by' => $attributes['booked_by'],
                 'capacity' => $attributes['capacity'],
                 'rate_basis' => $attributes['rate_basis'],
+                'private_amount' => $attributes['booked_by'] === FacilityBookedBy::Person->value ? ($attributes['private_amount'] ?? null) : null,
                 'active' => $attributes['active'],
             ]);
             $facility->property_id = $property->id;

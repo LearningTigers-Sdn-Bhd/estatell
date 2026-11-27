@@ -188,6 +188,7 @@ The layout breakpoints are the staff form's: below `xl` the summary rail moves u
 - The stay dates and nights, one row per line (quantity, room type, line total), the total with the auto-add items ("Includes Breakfast."), **Billed to {company}**, the free-cancellation date ("Free cancellation until {date}", or "Free cancellation has ended for these dates. You can ask the property to cancel."), the guest names and **Confirm booking**.
 - **Confirm booking** is disabled until every line has an open price and every unit has a guest name.
 - There is no billing select: billing is always MasterPays.
+- **Transfer in and Transfer out** (added 2026-11-26) show while the property has [Transfers](../35-transfers/01-land-transfers.md#booking-form) on and an available route: the same pick as the staff booking form, set on every room. A private vehicle is charged for each room. A route turned off since the page opened refuses the booking: "This transfer route is no longer offered. Pick another or leave it out." The charge shows on the booking after it is confirmed and is not in the page's total.
 - **Boat in and Boat out** show when the property uses boats. The agent picks a departure, Charter or Own boat, with the time for the last two. The pick applies to every room. A fare or charter charge shows on the booking after it is confirmed, and the agent does not see the seats taken.
 
 **Shared with the staff form**

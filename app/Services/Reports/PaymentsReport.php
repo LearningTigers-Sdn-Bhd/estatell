@@ -109,7 +109,7 @@ class PaymentsReport implements HasBreakdown, HasTotals, Report
             ->select('received_by');
 
         return array_values(User::query()
-            ->where('property_id', $property->id)
+            ->memberOf($property)
             ->whereIn('id', $folio->union($cityLedger))
             ->orderBy('name')
             ->orderBy('id')

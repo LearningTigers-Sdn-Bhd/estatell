@@ -37,6 +37,7 @@ class QuoteFacilityBookingRequest extends FormRequest
             'starts_at' => ['nullable', 'date_format:H:i'],
             'ends_at' => ['nullable', 'date_format:H:i'],
             'quantity' => ['required', 'integer', 'min:1', 'max:9999'],
+            'private' => ['nullable', 'boolean'],
             'unit_amount' => ['nullable', 'string', 'max:20'],
         ];
     }
@@ -52,6 +53,7 @@ class QuoteFacilityBookingRequest extends FormRequest
             unitAmount: $this->filled('unit_amount') ? $this->string('unit_amount')->toString() : null,
             notes: null,
             chargeTo: $this->filled('charge_to') ? $this->string('charge_to')->toString() : null,
+            private: $this->boolean('private'),
         );
     }
 }

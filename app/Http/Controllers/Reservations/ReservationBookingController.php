@@ -18,8 +18,10 @@ use App\Enums\IdentityDocumentType;
 use App\Enums\Locale;
 use App\Enums\OldFolioMode;
 use App\Enums\PermissionEnum;
+use App\Enums\RemarkKind;
 use App\Enums\SellUnit;
 use App\Features\Boats;
+use App\Features\Transfers;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Reservations\BoatSeatsRequest;
 use App\Http\Requests\Reservations\DayUseOffersRequest;
@@ -49,9 +51,12 @@ use App\Services\Reservations\BookingFormBack;
 use App\Services\Reservations\BookingPrefill;
 use App\Services\Reservations\BookingQuote;
 use App\Services\Reservations\BookingSourceOptions;
+use App\Services\Reservations\MarketSegments;
 use App\Services\Reservations\ReservationFormOptions;
 use App\Services\Reservations\ReservationRefusals;
+use App\Services\Reservations\SalesPeople;
 use App\Services\Reservations\WalkInOutcome;
+use App\Services\Transfers\ReservationTransfers;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -311,11 +316,13 @@ class ReservationBookingController extends Controller
             $request->integer('beds', 1),
             $request->addOns(),
             $request->filled('override_total') ? $request->string('override_total')->toString() : null,
+            $request->boolean('whole_room'),
         ));
     }
 
     /**
-     * The rooms or beds of a room type that are free on every night of a stay. An unknown room type has none.
+     * The rooms or beds of a room type that are free on every night of a stay, and for a dorm room type the dorms that
+     * are wholly free (`wholeRooms`, for a whole-dorm booking). An unknown room type has none.
      */
     public function freeUnits(FreeUnitsRequest $request, Property $property, FreeUnits $freeUnits, DayUseAvailability $dayUseAvailability): JsonResponse
     {
@@ -333,12 +340,15 @@ class ReservationBookingController extends Controller
             )]);
         }
 
-        return response()->json(['units' => $roomType === null ? [] : $freeUnits->forStay(
-            $roomType,
-            $request->date('arrival_date', 'Y-m-d'),
-            $request->date('departure_date', 'Y-m-d'),
-            includeNotReady: $request->boolean('walk_in'),
-        )]);
+        return response()->json([
+            'units' => $roomType === null ? [] : $freeUnits->forStay(
+                $roomType,
+                $request->date('arrival_date', 'Y-m-d'),
+                $request->date('departure_date', 'Y-m-d'),
+                includeNotReady: $request->boolean('walk_in'),
+            ),
+            'wholeRooms' => $roomType === null ? [] : $freeUnits->wholeRooms($roomType, $request->date('arrival_date', 'Y-m-d'), $request->date('departure_date', 'Y-m-d')),
+        ]);
     }
 
     /**
@@ -412,9 +422,13 @@ class ReservationBookingController extends Controller
             'collectedTaxNames' => $companies === [] ? [] : app(CollectedTaxPayer::class)->taxNames($property->id),
             'canOverrideCredit' => $request->user()->can(PermissionEnum::CompanyCreditOverride->value),
             'companies' => $companies,
+            'salesPeople' => app(SalesPeople::class)->options($property),
+            'marketSegments' => app(MarketSegments::class)->options($property),
+            'remarkKinds' => RemarkKind::options(),
             'hasDayUse' => $property->roomTypes()->active()->where('sell_unit', SellUnit::Room)->exists(),
             'hasBoats' => Feature::for($property)->active(Boats::class),
             'boatDepartures' => Feature::for($property)->active(Boats::class) ? $options->boatDepartures($property) : [],
+            'transferRoutes' => Feature::for($property)->active(Transfers::class) ? app(ReservationTransfers::class)->routes($property) : [],
             'autoAssignRooms' => (bool) $property->settings?->auto_assign_rooms,
             'currency' => CurrencyData::forProperty($property),
             'canOverrideRestrictions' => $request->user()->can(PermissionEnum::RatesOverrideRestrictions->value),

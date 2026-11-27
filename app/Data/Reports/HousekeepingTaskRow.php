@@ -109,8 +109,14 @@ class HousekeepingTaskRow extends Data implements ReportRow
             $room->doNotDisturb ? __('Do not disturb') : null,
             $room->needsMaintenance ? __('Needs maintenance') : null,
             $room->remark,
+            $room->guestRemark === null ? null : __('Booking: :remark', ['remark' => $room->guestRemark]),
+            ...array_map(
+                fn ($bed): ?string => $bed->guestRemark === null ? null : __('Bed :bed: :remark', ['bed' => $bed->label, 'remark' => $bed->guestRemark]),
+                $room->beds,
+            ),
         ], fn (?string $part): bool => $part !== null && $part !== '');
         $cleaning = $room->cleaning->cleaning;
+        $dorm = $room->dorm;
         $housekeeper = match (true) {
             $cleaning === null => $room->assignedName,
             $cleaning->outTime === null => "{$cleaning->housekeeperName} {$cleaning->inTime}–",
@@ -126,14 +132,15 @@ class HousekeepingTaskRow extends Data implements ReportRow
             room_type: $room->roomTypeName,
             status: $room->status->label,
             assigned: $housekeeper,
-            guest: $room->guest,
-            stay: $room->stay?->label,
+            // A dorm reads in counts, as on the board: one bed's guest and dates would read as the room's stay.
+            guest: $dorm === null ? $room->guest : $dorm->occupancy,
+            stay: $dorm === null ? $room->stay?->label : implode(' · ', array_map(fn ($badge): string => $badge->label, $dorm->movements)),
             adults: $room->adults,
             children: $room->children,
-            arrival: $room->arrivalDate === null ? null : trim("{$room->arrivalDate} {$room->arrivalTime}"),
+            arrival: $dorm !== null ? $dorm->arrivals : ($room->arrivalDate === null ? null : trim("{$room->arrivalDate} {$room->arrivalTime}")),
             arrival_date: $room->arrivalDate,
             arrival_time: $room->arrivalTime,
-            departure: $room->departureDate === null ? null : trim("{$room->departureDate} {$room->departureTime}"),
+            departure: $dorm !== null ? $dorm->departures : ($room->departureDate === null ? null : trim("{$room->departureDate} {$room->departureTime}")),
             departure_date: $room->departureDate,
             departure_time: $room->departureTime,
             flags: implode(' · ', $flags),

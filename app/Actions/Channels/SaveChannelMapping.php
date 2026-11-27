@@ -8,6 +8,7 @@ use App\Enums\ChannelSellMode;
 use App\Models\ChannelConnection;
 use App\Models\User;
 use App\Services\Channels\ChannelActionResult;
+use App\Services\Channels\ChannelCapability;
 use App\Services\Channels\ChannelDriverManager;
 use App\Services\Channels\ChannelOtaCatalogueLoader;
 use App\Services\Channels\Channex\ChannexChannelMapper;
@@ -17,7 +18,7 @@ use Illuminate\Support\Facades\DB;
 
 class SaveChannelMapping
 {
-    public function __construct(private ChannelDriverManager $drivers, private ChannelOtaCatalogueLoader $catalogueLoader, private ChannexChannelMapper $mapper) {}
+    public function __construct(private ChannelDriverManager $drivers, private ChannelOtaCatalogueLoader $catalogueLoader, private ChannexChannelMapper $mapper, private ChannelCapability $capability) {}
 
     /**
      * Replace the connection's mapping at Channex and here. The OTA's rooms and rates are read again, so a line that names
@@ -39,7 +40,7 @@ class SaveChannelMapping
         foreach ($mapped as $line) {
             $ratePlan = $ratePlans->get($line['rate_plan_mapping_id']);
 
-            if ($ratePlan === null || ! ($ratePlan->sell_mode === ChannelSellMode::PerRoom || in_array($line['occupancy'], $ratePlan->sell_mode->occupancies($ratePlan->roomType), true))) {
+            if ($ratePlan === null || ! ($ratePlan->sell_mode === ChannelSellMode::PerRoom || in_array($line['occupancy'], $ratePlan->sell_mode->occupancies($this->capability->channelAdults($ratePlan->roomType)), true))) {
                 return ChannelActionResult::failed(__('A line does not match a rate plan of this property. Reload the page and try again.'));
             }
         }

@@ -61,6 +61,10 @@ const balance = money('balance');
 const arrivalCells: ReportCells<App.Data.Reports.ArrivalRow> = {
     reservation,
     arrival: (row) => <DateText date={row.arrival} />,
+    departure: (row) => <DateText date={row.departure} />,
+    rate: (row, currency) => (
+        <MoneyText amount={row.rate} currency={currency} plain />
+    ),
     status: (row) => <StatusBadge status={row.status} />,
     total,
     paid,

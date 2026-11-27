@@ -183,25 +183,25 @@ Not needed: `spatie/laravel-model-states` (native enums), `lorisleiva/laravel-ac
 
 One word per idea, in docs, code and UI.
 
-| Term              | Means                                                                                                    | Do not use                                 |
-| ----------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| Property          | One hotel, hostel, resort or homestay. Every domain row belongs to one                                   | hotel (in code)                            |
-| Staff             | A property employee. Always exactly one property                                                         |                                            |
-| Company           | An organisation that books or pays later: a corporate, a travel agent or a government body. One property | agency, corporate account, agent (the org) |
-| Company type      | `Corporate`, `TravelAgent`, `Government`. A label only                                                   |                                            |
-| Company user      | A company's portal login. One per company at a property; one login can be linked at several properties   | agent, agency user, portal user (in code)  |
-| Company link      | One `company_users` row: company user ↔ company at one property, Pending, Active or Revoked              |                                            |
-| Company portal    | The pages for company users, at `/portal`                                                                | agent portal                               |
-| Company reference | The company's own voucher or file number (`reservations.external_reference`)                             | agent reference                            |
-| City ledger       | Money owed to the property by companies. UI name; tables keep `ar_*`                                     | receivables (in UI)                        |
-| Partner           | A reseller who brings properties and helps them onboard. Sees only their own properties, at `/partner`   | super agent, agent, reseller (in code)     |
-| Property code     | `ES1142`: a 2-letter prefix (`ES` direct, or the partner's) and a number per prefix                      | unique id, hotel prefix                    |
-| Booking engine    | The feature that lets guests book and pay online, through the API                                        |                                            |
-| Microsite         | The property's booking website at `booking.estatell.com/{slug}`, a separate app                          | booking site, mini site                    |
-| Hold              | A room kept for 20 minutes while a guest pays                                                            | quote, reservation (for this)              |
-| Facility          | Something staff book by date and time: a hall, kayaks, an activity. Booked by Item or Person             | resource, venue                            |
-| Amenity           | What the property offers, shown to guests (`property_amenities`). Not booked                             | facility (in code)                         |
-| Event             | A bill for people who are not staying, with one event folio                                              | function, non-guest folio                  |
+| Term              | Means                                                                                                                                                | Do not use                                 |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| Property          | One hotel, hostel, resort or homestay. Every domain row belongs to one                                                                               | hotel (in code)                            |
+| Staff             | A property employee. One home property; may be given access to other properties of its group (see [Property groups](03-staff/04-property-groups.md)) |                                            |
+| Company           | An organisation that books or pays later: a corporate, a travel agent or a government body. One property                                             | agency, corporate account, agent (the org) |
+| Company type      | `Corporate`, `TravelAgent`, `Government`. A label only                                                                                               |                                            |
+| Company user      | A company's portal login. One per company at a property; one login can be linked at several properties                                               | agent, agency user, portal user (in code)  |
+| Company link      | One `company_users` row: company user ↔ company at one property, Pending, Active or Revoked                                                          |                                            |
+| Company portal    | The pages for company users, at `/portal`                                                                                                            | agent portal                               |
+| Company reference | The company's own voucher or file number (`reservations.external_reference`)                                                                         | agent reference                            |
+| City ledger       | Money owed to the property by companies. UI name; tables keep `ar_*`                                                                                 | receivables (in UI)                        |
+| Partner           | A reseller who brings properties and helps them onboard. Sees only their own properties, at `/partner`                                               | super agent, agent, reseller (in code)     |
+| Property code     | `ES1142`: a 2-letter prefix (`ES` direct, or the partner's) and a number per prefix                                                                  | unique id, hotel prefix                    |
+| Booking engine    | The feature that lets guests book and pay online, through the API                                                                                    |                                            |
+| Microsite         | The property's booking website at `booking.estatell.com/{slug}`, a separate app                                                                      | booking site, mini site                    |
+| Hold              | A room kept for 20 minutes while a guest pays                                                                                                        | quote, reservation (for this)              |
+| Facility          | Something staff book by date and time: a hall, kayaks, an activity. Booked by Item or Person                                                         | resource, venue                            |
+| Amenity           | What the property offers, shown to guests (`property_amenities`). Not booked                                                                         | facility (in code)                         |
+| Event             | A bill for people who are not staying, with one event folio                                                                                          | function, non-guest folio                  |
 
 "Travel agent" appears only as a company type. "Portal" appears in UI labels and in `portal_*` columns.
 
@@ -248,4 +248,5 @@ The build plan, as one commit per item, is in [checklist.md](checklist.md).
 | 33  | [Facilities](33-facilities/)           | Bookable halls, equipment and activities (booked by Item or Person), events and event folios (feature flag, planned)                                         |
 | 33  | [POS integration](33-pos/)             | External POS outlets, room-charge postings, restaurant meal check-in, inbound `/api/pos/v1` and Loyverse adapter (feature flag)                              |
 | 34  | [Native POS](34-native-pos/)           | Built-in hospitality POS: menu, floor plan, shifts, MY SST/5-sen/LHDN, live room charge & meals, KDS, QR ordering and Posport bridge (feature flag, planned) |
+| 35  | [Land transfers](35-transfers/)        | Road routes and prices, vehicles, drivers (own or subcontracted), a transfer per room and direction, and the daily run sheet (feature flag)                  |
 | 35  | [AI assistant](35-ai-assistant/)       | An AI chat on the Concierge page and through an API for n8n, with a usage log (feature flag). Booking website chat and staff helper are WIP                  |

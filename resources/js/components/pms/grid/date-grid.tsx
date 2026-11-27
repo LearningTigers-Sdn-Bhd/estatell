@@ -1,5 +1,11 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { useImperativeHandle, useMemo, useRef, useState } from 'react';
+import {
+    useEffect,
+    useImperativeHandle,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import type { ReactNode, Ref } from 'react';
 import { cn } from '@/lib/utils';
 import type { DateColumn } from './date-columns';
@@ -120,6 +126,15 @@ export function DateGrid<Row extends GridRow>({
         scrollPaddingStart: labelWidth,
     });
 
+    // The virtualizer keeps the sizes it measured first: a night that changes width (a range stretched to fit its card)
+    // or a row that changes height is measured again, so the header, the cells and the bars stay in line.
+    useEffect(() => {
+        columnVirtualizer.measure();
+    }, [columnVirtualizer, columnWidth]);
+    useEffect(() => {
+        rowVirtualizer.measure();
+    }, [rowVirtualizer, rowHeight, groupHeight]);
+
     useImperativeHandle(ref, () => ({
         scrollToDate: (date) => {
             const index = columns.findIndex((column) => column.date === date);
@@ -140,6 +155,7 @@ export function DateGrid<Row extends GridRow>({
         );
 
     const totalWidth = labelWidth + columnVirtualizer.getTotalSize();
+    const narrow = columnWidth < 64;
     const rowsHeight = rowVirtualizer.getTotalSize();
     const hasFooter = renderFooterCell !== undefined;
     const hasPinned = renderPinnedCell !== undefined;
@@ -264,7 +280,12 @@ export function DateGrid<Row extends GridRow>({
                                     changeHover(null, column.date)
                                 }
                             >
-                                <span>{column.weekday}</span>
+                                {/* A narrow night (a month on screen) shows the weekday's letter and the day only. */}
+                                <span>
+                                    {narrow
+                                        ? column.weekday.slice(0, 1)
+                                        : column.weekday}
+                                </span>
                                 <span
                                     className={cn(
                                         'text-sm',
@@ -273,7 +294,9 @@ export function DateGrid<Row extends GridRow>({
                                             : 'text-grid-foreground',
                                     )}
                                 >
-                                    {column.day} {column.month}
+                                    {narrow
+                                        ? column.day
+                                        : `${column.day} ${column.month}`}
                                 </span>
                             </div>
                         );

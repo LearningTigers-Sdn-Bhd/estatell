@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Actions\Housekeeping\CreateBedStatus;
 use App\Enums\SellUnit;
 use App\Models\Bed;
 use App\Models\Property;
@@ -32,6 +33,16 @@ class BedFactory extends Factory
             },
             'label' => 'A'.fake()->unique()->numberBetween(1, 99999),
         ];
+    }
+
+    /**
+     * Every bed gets its housekeeping status, as `CreateBed` gives one.
+     */
+    public function configure(): static
+    {
+        return $this->afterCreating(function (Bed $bed): void {
+            app(CreateBedStatus::class)($bed, $bed->room);
+        });
     }
 
     public function archived(): static

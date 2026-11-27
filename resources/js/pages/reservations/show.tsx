@@ -2,6 +2,7 @@ import { Head, router } from '@inertiajs/react';
 import { useState } from 'react';
 import {
     BedDouble,
+    Bus,
     CreditCard,
     History,
     LayoutGrid,
@@ -12,6 +13,7 @@ import type { EnumOption } from '@/components/pms/enum-select';
 import { BookingSourceBadge } from '@/components/pms/booking-source-badge';
 import { DateText } from '@/components/pms/date-text';
 import { ReservationFacilitiesTab } from '@/components/pms/facilities/reservation-facilities-tab';
+import { ReservationTransfersTab } from '@/components/pms/transfers/reservation-transfers-tab';
 import { FolioRail } from '@/components/pms/folio/folio-rail';
 import { FolioTab } from '@/components/pms/folio/folio-tab';
 import { SettlePastStayDialog } from '@/components/pms/folio/settle-past-stay-dialog';
@@ -46,11 +48,19 @@ import {
     folio as folioTab,
     guests as guestsTab,
     index,
+    transfers as transfersTab,
     show,
 } from '@/routes/reservations';
 import { reservationOwner } from '@/components/pms/folio/folio-owner';
 
-type Tab = 'units' | 'guests' | 'add-ons' | 'facilities' | 'folio' | 'activity';
+type Tab =
+    | 'units'
+    | 'guests'
+    | 'add-ons'
+    | 'facilities'
+    | 'transfers'
+    | 'folio'
+    | 'activity';
 
 type Props = {
     reservation: App.Data.Reservations.ReservationData;
@@ -82,6 +92,10 @@ type Props = {
     canViewCompany: boolean;
     canOverrideCredit: boolean;
     companies?: App.Data.CityLedger.CompanyOptionData[];
+    salesPeople?: App.Data.Reservations.SalesPersonOptionData[];
+    marketSegments?: App.Data.Reservations.MarketSegmentData[];
+    hasMarketSegments: boolean;
+    remarkKinds: EnumOption[];
     addUnitOptions?: App.Data.Reservations.AddUnitOptionsData;
     chargeItems?: App.Data.Reservations.ChargeItemOptionData[];
     chargeCodes?: App.Data.Reservations.ChargeCodeOptionData[];
@@ -96,6 +110,10 @@ type Props = {
     chargeToOptions?: App.Data.Facilities.ChargeToOptionData[];
     defaultChargeTo?: Record<string, string | null>;
     facilityDefaultDate?: string;
+    hasTransfers?: boolean;
+    transferRows?: App.Data.Transfers.UnitTransferRowData[];
+    transferRoutes?: App.Data.Transfers.TransferRouteData[];
+    transferModes?: EnumOption[];
     boatDepartures?: App.Data.Boats.BoatDepartureOptionData[];
     boatSetup?: App.Data.Boats.BoatSetupUnitData[];
     unit?: App.Data.Reservations.ReservationUnitData | null;
@@ -130,10 +148,11 @@ type Props = {
     >;
 };
 
-/** The tabs of the reservation page, for the tab bar and the breadcrumbs. Facilities shows when the feature is on. */
+/** The tabs of the reservation page, for the tab bar and the breadcrumbs. Facilities and Transfers show when their feature is on. */
 function reservationTabs(
     reservationId: number,
     hasFacilities: boolean,
+    hasTransfers: boolean,
 ): TabLink[] {
     const key = { reservation: reservationId };
 
@@ -163,6 +182,16 @@ function reservationTabs(
                       label: 'Facilities',
                       icon: LayoutGrid,
                       href: facilitiesTab.url(key),
+                  },
+              ]
+            : []),
+        ...(hasTransfers
+            ? [
+                  {
+                      value: 'transfers',
+                      label: 'Transfers',
+                      icon: Bus,
+                      href: transfersTab.url(key),
                   },
               ]
             : []),
@@ -211,6 +240,10 @@ export default function ReservationShow({
     canViewCompany,
     canOverrideCredit,
     companies,
+    salesPeople,
+    marketSegments,
+    hasMarketSegments,
+    remarkKinds,
     addUnitOptions,
     chargeItems,
     chargeCodes,
@@ -225,6 +258,10 @@ export default function ReservationShow({
     chargeToOptions = [],
     defaultChargeTo = {},
     facilityDefaultDate = '',
+    hasTransfers = false,
+    transferRows = [],
+    transferRoutes = [],
+    transferModes = [],
     boatDepartures,
     boatSetup,
     unit = null,
@@ -255,7 +292,7 @@ export default function ReservationShow({
     voucher,
     activity,
 }: Props) {
-    const tabs = reservationTabs(reservation.id, hasFacilities);
+    const tabs = reservationTabs(reservation.id, hasFacilities, hasTransfers);
 
     const [summaryHidden, toggleSummary] = useSummaryHidden();
     const [guestsView, setGuestsView] = useGuestsView();
@@ -424,6 +461,10 @@ export default function ReservationShow({
                             receiptPaymentIds={receiptPaymentIds}
                             canOverrideCredit={canOverrideCredit}
                             companies={companies}
+                            salesPeople={salesPeople}
+                            marketSegments={marketSegments}
+                            hasMarketSegments={hasMarketSegments}
+                            remarkKinds={remarkKinds}
                             currency={currency}
                         />
                     }
@@ -496,6 +537,14 @@ export default function ReservationShow({
                                 defaultDate={facilityDefaultDate}
                                 canViewCompany={canViewCompany}
                                 companies={companies}
+                                currency={currency}
+                            />
+                        ) : tab === 'transfers' ? (
+                            <ReservationTransfersTab
+                                reservationId={reservation.id}
+                                rows={transferRows}
+                                routes={transferRoutes}
+                                modes={transferModes}
                                 currency={currency}
                             />
                         ) : tab === 'folio' ? (
@@ -609,6 +658,7 @@ ReservationShow.layout = (props: {
     reservation: App.Data.Reservations.ReservationData;
     tab: Tab;
     hasFacilities?: boolean;
+    hasTransfers?: boolean;
 }) => ({
     variant: 'fixed',
     breadcrumbs: withTabCrumb(
@@ -619,7 +669,11 @@ ReservationShow.layout = (props: {
                 href: show({ reservation: props.reservation.id }),
             },
         ],
-        reservationTabs(props.reservation.id, props.hasFacilities ?? false),
+        reservationTabs(
+            props.reservation.id,
+            props.hasFacilities ?? false,
+            props.hasTransfers ?? false,
+        ),
         props.tab,
     ),
 });
