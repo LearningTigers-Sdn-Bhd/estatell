@@ -7,6 +7,7 @@ use App\Data\Kiosk\KioskWalkInData;
 use App\Events\ConciergeQuoteBooked;
 use App\Models\ConciergeQuote;
 use App\Models\Property;
+use App\Services\Concierge\ConciergeQuotes;
 use App\Services\Kiosk\KioskWalkIn;
 use App\Services\Kiosk\KioskWalkInOffer;
 use Closure;
@@ -21,7 +22,7 @@ use Illuminate\Support\Facades\DB;
  */
 class ConfirmConciergeQuote
 {
-    public function __construct(private ConfirmConciergeWalkIn $confirm, private KioskWalkIn $walkIn) {}
+    public function __construct(private ConfirmConciergeWalkIn $confirm, private KioskWalkIn $walkIn, private ConciergeQuotes $quotes) {}
 
     public function withIdentity(ConciergeQuote $quote, KioskIdentityData $data, ?UploadedFile $front = null, ?UploadedFile $back = null): ConciergeWalkInBooked
     {
@@ -50,7 +51,7 @@ class ConfirmConciergeQuote
             }
 
             $property = Property::query()->with('settings')->findOrFail($locked->property_id);
-            $search = new KioskWalkInData($locked->arrival_date, (int) $locked->arrival_date->diffInDays($locked->departure_date), $locked->adults);
+            $search = $this->quotes->search($locked);
             $sold = array_find($this->walkIn->quotable($property, $search, $locked->room_type_id, $locked->rate_plan_id), fn (KioskWalkInOffer $offer): bool => $offer->available);
 
             if ($sold === null) {

@@ -2,7 +2,7 @@
 
 use App\Enums\AiTool;
 
-require_once __DIR__.'/../Support/AiEvalSetup.php';
+require_once __DIR__.'/../../Support/AiEvalSetup.php';
 
 /*
  * Opt-in live eval: single questions a guest asks, each with a known answer in the Teluk Biru Resort guide. Run with

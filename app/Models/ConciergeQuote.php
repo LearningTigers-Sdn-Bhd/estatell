@@ -5,9 +5,11 @@ namespace App\Models;
 use Carbon\CarbonImmutable;
 use Database\Factories\ConciergeQuoteFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A quote link for a future stay on the Concierge page. See docs/35-ai-assistant/03-places-and-routes.md#quote-links.
@@ -26,6 +28,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property CarbonImmutable $expires_at
  * @property CarbonImmutable $created_at
  * @property CarbonImmutable $updated_at
+ * @property-read Collection<int, ConciergeQuoteChild> $children
  */
 #[Fillable(['property_id', 'token', 'room_type_id', 'rate_plan_id', 'arrival_date', 'departure_date', 'adults', 'quoted_total', 'ai_turn_id', 'reservation_id', 'expires_at'])]
 class ConciergeQuote extends Model
@@ -61,6 +64,12 @@ class ConciergeQuote extends Model
     public function ratePlan(): BelongsTo
     {
         return $this->belongsTo(RatePlan::class);
+    }
+
+    /** @return HasMany<ConciergeQuoteChild, $this> */
+    public function children(): HasMany
+    {
+        return $this->hasMany(ConciergeQuoteChild::class);
     }
 
     /** @return BelongsTo<Reservation, $this> */

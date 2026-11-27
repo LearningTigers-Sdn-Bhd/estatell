@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\AiAssistant\CloseQuietAiThreads;
+use App\Ai\Agents\GuestReplyCheck;
 use App\Ai\Agents\PropertyAssistant;
 use App\Enums\AiChannel;
 use App\Enums\AiKeyStatus;
@@ -15,7 +16,9 @@ use App\Models\AiTurn;
 use App\Models\Property;
 use App\Models\PropertyAiScope;
 use App\Models\User;
+use App\Services\AiAssistant\AiHandoverMessage;
 use App\Services\AiAssistant\AiScopes;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -30,7 +33,7 @@ const CHAT_API_TOKEN = 'est_live_chatapitesttoken';
 
 /**
  * A property with the AI assistant on, the Chat API allowed by the admin (the hotel's switch left off, as it never
- * sees it), a working OpenAI key and one connection with a known token.
+ * sees it), a working OpenAI key and one connection with a known token. The reply check passes every reply.
  *
  * @return array{property: Property, connection: AiConnection}
  */
@@ -41,6 +44,7 @@ function chatApiSetup(): array
     PropertyAiScope::factory()->for($property)->create(['scope' => AiScope::Api, 'allowed' => true, 'enabled' => false]);
     giveAiKey($property);
     $connection = AiConnection::factory()->for($property)->withToken('est_live_chatapitesttoken')->create();
+    GuestReplyCheck::fake(fn (): array => ['guest_only' => true, 'reply' => '']);
 
     return ['property' => $property, 'connection' => $connection];
 }
@@ -333,4 +337,62 @@ test('the hotel sees a read-only chat API line, and the inbox shows the channel 
         ->assertInertia(fn (Assert $page) => $page
             ->where('threads.data.0.placeLabel', 'Chat API · WhatsApp')
             ->where('threads.data.0.guestName', 'Aisha'));
+});
+
+test('a reply with the model\'s notes in it is sent cleaned, and the chat keeps the cleaned text', function () {
+    chatApiSetup();
+    PropertyAssistant::fake(['Need year? Use next. So "For 5 to 8 December 2026, how many adults?" Good. Ask.']);
+    GuestReplyCheck::fake([
+        ['guest_only' => false, 'reply' => 'For 5 to 8 December 2026, how many adults?'],
+        ['guest_only' => true, 'reply' => ''],
+    ]);
+
+    chatApiMessage(['message' => '5-8 dec'])->assertOk()
+        ->assertJsonPath('reply', 'For 5 to 8 December 2026, how many adults?')
+        ->assertJsonPath('escalated', false);
+
+    $thread = AiThread::query()->sole();
+    $stored = DB::table('agent_conversation_messages')->where('conversation_id', $thread->agent_conversation_id)->where('role', 'assistant')->sole();
+    expect($stored->content)->toBe('For 5 to 8 December 2026, how many adults?')
+        ->and(collect(json_decode($stored->steps, true))->pluck('content')->implode(''))->toBe('For 5 to 8 December 2026, how many adults?')
+        ->and($thread->status)->toBe(AiThreadStatus::Open)
+        ->and(AiTurn::query()->sole()->outcome)->toBe(AiOutcome::Answered);
+    GuestReplyCheck::assertPrompted('Need year? Use next. So "For 5 to 8 December 2026, how many adults?" Good. Ask.');
+});
+
+test('a reply that cannot be cleaned is held back, and the guest gets the handover message', function (array $checks) {
+    ['property' => $property] = chatApiSetup();
+    PropertyAssistant::fake(['Need link. So "Here is your link: https://example.test/q/abc" Good.']);
+    GuestReplyCheck::fake($checks);
+
+    chatApiMessage()->assertOk()
+        ->assertJsonPath('reply', app(AiHandoverMessage::class)->forProperty($property))
+        ->assertJsonPath('escalated', true);
+
+    $thread = AiThread::query()->sole();
+    expect($thread->status)->toBe(AiThreadStatus::Escalated)
+        ->and($thread->handover_summary)->toContain('could not write a clear reply')
+        ->and(DB::table('agent_conversation_messages')->where('role', 'assistant')->sole()->content)->toBe(app(AiHandoverMessage::class)->forProperty($property))
+        ->and(AiTurn::query()->sole()->outcome)->toBe(AiOutcome::Escalated);
+})->with([
+    'the cleaned reply still has notes' => [[
+        ['guest_only' => false, 'reply' => 'Here is your link: https://example.test/q/abc Good.'],
+        ['guest_only' => false, 'reply' => ''],
+    ]],
+    'the cleaned reply lost the link' => [[
+        ['guest_only' => false, 'reply' => 'Here is your link.'],
+    ]],
+]);
+
+test('when the reply check fails to run, the guest gets the handover message', function () {
+    ['property' => $property] = chatApiSetup();
+    PropertyAssistant::fake(['Breakfast is from 7 to 10 am.']);
+    GuestReplyCheck::fake(fn () => throw new ProviderOverloadedException('Overloaded.'));
+    Exceptions::fake();
+
+    chatApiMessage()->assertOk()
+        ->assertJsonPath('reply', app(AiHandoverMessage::class)->forProperty($property))
+        ->assertJsonPath('escalated', true);
+
+    Exceptions::assertReported(ProviderOverloadedException::class);
 });

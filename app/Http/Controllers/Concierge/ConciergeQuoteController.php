@@ -6,7 +6,6 @@ use App\Actions\Concierge\ConciergeWalkInBooked;
 use App\Actions\Concierge\ConfirmConciergeQuote;
 use App\Actions\Kiosk\IssueBookingPreCheckInToken;
 use App\Data\Concierge\ConciergeQuoteData;
-use App\Data\Kiosk\KioskWalkInData;
 use App\Data\Property\PropertySummaryData;
 use App\Enums\Gender;
 use App\Enums\Locale;
@@ -16,6 +15,7 @@ use App\Http\Requests\Concierge\ReturningQuoteRequest;
 use App\Models\ConciergeQuote;
 use App\Models\Property;
 use App\Models\ReservationUnit;
+use App\Services\Concierge\ConciergeQuotes;
 use App\Services\Guests\CountryOptions;
 use App\Services\Kiosk\KioskWalkIn;
 use App\Services\Kiosk\KioskWalkInOffer;
@@ -32,7 +32,7 @@ use Inertia\Response;
  */
 class ConciergeQuoteController extends Controller
 {
-    public function show(Request $request, Property $property, string $quote, KioskWalkIn $walkIn, RegistrationCardFieldRules $fieldRules, CountryOptions $countries, IssueBookingPreCheckInToken $issueToken): Response|RedirectResponse
+    public function show(Request $request, Property $property, string $quote, KioskWalkIn $walkIn, ConciergeQuotes $quotes, RegistrationCardFieldRules $fieldRules, CountryOptions $countries, IssueBookingPreCheckInToken $issueToken): Response|RedirectResponse
     {
         $conciergeQuote = $this->quote($property, $quote);
 
@@ -40,7 +40,7 @@ class ConciergeQuoteController extends Controller
             return $this->openStay($conciergeQuote, $issueToken);
         }
 
-        $search = new KioskWalkInData($conciergeQuote->arrival_date, (int) $conciergeQuote->arrival_date->diffInDays($conciergeQuote->departure_date), $conciergeQuote->adults);
+        $search = $quotes->search($conciergeQuote);
         $offer = $conciergeQuote->reservation_id === null && $conciergeQuote->expires_at->isFuture()
             ? array_find($walkIn->quotable($property, $search, $conciergeQuote->room_type_id, $conciergeQuote->rate_plan_id), fn (KioskWalkInOffer $offer): bool => $offer->available)
             : null;
@@ -87,7 +87,7 @@ class ConciergeQuoteController extends Controller
     {
         $property->loadMissing('settings');
 
-        return ConciergeQuote::query()->where('property_id', $property->id)->where('token', $token)->with(['roomType', 'ratePlan'])->firstOrFail();
+        return ConciergeQuote::query()->where('property_id', $property->id)->where('token', $token)->with(['roomType', 'ratePlan', 'children'])->firstOrFail();
     }
 
     private function booked(ConciergeWalkInBooked $result, IssueBookingPreCheckInToken $issueToken, string $message): RedirectResponse

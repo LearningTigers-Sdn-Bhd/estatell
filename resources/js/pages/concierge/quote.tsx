@@ -116,6 +116,8 @@ export default function ConciergeQuote({
                         {friendlyDate(quote.departureDate)} · {quote.nights}{' '}
                         {quote.nights === 1 ? 'night' : 'nights'} ·{' '}
                         {quote.adults} {quote.adults === 1 ? 'adult' : 'adults'}
+                        {quote.childAges.length > 0 &&
+                            `, ${quote.childAges.length} ${quote.childAges.length === 1 ? 'child' : 'children'}`}
                     </p>
                 </div>
                 <p className="text-xl font-semibold tabular-nums">

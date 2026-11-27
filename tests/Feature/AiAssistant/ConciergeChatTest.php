@@ -267,18 +267,32 @@ test('the agent gets only the tools its place and scopes allow', function () {
     expect($tools)->toBe([PropertyFacts::class, HandOver::class]);
 });
 
-test('the HandOver tool hands its own thread over once', function () {
+test('the HandOver tool hands its own thread over once, then adds later questions to the summary', function () {
     ['property' => $property] = conciergeChatSetup();
     $thread = AiThread::factory()->for($property)->create();
     $tool = app(HandOver::class, ['thread' => $thread]);
 
-    expect((string) $tool->handle(new ToolRequest(['reason' => 'Refund'])))->toContain("I've passed this to our front desk");
+    expect((string) $tool->handle(new ToolRequest(['reason' => 'Transfer', 'summary' => 'Asks about airport transfer.'])))
+        ->toContain("I've passed this to our front desk")
+        ->toContain('in the language they write in');
     $firstAt = $thread->fresh()->escalated_at;
     $this->travel(5)->minutes();
-    $tool->handle(new ToolRequest(['reason' => 'Again']));
+    $again = (string) $tool->handle(new ToolRequest(['reason' => 'Price', 'summary' => 'Asks the price of the transfer.']));
+    $tool->handle(new ToolRequest(['reason' => 'Price', 'summary' => 'Asks the price of the transfer.']));
 
-    expect($thread->fresh())->status->toBe(AiThreadStatus::Escalated)
-        ->escalated_at->toEqual($firstAt);
+    expect($again)->toContain('already with the front desk')->not->toContain("I've passed this to our front desk")
+        ->and($thread->fresh())->status->toBe(AiThreadStatus::Escalated)
+        ->escalated_at->toEqual($firstAt)
+        ->handover_summary->toBe("Asks about airport transfer.\nAsks the price of the transfer.");
+});
+
+test('the handover message is sent in the language of the guest', function () {
+    ['property' => $property] = conciergeChatSetup();
+    $thread = AiThread::factory()->for($property)->create();
+
+    expect(app(AssistantInstructions::class)->for($thread))
+        ->toContain('send the guest the message below, in the language the guest writes in')
+        ->not->toContain('exactly this');
 });
 
 test('the PropertyFacts tool returns one guide part and refuses an unknown one', function () {
