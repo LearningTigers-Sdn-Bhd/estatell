@@ -32,6 +32,14 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { useUnsavedChanges } from '@/hooks/use-unsaved-changes';
 import { edit, index, preview, reset, update } from '@/routes/settings/emails';
@@ -268,28 +276,47 @@ function GuestEmailEditor({
                             Press one to add it where the cursor is. Each
                             guest&apos;s details go in its place.
                         </p>
-                        <ul className="flex flex-col divide-y rounded-lg border text-sm">
-                            {email.placeholders.map((placeholder) => (
-                                <li key={placeholder.key}>
-                                    <button
-                                        type="button"
-                                        onMouseDown={(event) =>
-                                            event.preventDefault()
-                                        }
-                                        onClick={() => insert(placeholder.key)}
-                                        className="grid w-full gap-1 px-3 py-2 text-left outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-2 sm:gap-4"
-                                    >
-                                        <span className="font-mono">
-                                            {`{${placeholder.key}}`}
-                                        </span>
-                                        <span className="text-muted-foreground">
-                                            {placeholder.label}, such as{' '}
-                                            {placeholder.example}
-                                        </span>
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
+                        <div className="overflow-auto rounded-lg border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Placeholder</TableHead>
+                                        <TableHead>Replaced with</TableHead>
+                                        <TableHead>Example</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {email.placeholders.map((placeholder) => (
+                                        <TableRow
+                                            key={placeholder.key}
+                                            className="relative"
+                                        >
+                                            <TableCell>
+                                                <button
+                                                    type="button"
+                                                    onMouseDown={(event) =>
+                                                        event.preventDefault()
+                                                    }
+                                                    onClick={() =>
+                                                        insert(placeholder.key)
+                                                    }
+                                                    aria-label={`Add {${placeholder.key}}`}
+                                                    className="rounded-sm font-mono outline-none after:absolute after:inset-0 focus-visible:ring-2 focus-visible:ring-ring"
+                                                >
+                                                    {`{${placeholder.key}}`}
+                                                </button>
+                                            </TableCell>
+                                            <TableCell className="whitespace-normal">
+                                                {placeholder.label}
+                                            </TableCell>
+                                            <TableCell className="whitespace-normal text-muted-foreground">
+                                                {placeholder.example}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
                     </div>
                 </div>
 
