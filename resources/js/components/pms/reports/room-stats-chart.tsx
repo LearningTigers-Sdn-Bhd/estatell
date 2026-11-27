@@ -171,7 +171,9 @@ export function RoomStatsChart({
 
                                         return (
                                             <span className="flex flex-col">
-                                                {tooltipDate(String(label))}
+                                                {typeof label === 'string'
+                                                    ? tooltipDate(label)
+                                                    : label}
                                                 {basis && (
                                                     <span className="font-normal text-muted-foreground">
                                                         {basisLabel[basis]}

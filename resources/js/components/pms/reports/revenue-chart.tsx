@@ -208,7 +208,9 @@ export function RevenueChart({
                                     <ChartTooltipContent
                                         hideIndicator
                                         labelFormatter={(label) =>
-                                            tooltipDate(String(label))
+                                            typeof label === 'string'
+                                                ? tooltipDate(label)
+                                                : label
                                         }
                                         formatter={(amount) => (
                                             <AmountRow
