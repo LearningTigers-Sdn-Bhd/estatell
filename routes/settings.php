@@ -272,6 +272,7 @@ Route::prefix('settings')->name('settings.')->group(function () {
         Route::post('locks/{doorLock}/unlock', [DoorLockSettingsController::class, 'unlock'])->name('unlock')->middleware('door-locks:ttlock');
         Route::post('locks/{doorLock}/clock', [DoorLockSettingsController::class, 'clock'])->name('clock')->middleware('door-locks:ttlock');
         Route::post('locks/{doorLock}/health', [DoorLockSettingsController::class, 'health'])->name('health')->middleware('door-locks:ttlock');
+        Route::get('locks/{doorLock}/log', [DoorLockSettingsController::class, 'log'])->name('log')->middleware('door-locks:ttlock');
         Route::post('passcodes', [DoorLockSettingsController::class, 'storePasscode'])->name('passcodes.store')->middleware('door-locks:ttlock');
         Route::post('passcodes/{doorPasscode}/revoke', [DoorLockSettingsController::class, 'revoke'])->name('passcodes.revoke')->middleware('door-locks:ttlock');
         Route::post('passcodes/{doorPasscode}/retry', [DoorLockSettingsController::class, 'retry'])->name('passcodes.retry')->middleware('door-locks:ttlock');

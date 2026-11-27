@@ -236,6 +236,43 @@ class TtlockApi
     }
 
     /**
+     * The newest events of one lock between two times, up to `$limit`. Reads what TTLock already holds, so it makes no call through the
+     * gateway. A lock uploads its events through its gateway within seconds; a lock without one uploads them only when someone syncs it
+     * with the TTLock app, so its log can be days behind or empty.
+     *
+     * @return list<array{type: int, success: bool, code: string|null, username: string|null, at: CarbonImmutable}>
+     */
+    public function lockRecords(string $accessToken, int $lockId, CarbonInterface $from, CarbonInterface $to, int $limit = 500): array
+    {
+        $records = [];
+        $page = 1;
+
+        do {
+            $response = $this->post('/v3/lockRecord/list', $accessToken, [
+                'lockId' => $lockId,
+                'startDate' => $from->getTimestampMs(),
+                'endDate' => $to->getTimestampMs(),
+                'pageNo' => $page,
+                'pageSize' => 100,
+            ]);
+
+            foreach ($response['list'] ?? [] as $record) {
+                $records[] = [
+                    'type' => (int) ($record['recordType'] ?? 0),
+                    'success' => (int) ($record['success'] ?? 1) === 1,
+                    'code' => isset($record['keyboardPwd']) && $record['keyboardPwd'] !== '' ? (string) $record['keyboardPwd'] : null,
+                    'username' => isset($record['username']) && $record['username'] !== '' ? (string) $record['username'] : null,
+                    'at' => CarbonImmutable::createFromTimestampMs((int) ($record['lockDate'] ?? $record['serverDate'] ?? 0)),
+                ];
+            }
+
+            $page++;
+        } while (count($records) < $limit && $page <= (int) ($response['pages'] ?? 1));
+
+        return array_slice($records, 0, $limit);
+    }
+
+    /**
      * Open the door through the gateway.
      */
     public function unlock(string $accessToken, int $lockId): void

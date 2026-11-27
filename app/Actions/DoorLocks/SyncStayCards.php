@@ -8,6 +8,7 @@ use App\Enums\UnitStatus;
 use App\Models\DoorCard;
 use App\Models\ReservationUnit;
 use App\Services\DoorLocks\PasscodeWindow;
+use App\Services\DoorLocks\StayLockLabel;
 use App\Services\DoorLocks\StayLocks;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -63,7 +64,7 @@ class SyncStayCards
         $locks = $this->stayLocks->for($unit);
         [, $endsAt] = $this->passcodeWindow->forUnit($unit, PasscodeKind::Custom, $unit->property->settings->time_zone ?? 'Asia/Kuala_Lumpur');
         $live = [PasscodeStatus::Pending, PasscodeStatus::Active];
-        $label = mb_substr('Stay '.$unit->reservation_id.' card', 0, 60);
+        $label = StayLockLabel::for($unit);
 
         foreach ($cards->whereIn('status', $live)->pluck('card_number')->unique() as $number) {
             $uid = strtoupper(str_pad(dechex($number), $number > 0xFFFFFFFF ? 14 : 8, '0', STR_PAD_LEFT));
