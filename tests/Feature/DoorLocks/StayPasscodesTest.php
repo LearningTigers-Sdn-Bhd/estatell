@@ -78,6 +78,9 @@ it('sends a custom PIN on a lock with a gateway in custom mode', function () {
     app(SyncStayPasscodes::class)($unit);
 
     expect(ttlockCalls('/v3/keyboardPwd/add'))->toBe(1);
+    $unit->load('reservation.booker');
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/v3/keyboardPwd/add')
+        && $request['keyboardPwdName'] === $unit->reservation->short_code.' - '.$unit->reservation->booker->full_name);
 });
 
 it('skips a room with no lock and a switched-off connection', function () {

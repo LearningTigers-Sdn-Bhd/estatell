@@ -1,8 +1,9 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     Activity,
     CircleCheck,
     Clock,
+    History,
     KeyRound,
     Lock,
     MoreHorizontal,
@@ -687,6 +688,22 @@ export default function DoorLocksIndex({
                                                                             <Activity />
                                                                             Check
                                                                             health
+                                                                        </DropdownMenuItem>
+                                                                        <DropdownMenuItem
+                                                                            render={
+                                                                                <Link
+                                                                                    href={DoorLockSettingsController.log.url(
+                                                                                        {
+                                                                                            doorLock:
+                                                                                                lock.id,
+                                                                                        },
+                                                                                    )}
+                                                                                />
+                                                                            }
+                                                                        >
+                                                                            <History />
+                                                                            Access
+                                                                            log
                                                                         </DropdownMenuItem>
                                                                     </DropdownMenuContent>
                                                                 </DropdownMenu>

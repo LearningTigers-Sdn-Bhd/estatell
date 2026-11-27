@@ -2,6 +2,7 @@
 
 use App\Enums\PasscodeKind;
 use App\Enums\PasscodeStatus;
+use App\Models\DoorCard;
 use App\Models\DoorLock;
 use App\Models\DoorPasscode;
 use App\Models\Room;
@@ -288,4 +289,52 @@ it('pages the TTLock locks and PINs on their own parameters and searches locks o
 
     $this->actingAs($owner)->get($url.'?ttlock_search=Wing 7')
         ->assertInertia(fn (Assert $page) => $page->where('lockSearch', 'Wing 7')->has('locks.data', 1)->where('lockTotal', 15)->has('lockOptions', 15));
+});
+
+it('shows the access log page with our PIN and card labels and flags wrong PINs and alarms', function () {
+    ['owner' => $owner, 'property' => $property, 'lock' => $lock] = doorLockSetup(gateway: true);
+    $stay = doorLockStay($property, $lock->room)->load('reservation.booker');
+    DoorPasscode::factory()->create(['door_lock_id' => $lock->id, 'reservation_unit_id' => $stay->id, 'code' => '482913', 'label' => 'Ali · R101']);
+    DoorCard::factory()->create(['door_lock_id' => $lock->id, 'card_number' => 3054198966, 'label' => 'Ali card']);
+    fakeTtlock();
+    $at = fn (int $minutes): int => now()->subMinutes($minutes)->getTimestampMs();
+    Http::fake(['*/v3/lockRecord/list' => Http::response(['pages' => 1, 'list' => [
+        ['recordType' => 4, 'success' => 1, 'keyboardPwd' => '482913', 'lockDate' => $at(30)],
+        ['recordType' => 7, 'success' => 1, 'keyboardPwd' => '3054198966', 'lockDate' => $at(20)],
+        ['recordType' => 7, 'success' => 0, 'keyboardPwd' => '3325046154', 'lockDate' => $at(10)],
+        ['recordType' => 4, 'success' => 0, 'keyboardPwd' => '667093', 'username' => '667***', 'lockDate' => $at(8)],
+        ['recordType' => 4, 'success' => 1, 'keyboardPwd' => '961889', 'username' => 'Stay 77 Lee', 'lockDate' => $at(7)],
+        ['recordType' => 7, 'success' => 1, 'keyboardPwd' => '2001', 'username' => 'N45BVR - Siti Aminah', 'lockDate' => $at(6)],
+        ['recordType' => 48, 'success' => 1, 'lockDate' => $at(5)],
+        ['recordType' => 999, 'success' => 1, 'username' => 'owner', 'lockDate' => $at(1)],
+    ]])]);
+    $url = route('settings.door-locks.log', [$property, $lock, 'from' => '2026-10-14', 'to' => '2026-10-14']);
+
+    $this->actingAs($owner)->get($url)->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('settings/door-locks/log')->where('from', '2026-10-14')->where('to', '2026-10-14')->missing('log')
+            ->loadDeferredProps(fn (Assert $page) => $page->where('log.error', null)->where('log.events', fn ($events): bool => collect($events)
+                ->map(fn (array $event): array => [$event['kind'], $event['event'], $event['who'], $event['guest'], $event['method'], $event['code']])->all() === [
+                    ['other', 'Lock event 999', 'owner', null, null, null],
+                    ['alarm', 'Keypad locked after too many wrong tries', null, null, null, null],
+                    ['opened', 'Opened with a card', 'N45BVR', 'Siti Aminah', 'card', '2001'],
+                    ['opened', 'Opened with a PIN', 'Stay 77 Lee', null, 'pin', '961889'],
+                    ['failed', 'PIN refused', 'Unknown PIN', null, 'pin', '667093'],
+                    ['failed', 'Card refused', 'Unknown card', null, 'card', '3325046154'],
+                    ['opened', 'Opened with a card', 'Ali card', null, 'card', '3054198966'],
+                    ['opened', 'Opened with a PIN', $stay->reservation->short_code, $stay->reservation->booker->full_name, 'pin', '482913'],
+                ])));
+
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/v3/lockRecord/list') && $request['lockId'] === $lock->ttlock_lock_id);
+});
+
+it('shows a TTLock refusal on the access log page, and 404 for another property', function () {
+    ['owner' => $owner, 'property' => $property, 'lock' => $lock] = doorLockSetup();
+    ['lock' => $otherLock] = doorLockSetup();
+    fakeTtlock();
+    Http::fake(['*/v3/lockRecord/list' => Http::response(['errcode' => -2018, 'errmsg' => 'Permission Denied'])]);
+
+    $this->actingAs($owner)->get(route('settings.door-locks.log', [$property, $lock]))->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->where('from', '2026-10-08')->where('to', '2026-10-14')->loadDeferredProps(fn (Assert $page) => $page
+            ->where('log.events', [])->where('log.error', fn (string $error): bool => str_contains($error, 'Permission Denied'))));
+    $this->actingAs($owner)->get(route('settings.door-locks.log', [$property, $otherLock]))->assertNotFound();
 });
