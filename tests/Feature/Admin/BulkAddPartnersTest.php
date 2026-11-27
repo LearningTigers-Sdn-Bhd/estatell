@@ -290,7 +290,9 @@ test('the import template only comes as csv or xlsx', function () {
 });
 
 test('bulk add refuses an email with an open partner invitation and saves nothing', function () {
+    // The invitation's own partner has a random prefix, which can be AS, so count partners instead of looking up AS.
     PartnerInvitation::factory()->create(['email' => 'invited@partner.test']);
+    $partners = Partner::query()->count();
 
     $this->actingAs($this->admin)
         ->post(route('admin.partners.bulk.store'), ['rows' => [
@@ -298,5 +300,5 @@ test('bulk add refuses an email with an open partner invitation and saves nothin
         ]])
         ->assertSessionHasErrors(['rows.0.email' => 'This email already has an open partner invitation.']);
 
-    expect(Partner::query()->where('code_prefix', 'AS')->exists())->toBeFalse();
+    expect(Partner::query()->count())->toBe($partners);
 });
