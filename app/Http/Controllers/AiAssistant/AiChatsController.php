@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\AiAssistant;
 
+use App\Actions\AiAssistant\CloseAiThread;
 use App\Actions\AiAssistant\ResolveAiThread;
 use App\Data\AiAssistant\AiThreadData;
 use App\Data\AiAssistant\AiThreadRowData;
 use App\Enums\AiPlace;
 use App\Enums\AiThreadStatus;
+use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Models\AiThread;
 use App\Models\Property;
@@ -20,7 +22,7 @@ use Inertia\Response;
 use Spatie\LaravelData\PaginatedDataCollection;
 
 /**
- * The AI chats inbox: the Handed over and All tabs, the chat Sheet (`?thread={id}`) and Resolve. Behind `ai-assistant`
+ * The AI chats inbox: the Handed over and All tabs, the chat Sheet (`?thread={id}`), Resolve and Close. Behind `ai-assistant`
  * and `front-desk.view`. See docs/35-ai-assistant/03-places-and-routes.md#ai-chats-inbox.
  */
 class AiChatsController extends Controller
@@ -43,6 +45,18 @@ class AiChatsController extends Controller
         Inertia::flash('toast', $resolve($request->user(), $found)
             ? ['type' => 'success', 'message' => __('Handover resolved.')]
             : ['type' => 'error', 'message' => __('This chat is no longer handed over.')]);
+
+        return back();
+    }
+
+    public function close(Request $request, Property $property, string $thread, AiThreadList $list, CloseAiThread $close): RedirectResponse
+    {
+        $found = $list->find($property, $thread);
+        abort_if($found === null, 404);
+
+        Inertia::flash('toast', $close($request->user(), $found)
+            ? ['type' => 'success', 'message' => __('Chat closed. The next message starts a new chat.')]
+            : ['type' => 'error', 'message' => __('This chat is already closed.')]);
 
         return back();
     }
@@ -82,6 +96,15 @@ class AiChatsController extends Controller
         $threadId = $request->string('thread')->toString();
         $thread = $threadId === '' ? null : $list->find($property, $threadId);
 
-        return $thread === null ? null : AiThreadData::fromModel($thread, $messages->uiMessages($thread), $thread->status === AiThreadStatus::Escalated);
+        if ($thread === null) {
+            return null;
+        }
+
+        return AiThreadData::fromModel(
+            $thread,
+            $messages->uiMessages($thread),
+            canResolve: $thread->status === AiThreadStatus::Escalated,
+            canClose: $thread->status !== AiThreadStatus::Closed && $request->user()->can(PermissionEnum::AiChatsClose->value),
+        );
     }
 }

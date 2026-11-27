@@ -163,6 +163,62 @@ test('resolve moves a handed-over chat back to Open once and logs it', function 
     expect(Activity::query()->where('event', 'ai-assistant.thread-resolved')->count())->toBe(1);
 });
 
+test('close ends a handed-over chat once, resolves its handover and logs it', function () {
+    ['property' => $property] = aiInboxSetup();
+    $staff = User::factory()->for($property)->withPermissions(['front-desk.view', 'ai-chats.close'])->create();
+    $thread = AiThread::factory()->for($property)->create(['status' => AiThreadStatus::Escalated, 'escalated_at' => now()]);
+
+    $this->actingAs($staff)->post(route('ai-chats.close', [$property, $thread->id]))
+        ->assertRedirect()
+        ->assertInertiaFlash('toast.type', 'success');
+
+    expect($thread->fresh())
+        ->status->toBe(AiThreadStatus::Closed)
+        ->resolved_by_user_id->toBe($staff->id)
+        ->resolved_at->not->toBeNull()
+        ->and(Activity::query()->where('event', 'ai-assistant.thread-closed')->sole()->properties['ai_thread_id'])->toBe($thread->id);
+
+    $this->post(route('ai-chats.close', [$property, $thread->id]))
+        ->assertRedirect()
+        ->assertInertiaFlash('toast.message', 'This chat is already closed.');
+
+    expect(Activity::query()->where('event', 'ai-assistant.thread-closed')->count())->toBe(1);
+});
+
+test('close ends an Open chat without marking a handover resolved', function () {
+    ['property' => $property] = aiInboxSetup();
+    $staff = User::factory()->for($property)->withPermissions(['front-desk.view', 'ai-chats.close'])->create();
+    $thread = AiThread::factory()->for($property)->create();
+
+    $this->actingAs($staff)->post(route('ai-chats.close', [$property, $thread->id]))->assertRedirect();
+
+    expect($thread->fresh())
+        ->status->toBe(AiThreadStatus::Closed)
+        ->resolved_at->toBeNull()
+        ->resolved_by_user_id->toBeNull();
+});
+
+test('close needs ai-chats.close and the property own chat', function () {
+    ['property' => $property, 'staff' => $staff] = aiInboxSetup();
+    $closer = User::factory()->for($property)->withPermissions(['front-desk.view', 'ai-chats.close'])->create();
+    $thread = AiThread::factory()->for($property)->create(['status' => AiThreadStatus::Escalated, 'escalated_at' => now()]);
+    $closed = AiThread::factory()->for($property)->create(['status' => AiThreadStatus::Closed]);
+    $other = AiThread::factory()->create();
+
+    $this->actingAs($staff)->get(route('ai-chats.index', [$property, 'thread' => $thread->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('selectedThread.canClose', false));
+    $this->post(route('ai-chats.close', [$property, $thread->id]))->assertForbidden();
+
+    $this->actingAs($closer)->get(route('ai-chats.index', [$property, 'thread' => $thread->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('selectedThread.canClose', true));
+    $this->get(route('ai-chats.all', [$property, 'thread' => $closed->id]))
+        ->assertInertia(fn (Assert $page) => $page->where('selectedThread.canClose', false));
+    $this->post(route('ai-chats.close', [$property, $other->id]))->assertNotFound();
+
+    expect($thread->fresh()->status)->toBe(AiThreadStatus::Escalated)
+        ->and($other->fresh()->status)->not->toBe(AiThreadStatus::Closed);
+});
+
 test('a handover after a resolve saves the new summary, clears the resolve and alerts again', function () {
     ['property' => $property, 'staff' => $staff] = aiInboxSetup();
     $thread = AiThread::factory()->for($property)->create();
