@@ -36,6 +36,7 @@ enum PermissionEnum: string
     case GuestRequestsView = 'guest-requests.view';
     case GuestRequestsManage = 'guest-requests.manage';
     case GuestRequestsResolve = 'guest-requests.resolve';
+    case AiChatsClose = 'ai-chats.close';
     case FolioPostCharge = 'folio.post-charge';
     case FolioReverse = 'folio.reverse';
     case FolioTransfer = 'folio.transfer';
@@ -169,6 +170,7 @@ enum PermissionEnum: string
             self::GuestRequestsView => __('View guest requests'),
             self::GuestRequestsManage => __('Record, assign, cancel and reopen guest requests'),
             self::GuestRequestsResolve => __('Start and resolve guest requests'),
+            self::AiChatsClose => __('Close AI chats so the next message starts a new chat'),
             self::EInvoiceView => __('View e-invoices and submissions'),
             self::EInvoiceManage => __('Submit, cancel, and configure e-invoices'),
             self::PayoutsView => __('View payouts and commission from Estatell'),
@@ -197,7 +199,7 @@ enum PermissionEnum: string
         return match ($this) {
             self::FrontDeskView, self::FrontDeskCheckIn, self::FrontDeskCheckOut, self::FrontDeskCheckInWithoutCard, self::FrontDeskWaiveFees, self::FrontDeskUndoCheckIn, self::FrontDeskUndoCheckOut, self::RegistrationCardSign, self::RegistrationCardSendLink, self::RegistrationCardVoid => __('Front desk'),
             self::ReservationsView, self::ReservationsManage, self::ReservationsChangePrice, self::EventsView, self::EventsManage, self::FacilitiesBook, self::RatesView, self::RatesManage, self::RatesOverrideRestrictions => __('Reservations'),
-            self::GuestsView, self::GuestsManage, self::GuestsBlacklist, self::GuestsViewDocuments, self::GuestsMerge, self::GuestsAnonymize, self::GuestRequestsView, self::GuestRequestsManage, self::GuestRequestsResolve => __('Guests'),
+            self::GuestsView, self::GuestsManage, self::GuestsBlacklist, self::GuestsViewDocuments, self::GuestsMerge, self::GuestsAnonymize, self::GuestRequestsView, self::GuestRequestsManage, self::GuestRequestsResolve, self::AiChatsClose => __('Guests'),
             self::FolioPostCharge, self::FolioReverse, self::FolioTransfer, self::FolioDiscount, self::FolioDiscountOpen, self::FolioClose, self::FolioReopen, self::FolioPrintVoucher, self::FolioManual, self::FolioViewManualEntries, self::FolioWaiveTax, self::PaymentRecord, self::PaymentRefund, self::PaymentRefundOtherMethod => __('Folio and payments'),
             self::RoomsView, self::RoomsManage, self::RoomsBlock, self::HousekeepingView, self::HousekeepingUpdate, self::HousekeepingInspect, self::HousekeepingEditTimes, self::NightAuditRun, self::NightAuditForce, self::NightAuditReceiveReport, self::ReportsView => __('Operations'),
             self::CompanyView, self::CompanyManage, self::CompanyCreditOverride, self::CityLedgerInvoice, self::CityLedgerCreditNote, self::CityLedgerPayment, self::CityLedgerAllocate, self::EInvoiceView, self::EInvoiceManage, self::PayoutsView => __('Finance'),

@@ -91,6 +91,7 @@ roles    spatie columns + property_id (NOT NULL, FK) + default_role (nullable)
 | `guest-requests.view`              | Guest requests list, reservation Requests tab, board tag                    | ✓     | ✓       | Front desk, Housekeeping          |
 | `guest-requests.manage`            | Open, edit, assign, cancel and reopen guest requests                        | ✓     | ✓       | Front desk                        |
 | `guest-requests.resolve`           | Start and resolve guest requests                                            | ✓     | ✓       | Front desk, Housekeeping          |
+| `ai-chats.close`                   | Close a chat in Chat handovers, so the next message starts a new chat       | ✓     | ✓       |                                   |
 | `booking-website.manage`           | Booking website: General, Design, Content, Rates and SEO tabs               | ✓     |         |                                   |
 | `booking-website.publish`          | Publish or unpublish the booking website                                    | ✓     |         |                                   |
 | `booking-website.api`              | Booking website: API token and return addresses                             | ✓     |         |                                   |
